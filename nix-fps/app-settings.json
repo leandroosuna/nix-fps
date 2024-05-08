@@ -1,0 +1,26 @@
+﻿{
+  "BinFolder": "bin/",
+  "ObjFolder": "obj/",
+  "ContentExtension": ".xnb",
+  "ContentFolder": "Content/",
+  "FbxExtension": ".fbx",
+  "FbxImporterName": "FbxImporter",
+  "ProcessorName": "Animation Processor",
+  "rebuild-animations": "false",
+
+  //"ScreenWidth": "1366",
+  //"ScreenHeight": "768",
+  //"Fullscreen": "false",
+  "ScreenWidth": "1920",
+  "ScreenHeight": "1080",
+  "Fullscreen": "true",
+
+  "Borderless": "true",
+  "Vsync": "false",
+  "FPSLimit": "false",
+  "FPSMax": "60",
+  "MouseVisible": "false",
+
+
+  "ServerIP": "192.168.1.45:7777"
+}
