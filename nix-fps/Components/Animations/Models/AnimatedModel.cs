@@ -34,10 +34,6 @@ public class AnimatedModel
     /// </summary>
     private ModelExtra _modelExtra;
 
-    /// <summary>
-    ///     An associated animation clip Player.
-    /// </summary>
-    public AnimationPlayer _player;
 
     /// <summary>
     ///     The Model animation clips.
@@ -53,79 +49,14 @@ public class AnimatedModel
         _assetName = assetName;
     }
 
-    /// <summary>
-    ///     Play an animation clip.
-    /// </summary>
-    /// <param name="clip">The clip to play.</param>
-    /// <returns>The Player that will play this clip.</returns>
-    public AnimationPlayer PlayClip(AnimationClip clip)
-    {
-        // Create a clip Player and assign it to this Model.
-        _player = new AnimationPlayer(clip, this);
-        return _player;
-    }
-    public void SetPlayer(AnimationPlayer ap)
-    {
-        _player = ap;
-    }
-    /// <summary>
-    ///     Update animation for the Model.
-    /// </summary>
-    public float Update(GameTime gameTime)
-    {
-        _player.Update(gameTime);
-        return _player._position;
-    }
-
-    /// <summary>
-    ///     Draw the Model.
-    /// </summary>
-    /// <param name="world">A world matrix to place the Model.</param>
-    /// <param name="view">The view matrix, normally from the camera.</param>
-    /// <param name="projection">The projection matrix, normally from the application.</param>
-    //public void Draw(Matrix world, Matrix view, Matrix projection)
-    //{
-    //    // Compute all of the bone absolute transforms.
-    //    var boneTransforms = new Matrix[_bones.Count];
-
-    //    for (var i = 0; i < _bones.Count; i++)
-    //    {
-    //        var bone = _bones[i];
-    //        bone.ComputeAbsoluteTransform();
-
-    //        boneTransforms[i] = bone.AbsoluteTransform;
-    //    }
-
-    //    // Determine the skin transforms from the skeleton.
-    //    var skeleton = new Matrix[_modelExtra.Skeleton.Count];
-    //    for (var s = 0; s < _modelExtra.Skeleton.Count; s++)
-    //    {
-    //        var bone = _bones[_modelExtra.Skeleton[s]];
-    //        skeleton[s] = bone.SkinTransform * bone.AbsoluteTransform;
-    //    }
-
-    //    // Draw the Model.
-    //    foreach (var modelMesh in _model.Meshes)
-    //    {
-    //        foreach (var effect in modelMesh.Effects)
-    //        {
-    //            var skinnedEffect = effect as SkinnedEffect;
-    //            skinnedEffect.World = boneTransforms[modelMesh.ParentBone.Index] * world;
-    //            skinnedEffect.View = view;
-    //            skinnedEffect.Projection = projection;
-    //            skinnedEffect.EnableDefaultLighting();
-    //            skinnedEffect.PreferPerPixelLighting = true;
-    //            skinnedEffect.SetBoneTransforms(skeleton);
-    //        }
-
-    //        modelMesh.Draw();
-    //    }
-    //}
-    public void DrawCustom(NixFPS game, Matrix SRT )
+    public void Draw(NixFPS game, Matrix SRT, string clipName)
     {
         var animManager = game.animationManager;
         var effect = animManager.effect;
         var camera = game.camera;
+
+        animManager.animationPlayer.SetActiveClip(animManager.soldierPath + clipName);
+
         // Compute all of the bone absolute transforms.
         var boneTransforms = new Matrix[_bones.Count];
 

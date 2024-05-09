@@ -62,7 +62,7 @@ namespace nixfps.Components.Cameras
         public float mouseSensitivity = .3f; //.15f
         public float mouseSensAdapt = .09f;
 
-        public bool mouseLocked = false;
+        public bool mouseLocked = true;
         public void Update(float deltaTime)
         {
             GetMouseDelta(deltaTime);

@@ -1,103 +1,81 @@
 ﻿using Microsoft.Xna.Framework;
 using nixfps.Components.Animations.DataTypes;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading;
 
 namespace nixfps.Components.Animations.Models;
 
-/// <summary>
-///     Animation Clip player.
-///     It maps an animation Clip onto a Model.
-/// </summary>
+public class Clip
+{
+    public AnimationClip clip;
+    public float position;
+    public string name;
+    public BoneInfo[] boneInfo;
+    public Clip(string name, AnimationClip clip)
+    {
+        this.clip = clip;
+        this.position = 0f;
+        this.name = name;
+        
+    }
+    public void Update(float deltaTime)
+    {
+        position += deltaTime;
+        if (position >= clip.Duration)
+            position = 0;
+    }
+}
+
 public class AnimationPlayer
 {
-    /// <summary>
-    ///     We maintain a BoneInfo class for each bone.
-    ///     This class does most of the work in playing the animation.
-    /// </summary>
-    private readonly BoneInfo[] _boneInfo;
+    Clip[] clips;
 
-    /// <summary>
-    ///     The Clip we are playing.
-    /// </summary>
-    private readonly AnimationClip _clip;
-
-    /// <summary>
-    ///     Current position in time in the clip.
-    /// </summary>
-    public float _position;
-
-    /// <summary>
-    ///     Constructor for the animation player.
-    ///     It makes the association between a Clip and a Model and sets up for playing.
-    /// </summary>
-    public AnimationPlayer(AnimationClip clip, AnimatedModel model)
+    public AnimationPlayer(AnimatedModel model, Dictionary<string, AnimationClip> clps )
     {
-        _clip = clip;
+        
+        clips = new Clip[clps.Keys.Count];
+        int i = 0;
+        foreach (var key in clps.Keys) {
+            
+            var actualClip = clps[key];
+            clips[i] = new Clip(key, actualClip);
+            clips[i].name = key;
+            var boneCount = actualClip.Bones.Count;
+            clips[i].boneInfo = new BoneInfo[boneCount];
 
-        // Create the bone information classes.
-        var boneCount = clip.Bones.Count;
-        _boneInfo = new BoneInfo[boneCount];
-
-        for (var b = 0; b < _boneInfo.Length; b++)
-        {
-            // Create it.
-            _boneInfo[b] = new BoneInfo(clip.Bones[b]);
-
-            // Assign it to a Model bone.
-            _boneInfo[b].SetModel(model);
+            for (var b = 0; b < clips[i].boneInfo.Length; b++)
+            {
+                clips[i].boneInfo[b] = new BoneInfo(actualClip.Bones[b]);
+                clips[i].boneInfo[b].SetModel(model);
+            }
+            i++;
         }
-
-        Rewind();
     }
-
-    /// <summary>
-    ///     The Looping option.
-    ///     Set to true if you want the animation to loop back at the end.
-    /// </summary>
-    public bool Looping { get; set; }
-
-    /// <summary>
-    ///     Current Position in time in the Clip.
-    /// </summary>
-    private float Position
+    public void Update(float deltaTime)
     {
-        get => _position;
-        set
+        for (int i = 0; i < clips.Length; i++)
         {
-            if (value > Duration)
-            {
-                value = Duration;
-            }
-
-            _position = value;
-            foreach (var bone in _boneInfo)
-            {
-                bone.SetPosition(_position);
-            }
+            clips[i].Update(deltaTime);
         }
     }
 
-    /// <summary>
-    ///     The Clip duration.
-    /// </summary>
-    public float Duration => (float)_clip.Duration;
-
-    /// <summary>
-    ///     Reset back to time zero.
-    /// </summary>
-    public void Rewind()
+    public void SetActiveClip(string name)
     {
-        Position = 0;
-    }
-
-    /// <summary>
-    ///     Update the Clip Position.
-    /// </summary>
-    public void Update(GameTime gameTime)
-    {
-        Position += (float)gameTime.ElapsedGameTime.TotalSeconds;
-        if (Looping && Position >= Duration)
+        Clip clip = null;
+        for (int i = 0; i < clips.Length; i++)
         {
-            Position = 0;
+            if (clips[i].name == name) { 
+                clip = clips[i];
+                break;
+            }
+        }
+        if (clip != null)
+        {
+            foreach (var bone in clip.boneInfo)
+            {
+                bone.SetPosition(clip.position);
+            }
         }
     }
 }

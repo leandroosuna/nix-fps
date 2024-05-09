@@ -9,6 +9,7 @@ using nixfps.Components.Network;
 using nixfps.Components.Skybox;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace nixfps
 {
@@ -106,9 +107,27 @@ namespace nixfps
             lightsManager.ambientLight = new AmbientLight(new Vector3(20, 50, 20), new Vector3(1f, 1f, 1f), Vector3.One, Vector3.One);
 
 
+            var mrt = Matrix.CreateScale(0.025f) * Matrix.CreateRotationX(MathF.PI / 2) * Matrix.CreateTranslation(0, 0f, 0);
+            var mrt2 = Matrix.CreateScale(0.025f) * Matrix.CreateRotationX(MathF.PI / 2) * Matrix.CreateTranslation(10, 0f, 0);
+            
             animationManager = new AnimationManager();
-            animationManager.PlayAnimation("idle");
-
+            animationManager.SetPlayerData(0, mrt, "idle");
+            animationManager.SetPlayerData(1, mrt2, "idle");
+            
+            //Random r = new Random();
+            //int p = 0;
+            //var count = 4;
+            //var countMax = 10 * count;
+            //for(int x = 0; x < countMax; x +=10)
+            //{
+            //    for (int z = 0; z < countMax; z += 10)
+            //    {
+            //        var mx = Matrix.CreateScale(0.025f) * Matrix.CreateRotationX(MathF.PI / 2) * Matrix.CreateTranslation(x, 0f, z);
+            //        //int index = r.Next(11);
+            //        animationManager.SetPlayerData(p, mx, "run forward");
+            //        p++;
+            //    }
+            
             // Create many point lights
             GeneratePointLights();
 
@@ -161,52 +180,104 @@ namespace nixfps
             if(dz > 0 && dx == 0)
             {
                 if(!keyState.IsKeyDown(Keys.LeftShift))
-                    animationManager.PlayAnimation("run forward");
+                    animationManager.SetPlayerData(0,"run forward");
                 else
-                    animationManager.PlayAnimation("sprint forward");
+                    animationManager.SetPlayerData(0, "sprint forward");
             }
             else if(dz > 0 && dx > 0)
             {
                 if (!keyState.IsKeyDown(Keys.LeftShift))
-                    animationManager.PlayAnimation("run forward right");
+                    animationManager.SetPlayerData(0, "run forward right");
                 else
-                    animationManager.PlayAnimation("sprint forward right");
+                    animationManager.SetPlayerData(0, "sprint forward right");
             }
             else if (dz > 0 && dx < 0)
             {
                 if (!keyState.IsKeyDown(Keys.LeftShift))
-                    animationManager.PlayAnimation("run forward left");
+                    animationManager.SetPlayerData(0, "run forward left");
                 else
-                    animationManager.PlayAnimation("sprint forward left");
+                    animationManager.SetPlayerData(0, "sprint forward left");
             }
             else if (dz < 0 && dx == 0)
             {
-                animationManager.PlayAnimation("run backward");
+                animationManager.SetPlayerData(0, "run backward");
             }
             else if (dz < 0 && dx > 0)
             {
-                animationManager.PlayAnimation("run backward right");
+                animationManager.SetPlayerData(0, "run backward right");
             }
             else if (dz < 0 && dx < 0)
             {
-                animationManager.PlayAnimation("run backward left");
+                animationManager.SetPlayerData(0, "run backward left");
             }
             else if (dz == 0 && dx > 0)
             {
-                animationManager.PlayAnimation("run right");
+                animationManager.SetPlayerData(0, "run right");
             }
             else if (dz == 0 && dx < 0)
             {
-                animationManager.PlayAnimation("run left");
+                animationManager.SetPlayerData(0, "run left");
             }
 
             else
-                animationManager.PlayAnimation("idle");
+                animationManager.SetPlayerData(0, "idle");
+
+            
+            dz = (keyState.IsKeyDown(Keys.I) ? 1 : 0) - (keyState.IsKeyDown(Keys.K) ? 1 : 0);
+            dx = (keyState.IsKeyDown(Keys.L) ? 1 : 0) - (keyState.IsKeyDown(Keys.J) ? 1 : 0);
+
+            if (dz > 0 && dx == 0)
+            {
+                if (!keyState.IsKeyDown(Keys.LeftShift))
+                    animationManager.SetPlayerData(1, "run forward");
+                else
+                    animationManager.SetPlayerData(1, "sprint forward");
+            }
+            else if (dz > 0 && dx > 0)
+            {
+                if (!keyState.IsKeyDown(Keys.LeftShift))
+                    animationManager.SetPlayerData(1, "run forward right");
+                else
+                    animationManager.SetPlayerData(1, "sprint forward right");
+            }
+            else if (dz > 0 && dx < 0)
+            {
+                if (!keyState.IsKeyDown(Keys.LeftShift))
+                    animationManager.SetPlayerData(1, "run forward left");
+                else
+                    animationManager.SetPlayerData(1, "sprint forward left");
+            }
+            else if (dz < 0 && dx == 0)
+            {
+                animationManager.SetPlayerData(1, "run backward");
+            }
+            else if (dz < 0 && dx > 0)
+            {
+                animationManager.SetPlayerData(1, "run backward right");
+            }
+            else if (dz < 0 && dx < 0)
+            {
+                animationManager.SetPlayerData(1, "run backward left");
+            }
+            else if (dz == 0 && dx > 0)
+            {
+                animationManager.SetPlayerData(1, "run right");
+            }
+            else if (dz == 0 && dx < 0)
+            {
+                animationManager.SetPlayerData(1, "run left");
+            }
+
+            else
+                animationManager.SetPlayerData(1, "idle");
 
             ignored.RemoveAll(key => keyState.IsKeyUp(key));
 
+
+
+
             camera.Update(deltaTimeU);
-            animationManager.Update(gameTime);
+            animationManager.Update(deltaTimeU);
             UpdatePointLights(deltaTimeU);
 
             lightsManager.Update(deltaTimeU);
@@ -226,9 +297,7 @@ namespace nixfps
         protected override void Draw(GameTime gameTime)
         {
             //TODO: custom basic and skinning effect, decide deferred or not 
-            // bring a test plane (fix lighting)
-            // skybox (fix)
-            // effect managers
+            // skybox (fix
             deltaTimeD = (float)gameTime.ElapsedGameTime.TotalSeconds;
             timeD += deltaTimeD;
             timeD %= 0.12f;
@@ -253,10 +322,8 @@ namespace nixfps
 
             // Draw a simple plane, enable lighting on it
             DrawPlane();
-
-            //DrawPlayerModel();
-            animationManager.DrawPlayer(Matrix.CreateScale(0.025f) * Matrix.CreateRotationX(MathF.PI/2)*  Matrix.CreateTranslation(0,0f,0));
-            //animationManager.DrawPlayer(Matrix.CreateScale(0.025f) *  Matrix.CreateTranslation(0,0f,0));
+            
+            animationManager.DrawPlayers();
 
             // Draw the geometry of the lights in the scene, so that we can see where the generators are
             lightsManager.DrawLightGeo();
@@ -379,7 +446,7 @@ namespace nixfps
         void GeneratePointLights()
         {
             var random = new Random();
-            var light = new PointLight(Vector3.Zero, 15f, new Vector3(0,1,1), new Vector3(0, 1, 1));
+            var light = new PointLight(Vector3.Zero, 15f, new Vector3(1,0,0), new Vector3(1, 0, 0));
             lightsManager.register(light);
             lights.Add(light);
             light.hasLightGeo = true;
