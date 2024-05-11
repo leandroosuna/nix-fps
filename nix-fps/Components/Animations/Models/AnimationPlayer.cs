@@ -1,5 +1,6 @@
 ﻿using Microsoft.Xna.Framework;
 using nixfps.Components.Animations.DataTypes;
+using nixfps.Components.Effects;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
@@ -60,21 +61,27 @@ public class AnimationPlayer
         }
     }
 
-    public void SetActiveClip(string name)
+    public void SetActiveClip(PlayerDrawData playerDrawData)
     {
         Clip clip = null;
+        float pos;
         for (int i = 0; i < clips.Length; i++)
         {
-            if (clips[i].name == name) { 
+            if (clips[i].name == playerDrawData.clipName) { 
                 clip = clips[i];
                 break;
             }
         }
         if (clip != null)
         {
+            //apply an offset for different models, random at their creation
+            pos = clip.position;
+            pos += playerDrawData.timeOffset;
+            pos %= (float) clip.clip.Duration;
+
             foreach (var bone in clip.boneInfo)
             {
-                bone.SetPosition(clip.position);
+                bone.SetPosition(pos);
             }
         }
     }

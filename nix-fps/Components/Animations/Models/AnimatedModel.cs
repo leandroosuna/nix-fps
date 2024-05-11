@@ -44,18 +44,21 @@ public class AnimatedModel
     ///     Creates the Model from an XNA Model.
     /// </summary>
     /// <param name="assetName">The name of the asset for this Model.</param>
+    /// 
+    NixFPS game;
     public AnimatedModel(string assetName)
     {
         _assetName = assetName;
+        game = NixFPS.GameInstance();
     }
 
-    public void Draw(NixFPS game, Matrix SRT, string clipName)
+    public void Draw(PlayerDrawData playerDrawData)
     {
         var animManager = game.animationManager;
         var effect = animManager.effect;
         var camera = game.camera;
 
-        animManager.animationPlayer.SetActiveClip(animManager.soldierPath + clipName);
+        animManager.animationPlayer.SetActiveClip(playerDrawData);
 
         // Compute all of the bone absolute transforms.
         var boneTransforms = new Matrix[_bones.Count];
@@ -85,7 +88,7 @@ public class AnimatedModel
 
         foreach (var mesh in _model.Meshes)
         {
-            var worldBone = boneTransforms[mesh.ParentBone.Index] * SRT;
+            var worldBone = boneTransforms[mesh.ParentBone.Index] * playerDrawData.SRT;
 
             effect.SetWorld(worldBone);
             effect.SetView(camera.view);
@@ -120,9 +123,9 @@ public class AnimatedModel
     /// <summary>
     ///     Load the Model asset from content.
     /// </summary>
-    public Model LoadContent(ContentManager content)
+    public Model LoadContent()
     {
-        _model = content.Load<Model>(_assetName);
+        _model = game.Content.Load<Model>(_assetName);
         
         _modelExtra = _model.Tag as ModelExtra;
 

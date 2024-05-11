@@ -111,23 +111,24 @@ namespace nixfps
             var mrt2 = Matrix.CreateScale(0.025f) * Matrix.CreateRotationX(MathF.PI / 2) * Matrix.CreateTranslation(10, 0f, 0);
             
             animationManager = new AnimationManager();
-            animationManager.SetPlayerData(0, mrt, "idle");
-            animationManager.SetPlayerData(1, mrt2, "idle");
+            //animationManager.SetPlayerData(0, mrt, "idle");
+            //animationManager.SetPlayerData(1, mrt2, "idle");
             
-            //Random r = new Random();
-            //int p = 0;
-            //var count = 4;
-            //var countMax = 10 * count;
-            //for(int x = 0; x < countMax; x +=10)
-            //{
-            //    for (int z = 0; z < countMax; z += 10)
-            //    {
-            //        var mx = Matrix.CreateScale(0.025f) * Matrix.CreateRotationX(MathF.PI / 2) * Matrix.CreateTranslation(x, 0f, z);
-            //        //int index = r.Next(11);
-            //        animationManager.SetPlayerData(p, mx, "run forward");
-            //        p++;
-            //    }
-            
+            Random r = new Random();
+            int p = 0;
+            var count = 4;
+            var countMax = 10 * count;
+            for (int x = 0; x < countMax; x += 10)
+            {
+                for (int z = 0; z < countMax; z += 10)
+                {
+                    var mx = Matrix.CreateScale(0.025f) * Matrix.CreateRotationX(MathF.PI / 2) * Matrix.CreateTranslation(x, 0f, z);
+                    //int index = r.Next(11);
+                    animationManager.SetPlayerData(p, mx, "run forward");
+                    p++;
+                }
+            }
+
             // Create many point lights
             GeneratePointLights();
 

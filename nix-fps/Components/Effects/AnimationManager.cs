@@ -4,6 +4,7 @@ using Microsoft.Xna.Framework.Graphics;
 using nixfps.Components.Animations.DataTypes;
 using nixfps.Components.Animations.Models;
 using nixfps.Components.Animations.PipelineExtension;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 
@@ -45,19 +46,18 @@ namespace nixfps.Components.Effects
             manager = CustomPipelineManager.CreateCustomPipelineManager(game.CFG);
 
             animationNames = new List<string> {
-                soldierPath  + "idle",
-                soldierPath  + "run forward",
-                soldierPath  + "run forward right",
-                soldierPath  + "run forward left",
-                soldierPath + "run backward",
-                soldierPath + "run backward right",
-                soldierPath + "run backward left",
-                soldierPath + "run right",
-                soldierPath + "run left",
-                soldierPath + "sprint forward",
-                soldierPath + "sprint forward right",
-                soldierPath + "sprint forward left",
-
+                "idle",
+                "run forward",
+                "run forward right",
+                "run forward left",
+                "run backward",
+                "run backward right",
+                "run backward left",
+                "run right",
+                "run left",
+                "sprint forward",
+                "sprint forward right",
+                "sprint forward left",
             };
             if (bool.Parse(game.CFG["rebuild-animations"]))
             {
@@ -66,7 +66,7 @@ namespace nixfps.Components.Effects
                 BuildAnimations();
             }
             animatedModel = new AnimatedModel(modelName);
-            var model = animatedModel.LoadContent(game.Content);
+            var model = animatedModel.LoadContent();
             NixFPS.AssignEffectToModel(model, e);
 
             CreateAnimationPlayer();
@@ -77,7 +77,7 @@ namespace nixfps.Components.Effects
         void BuildAnimations()
         {
             foreach (var name in animationNames)
-                manager.BuildAnimationContent(name);
+                manager.BuildAnimationContent(soldierPath + name);
         }
         void CreateAnimationPlayer()
         {
@@ -86,8 +86,8 @@ namespace nixfps.Components.Effects
 
             foreach (var name in animationNames)
             {
-                var anim = new AnimatedModel(name);
-                anim.LoadContent(game.Content);
+                var anim = new AnimatedModel(soldierPath + name);
+                anim.LoadContent();
                 clipsDic.Add(name, anim.Clips[0]);
             }
 
@@ -99,9 +99,7 @@ namespace nixfps.Components.Effects
         public void DrawPlayers()
         {
             foreach(var p in playerDrawData)
-            {
-                animatedModel.Draw(game, p.SRT, p.clipName);
-            }
+                animatedModel.Draw(p);
         }
 
         public void SetPlayerData(int id, string clipName)
@@ -148,11 +146,13 @@ namespace nixfps.Components.Effects
     {
         public Matrix SRT;
         public string clipName;
+        public float timeOffset;
 
         public PlayerDrawData(Matrix SRT, string clipName)
         { 
             this.SRT = SRT; 
             this.clipName = clipName;
+            timeOffset = (float)new Random().NextDouble() * 5;
         }
     }
 }
