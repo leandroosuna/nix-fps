@@ -6,7 +6,9 @@ namespace nixfps.Components.Network
     public enum MessageId : ushort
     {
         PlayerSpawn,
-        PlayerPosition,
+        PlayerIdentity,
+        PlayerData,
+        AllPlayerData
     }
 
     public static class MessageExtensions

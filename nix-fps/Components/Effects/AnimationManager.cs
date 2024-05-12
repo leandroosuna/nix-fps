@@ -1,6 +1,7 @@
 ﻿using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Content.Pipeline.Graphics;
 using Microsoft.Xna.Framework.Graphics;
+using Newtonsoft.Json.Linq;
 using nixfps.Components.Animations.DataTypes;
 using nixfps.Components.Animations.Models;
 using nixfps.Components.Animations.PipelineExtension;
@@ -59,7 +60,8 @@ namespace nixfps.Components.Effects
                 "sprint forward right",
                 "sprint forward left",
             };
-            if (bool.Parse(game.CFG["rebuild-animations"]))
+            var rebuild = game.CFG["rebuild-animations"].Value<bool>();
+            if (rebuild)
             {
                 manager.BuildAnimationContent(modelName);
 

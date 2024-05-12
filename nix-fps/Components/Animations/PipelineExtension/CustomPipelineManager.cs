@@ -1,10 +1,10 @@
 ﻿using System;
 using System.IO;
 using System.Linq;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Xna.Framework.Content.Pipeline;
 using Microsoft.Xna.Framework.Content.Pipeline.Serialization.Compiler;
 using MonoGame.Framework.Content.Pipeline.Builder;
+using Newtonsoft.Json.Linq;
 
 namespace nixfps.Components.Animations.PipelineExtension;
 
@@ -15,10 +15,10 @@ namespace nixfps.Components.Animations.PipelineExtension;
 /// </summary>
 public class CustomPipelineManager : PipelineManager
 {
-    private readonly IConfigurationRoot _configuration;
+    private readonly JObject _configuration;
 
     public CustomPipelineManager(string projectDir, string outputDir, string intermediateDir,
-        IConfigurationRoot configuration) : base(projectDir, outputDir, intermediateDir)
+        JObject configuration) : base(projectDir, outputDir, intermediateDir)
     {
         _configuration = configuration;
     }
@@ -28,11 +28,11 @@ public class CustomPipelineManager : PipelineManager
     /// </summary>
     public ContentCompiler Compiler { get; private set; }
 
-    public static CustomPipelineManager CreateCustomPipelineManager(IConfigurationRoot configuration)
+    public static CustomPipelineManager CreateCustomPipelineManager(JObject configuration)
     {
-        var binFolder = configuration["BinFolder"];
-        var objFolder = configuration["ObjFolder"];
-        var contentFolder = configuration["ContentFolder"];
+        var binFolder = configuration["BinFolder"].Value<string>();
+        var objFolder = configuration["ObjFolder"].Value<string>();
+        var contentFolder = configuration["ContentFolder"].Value<string>();
 
         // This code is from MonoGame.Content.Builder.BuildContent.Build(out int successCount, out int errorCount).
         // TODO the folder logic can be load in the game a save in the configuration, to avoid this folder logic.
@@ -78,9 +78,9 @@ public class CustomPipelineManager : PipelineManager
         {
             SourceFile = modelFilename,
             DestFile = OutputDirectory + modelFilename + _configuration["ContentExtension"],
-            Importer = _configuration["FbxImporterName"],
-            Processor = _configuration["ProcessorName"],
-            Parameters = ValidateProcessorParameters(_configuration["ProcessorName"], parameters)
+            Importer = _configuration["FbxImporterName"].ToString(),
+            Processor = _configuration["ProcessorName"].ToString(),
+            Parameters = ValidateProcessorParameters(_configuration["ProcessorName"].ToString(), parameters)
         };
 
         var processContext = new PipelineProcessorContext(this, pipelineEvent);

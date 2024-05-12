@@ -2,6 +2,7 @@
 using System.Diagnostics;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Input;
+using Newtonsoft.Json.Linq;
 using SharpFont;
 
 namespace nixfps.Components.Cameras
@@ -44,6 +45,8 @@ namespace nixfps.Components.Cameras
             var windowPos = game.Window.Position;
             screenCenter = game.screenCenter + windowPos;
             center = new System.Drawing.Point(screenCenter.X, screenCenter.Y);
+
+            mouseLocked = game.CFG["MouseLocked"].Value<bool>();
         }
         public void UpdatePosition(Vector3 position)
         {
@@ -62,7 +65,7 @@ namespace nixfps.Components.Cameras
         public float mouseSensitivity = .3f; //.15f
         public float mouseSensAdapt = .09f;
 
-        public bool mouseLocked = true;
+        public bool mouseLocked;
         public void Update(float deltaTime)
         {
             GetMouseDelta(deltaTime);

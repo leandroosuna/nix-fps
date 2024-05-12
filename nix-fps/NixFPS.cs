@@ -1,5 +1,4 @@
-﻿using Microsoft.Extensions.Configuration;
-using Microsoft.Xna.Framework;
+﻿using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
 using nixfps.Components.Cameras;
@@ -9,7 +8,9 @@ using nixfps.Components.Network;
 using nixfps.Components.Skybox;
 using System;
 using System.Collections.Generic;
-using System.Linq;
+using System.Diagnostics;
+using Newtonsoft.Json.Linq;
+using System.IO;
 
 namespace nixfps
 {
@@ -34,7 +35,7 @@ namespace nixfps
         Skybox skybox;
         public static Texture2D Pixel { get; set; }
 
-        public IConfigurationRoot CFG;
+        //public IConfigurationRoot CFG;
         public Camera camera;
         public Point screenCenter;
 
@@ -47,25 +48,37 @@ namespace nixfps
         RenderTarget2D positionTarget;
         RenderTarget2D lightTarget;
         public AnimationManager animationManager;
-        public NixFPS(IConfigurationRoot appCfg)
+
+        public JObject CFG;
+        public NixFPS()
         {
+            CFG = JObject.Parse(File.ReadAllText("app-settings.json"));
+            game = this;
             Graphics = new GraphicsDeviceManager(this);
             Graphics.GraphicsProfile = GraphicsProfile.HiDef;
-            screenWidth = 1600;
-            screenHeight = 900;
+            screenWidth = CFG["ScreenWidth"].Value<int>();
+            screenHeight = CFG["ScreenHeight"].Value<int>();
             Graphics.PreferredBackBufferWidth = screenWidth;
             Graphics.PreferredBackBufferHeight = screenHeight;
             IsFixedTimeStep = false;
-            Graphics.SynchronizeWithVerticalRetrace = true;
+            Graphics.SynchronizeWithVerticalRetrace = CFG["VSync"].Value<bool>();
 
             Graphics.ApplyChanges();
-            
+
             Content.RootDirectory = "Content";
             IsMouseVisible = false;
-            CFG = appCfg;
-            game = this;
 
-            //Exiting += (s, e) => NetworkManager.Client.Disconnect();
+            
+            
+            if (!CFG.ContainsKey("ClientGUID"))
+            {
+                CFG["ClientGUID"] = Guid.NewGuid().ToString();
+                File.WriteAllText("app-settings.json", CFG.ToString());
+            }
+
+
+
+            Exiting += (s, e) => NetworkManager.Client.Disconnect();
         }
         public static NixFPS GameInstance() { return game; } 
         
@@ -79,8 +92,8 @@ namespace nixfps
         {
             Pixel = new Texture2D(GraphicsDevice, 1, 1);
             Pixel.SetData(new byte[] { 0xFF, 0xFF, 0xFF, 0xFF });
-            var serverIP = CFG["ServerIP"];
-            //NetworkManager.Connect(serverIP);
+            
+            NetworkManager.Connect();
             screenCenter = new Point(GraphicsDevice.Viewport.Width / 2, GraphicsDevice.Viewport.Height / 2);
 
             base.Initialize();
@@ -282,11 +295,13 @@ namespace nixfps
             UpdatePointLights(deltaTimeU);
 
             lightsManager.Update(deltaTimeU);
-            
+
             //if (Player.List.TryGetValue(NetworkManager.Client.Id, out Player localPlayer))
             //    localPlayer.Update((float)gameTime.ElapsedGameTime.TotalSeconds);
 
-            //NetworkManager.Client.Update();
+            NetworkManager.Client.Update();
+            NetworkManager.SendData(camera.position);
+
             base.Update(gameTime);
         }
 
@@ -380,7 +395,18 @@ namespace nixfps
 
             string ft = (frameTime * 1000).ToString("0,####");
             string fpsStr = "FPS " + fps;
-            string str = "8: FullScreen Toggle, 9: Vsync Toggle, 0: ShowRTS";
+            var pc = " PC " + NetworkManager.playerCount;
+            var camStr = string.Format("({0:F2}, {1:F2}, {2:F2})", camera.position.X, camera.position.Y, camera.position.Z);
+            var pos = " camlocal " + camStr;
+            var camNetStr = "";
+            if(NetworkManager.positions.Count > 0 )
+            {
+                var camNet = NetworkManager.positions[0];
+                camNetStr += string.Format("({0:F2}, {1:F2}, {2:F2})", camNet.X, camNet.Y, camNet.Z);
+            }
+            
+            var pos2 = " camNet " + camNetStr;
+            fpsStr += pc + pos + pos2;
 
             spriteBatch.Begin();
             spriteBatch.DrawString(font, fpsStr, Vector2.Zero, Color.White);
@@ -388,12 +414,6 @@ namespace nixfps
             spriteBatch.End();
 
 
-            spriteBatch.Begin();
-
-            foreach (Player player in Player.List.Values)
-                player.Draw(spriteBatch);
-
-            spriteBatch.End();
 
 
             base.Draw(gameTime);
