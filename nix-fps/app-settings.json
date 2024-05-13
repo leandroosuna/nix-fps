@@ -11,8 +11,8 @@
   //"ScreenWidth": "1366",
   //"ScreenHeight": "768",
   //"Fullscreen": "false",
-  "ScreenWidth": 1600,
-  "ScreenHeight": 900,
+  "ScreenWidth": 1280,
+  "ScreenHeight": 720,
   "Fullscreen": true,
 
   "Borderless": true,
@@ -21,6 +21,6 @@
   "MouseLocked": true,
 
   "ServerIP": "192.168.1.45:7777",
-  "ClientGUID": "e8fcb7ce-69d6-42ce-9a11-949622b12aa7",
+  "ClientID": 111111,
   "PlayerName": "nix"
 }

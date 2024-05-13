@@ -104,38 +104,43 @@ namespace nixfps.Components.Effects
                 animatedModel.Draw(p);
         }
 
-        public void SetPlayerData(int id, string clipName)
+        public void SetPlayerData(Player p)
+        {
+            var pdd = GetPlayerData(p.id);
+
+            var rot = Matrix.CreateFromYawPitchRoll(-MathHelper.ToRadians(p.yaw) +MathHelper.PiOver2, 0, 0);
+            pdd.SRT = Matrix.CreateScale(0.025f) * Matrix.CreateRotationX(MathF.PI / 2) * rot * Matrix.CreateTranslation(p.position);
+
+        }
+
+        public void SetPlayerData(uint id, string clipName)
         {
             var pdd = GetPlayerData(id);
             pdd.clipName = clipName;
         }
-        public void SetPlayerData(int id, Matrix SRT)
+        public void SetPlayerData(uint id, Matrix SRT)
         {
             var pdd = GetPlayerData(id);
             pdd.SRT = SRT;
         }
-        public void SetPlayerData(int id, Matrix SRT, string clipName)
+        public void SetPlayerData(uint id, Matrix SRT, string clipName)
         {
             var pdd = GetPlayerData(id);
             pdd.SRT = SRT;
             pdd.clipName = clipName;
         }
-        public PlayerDrawData GetPlayerData(int id)
+        public PlayerDrawData GetPlayerData(uint id)
         {
-            if (id >= playerDrawData.Count)
+            foreach(var p in playerDrawData)
             {
-                //TODO: handle edge case where id > count, to not get ghost players and missaligned indeces
-                ///      or just dont use this function incorrectly lmao
-                //for(int i = 0; i < id;i++)
-                //{
-                //    //will create ghosts
-                //    playerDrawData.Add(new PlayerDrawData(Matrix.Identity, ""));
-                //}
-                var pdd = new PlayerDrawData(Matrix.Identity, "");
-                playerDrawData.Add(pdd);
-                return pdd;
+                if(p.id == id)
+                {
+                    return p;
+                }
             }
-            return playerDrawData[id];
+            var pdd = new PlayerDrawData(id);
+            playerDrawData.Add(pdd);
+            return pdd;
         }
         public void Update(float deltaTime)
         {
@@ -146,15 +151,19 @@ namespace nixfps.Components.Effects
     }
     public class PlayerDrawData
     {
+        public uint id;
         public Matrix SRT;
         public string clipName;
         public float timeOffset;
 
-        public PlayerDrawData(Matrix SRT, string clipName)
+
+        public PlayerDrawData(uint id)
         { 
-            this.SRT = SRT; 
-            this.clipName = clipName;
+            this.id = id;
             timeOffset = (float)new Random().NextDouble() * 5;
+            clipName = "idle";
+            SRT = Matrix.CreateScale(0.025f) * Matrix.CreateRotationX(MathF.PI / 2) * Matrix.CreateTranslation(Vector3.Zero);
+
         }
     }
 }

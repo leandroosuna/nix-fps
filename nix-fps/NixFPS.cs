@@ -60,6 +60,7 @@ namespace nixfps
             screenHeight = CFG["ScreenHeight"].Value<int>();
             Graphics.PreferredBackBufferWidth = screenWidth;
             Graphics.PreferredBackBufferHeight = screenHeight;
+            Window.Position = new Point(0, 0);
             IsFixedTimeStep = false;
             Graphics.SynchronizeWithVerticalRetrace = CFG["VSync"].Value<bool>();
 
@@ -70,9 +71,11 @@ namespace nixfps
 
             
             
-            if (!CFG.ContainsKey("ClientGUID"))
+            if (!CFG.ContainsKey("ClientID"))
             {
-                CFG["ClientGUID"] = Guid.NewGuid().ToString();
+                var ri = new Random().NextInt64();
+                CFG["ClientID"] = (uint) ri;
+
                 File.WriteAllText("app-settings.json", CFG.ToString());
             }
 
@@ -127,20 +130,20 @@ namespace nixfps
             //animationManager.SetPlayerData(0, mrt, "idle");
             //animationManager.SetPlayerData(1, mrt2, "idle");
             
-            Random r = new Random();
-            int p = 0;
-            var count = 4;
-            var countMax = 10 * count;
-            for (int x = 0; x < countMax; x += 10)
-            {
-                for (int z = 0; z < countMax; z += 10)
-                {
-                    var mx = Matrix.CreateScale(0.025f) * Matrix.CreateRotationX(MathF.PI / 2) * Matrix.CreateTranslation(x, 0f, z);
-                    //int index = r.Next(11);
-                    animationManager.SetPlayerData(p, mx, "run forward");
-                    p++;
-                }
-            }
+            //Random r = new Random();
+            //uint p = 0;
+            //var count = 4;
+            //var countMax = 10 * count;
+            //for (int x = 0; x < countMax; x += 10)
+            //{
+            //    for (int z = 0; z < countMax; z += 10)
+            //    {
+            //        var mx = Matrix.CreateScale(0.025f) * Matrix.CreateRotationX(MathF.PI / 2) * Matrix.CreateTranslation(x, 0f, z);
+            //        //int index = r.Next(11);
+            //        animationManager.SetPlayerData(p, mx, "run forward");
+            //        p++;
+            //    }
+            //}
 
             // Create many point lights
             GeneratePointLights();
@@ -194,101 +197,50 @@ namespace nixfps
             if(dz > 0 && dx == 0)
             {
                 if(!keyState.IsKeyDown(Keys.LeftShift))
-                    animationManager.SetPlayerData(0,"run forward");
+                    animationManager.SetPlayerData(NetworkManager.localPlayerId,"run forward");
                 else
-                    animationManager.SetPlayerData(0, "sprint forward");
+                    animationManager.SetPlayerData(NetworkManager.localPlayerId, "sprint forward");
             }
             else if(dz > 0 && dx > 0)
             {
                 if (!keyState.IsKeyDown(Keys.LeftShift))
-                    animationManager.SetPlayerData(0, "run forward right");
+                    animationManager.SetPlayerData(NetworkManager.localPlayerId, "run forward right");
                 else
-                    animationManager.SetPlayerData(0, "sprint forward right");
+                    animationManager.SetPlayerData(NetworkManager.localPlayerId, "sprint forward right");
             }
             else if (dz > 0 && dx < 0)
             {
                 if (!keyState.IsKeyDown(Keys.LeftShift))
-                    animationManager.SetPlayerData(0, "run forward left");
+                    animationManager.SetPlayerData(NetworkManager.localPlayerId, "run forward left");
                 else
-                    animationManager.SetPlayerData(0, "sprint forward left");
+                    animationManager.SetPlayerData(NetworkManager.localPlayerId, "sprint forward left");
             }
             else if (dz < 0 && dx == 0)
             {
-                animationManager.SetPlayerData(0, "run backward");
+                animationManager.SetPlayerData(NetworkManager.localPlayerId, "run backward");
             }
             else if (dz < 0 && dx > 0)
             {
-                animationManager.SetPlayerData(0, "run backward right");
+                animationManager.SetPlayerData(NetworkManager.localPlayerId, "run backward right");
             }
             else if (dz < 0 && dx < 0)
             {
-                animationManager.SetPlayerData(0, "run backward left");
+                animationManager.SetPlayerData(NetworkManager.localPlayerId, "run backward left");
             }
             else if (dz == 0 && dx > 0)
             {
-                animationManager.SetPlayerData(0, "run right");
+                animationManager.SetPlayerData(NetworkManager.localPlayerId, "run right");
             }
             else if (dz == 0 && dx < 0)
             {
-                animationManager.SetPlayerData(0, "run left");
+                animationManager.SetPlayerData(NetworkManager.localPlayerId, "run left");
             }
 
             else
-                animationManager.SetPlayerData(0, "idle");
+                animationManager.SetPlayerData(NetworkManager.localPlayerId, "idle");
 
             
-            dz = (keyState.IsKeyDown(Keys.I) ? 1 : 0) - (keyState.IsKeyDown(Keys.K) ? 1 : 0);
-            dx = (keyState.IsKeyDown(Keys.L) ? 1 : 0) - (keyState.IsKeyDown(Keys.J) ? 1 : 0);
-
-            if (dz > 0 && dx == 0)
-            {
-                if (!keyState.IsKeyDown(Keys.LeftShift))
-                    animationManager.SetPlayerData(1, "run forward");
-                else
-                    animationManager.SetPlayerData(1, "sprint forward");
-            }
-            else if (dz > 0 && dx > 0)
-            {
-                if (!keyState.IsKeyDown(Keys.LeftShift))
-                    animationManager.SetPlayerData(1, "run forward right");
-                else
-                    animationManager.SetPlayerData(1, "sprint forward right");
-            }
-            else if (dz > 0 && dx < 0)
-            {
-                if (!keyState.IsKeyDown(Keys.LeftShift))
-                    animationManager.SetPlayerData(1, "run forward left");
-                else
-                    animationManager.SetPlayerData(1, "sprint forward left");
-            }
-            else if (dz < 0 && dx == 0)
-            {
-                animationManager.SetPlayerData(1, "run backward");
-            }
-            else if (dz < 0 && dx > 0)
-            {
-                animationManager.SetPlayerData(1, "run backward right");
-            }
-            else if (dz < 0 && dx < 0)
-            {
-                animationManager.SetPlayerData(1, "run backward left");
-            }
-            else if (dz == 0 && dx > 0)
-            {
-                animationManager.SetPlayerData(1, "run right");
-            }
-            else if (dz == 0 && dx < 0)
-            {
-                animationManager.SetPlayerData(1, "run left");
-            }
-
-            else
-                animationManager.SetPlayerData(1, "idle");
-
             ignored.RemoveAll(key => keyState.IsKeyUp(key));
-
-
-
 
             camera.Update(deltaTimeU);
             animationManager.Update(deltaTimeU);
@@ -300,7 +252,7 @@ namespace nixfps
             //    localPlayer.Update((float)gameTime.ElapsedGameTime.TotalSeconds);
 
             NetworkManager.Client.Update();
-            NetworkManager.SendData(camera.position);
+            NetworkManager.SendData();
 
             base.Update(gameTime);
         }
@@ -395,18 +347,19 @@ namespace nixfps
 
             string ft = (frameTime * 1000).ToString("0,####");
             string fpsStr = "FPS " + fps;
-            var pc = " PC " + NetworkManager.playerCount;
+            var pc = " PC " + NetworkManager.players.Count;
             var camStr = string.Format("({0:F2}, {1:F2}, {2:F2})", camera.position.X, camera.position.Y, camera.position.Z);
             var pos = " camlocal " + camStr;
-            var camNetStr = "";
-            if(NetworkManager.positions.Count > 0 )
+            var pNetStr = "";
+            var pos2 = "";
+            if (NetworkManager.players.Count > 1 )
             {
-                var camNet = NetworkManager.positions[0];
-                camNetStr += string.Format("({0:F2}, {1:F2}, {2:F2})", camNet.X, camNet.Y, camNet.Z);
+                var pNet = NetworkManager.GetPlayerFromId(222222).position;
+                pNetStr += string.Format("({0:F2}, {1:F2}, {2:F2})", pNet.X, pNet.Y, pNet.Z);
+                pos2 = " player2 " + pNetStr;
             }
             
-            var pos2 = " camNet " + camNetStr;
-            fpsStr += pc + pos + pos2;
+            fpsStr += pc + pos + pos2 + NetworkManager.notFound;
 
             spriteBatch.Begin();
             spriteBatch.DrawString(font, fpsStr, Vector2.Zero, Color.White);

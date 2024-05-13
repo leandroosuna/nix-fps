@@ -5,7 +5,8 @@ namespace nixfps.Components.Network
 {
     public enum MessageId : ushort
     {
-        PlayerSpawn,
+        PlayerConnected,
+        PlayerDisconnected,
         PlayerIdentity,
         PlayerData,
         AllPlayerData
