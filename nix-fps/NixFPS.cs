@@ -64,7 +64,10 @@ namespace nixfps
             Window.IsBorderless = CFG["Borderless"].Value<bool>();
             Graphics.IsFullScreen = CFG["Fullscreen"].Value<bool>();
             Window.Position = new Point(0, 0);
-            IsFixedTimeStep = false;
+            var framerateLimit = CFG["FramerateLimit"].Value<int>();
+            IsFixedTimeStep = framerateLimit != 0;
+            if(framerateLimit > 0)
+                TargetElapsedTime = TimeSpan.FromMilliseconds(1000.0/framerateLimit);
             Graphics.SynchronizeWithVerticalRetrace = CFG["VSync"].Value<bool>();
 
             Graphics.ApplyChanges();
@@ -159,7 +162,7 @@ namespace nixfps
 
             
         }
-        float time = 0;
+        double time = 0;
         float deltaTimeU;
         List<Keys> ignored = new List<Keys>(); 
         float onesec = 0f;
@@ -169,7 +172,7 @@ namespace nixfps
         protected override void Update(GameTime gameTime)
         {
             deltaTimeU = (float)gameTime.ElapsedGameTime.TotalSeconds;
-            time += deltaTimeU;
+            time += gameTime.ElapsedGameTime.TotalSeconds;
             // TODO: input manager(s)
             if (GamePad.GetState(PlayerIndex.One).Buttons.Back == ButtonState.Pressed || Keyboard.GetState().IsKeyDown(Keys.Escape))
                 Exit();
@@ -257,12 +260,12 @@ namespace nixfps
             lightsManager.Update(deltaTimeU);
 
 
-            //TPS = min(165, framerate)
-            if (time >= 0.006f)
+            //TPS = 200
+            while (time >= 0.005)
             {
+                time -= 0.005;
                 NetworkManager.Client.Update();
                 NetworkManager.SendData();
-                time = 0;
             }
             onesec += deltaTimeU;
             if (onesec >= 1)
