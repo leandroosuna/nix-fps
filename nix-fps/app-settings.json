@@ -8,19 +8,16 @@
   "ProcessorName": "Animation Processor",
   "rebuild-animations": false,
 
-  //"ScreenWidth": "1366",
-  //"ScreenHeight": "768",
-  //"Fullscreen": "false",
   "ScreenWidth": 1280,
   "ScreenHeight": 720,
-  "Fullscreen": true,
+  "Fullscreen": false,
 
+  "VSync": false,
   "Borderless": true,
-  "VSync": true,
   "MouseVisible": false,
   "MouseLocked": true,
 
-  "ServerIP": "192.168.1.45:7777",
+  "ServerIP": "nix.dynamic-dns.net",
   "ClientID": 111111,
   "PlayerName": "nix"
 }

@@ -13,7 +13,6 @@ namespace nixfps
         public Vector3 frontDirection = Vector3.Zero;
         public float yaw;
 
-
         public Player(uint id)
         {
             this.id = id;

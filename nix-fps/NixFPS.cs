@@ -11,6 +11,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using Newtonsoft.Json.Linq;
 using System.IO;
+using Riptide;
 
 namespace nixfps
 {
@@ -60,6 +61,8 @@ namespace nixfps
             screenHeight = CFG["ScreenHeight"].Value<int>();
             Graphics.PreferredBackBufferWidth = screenWidth;
             Graphics.PreferredBackBufferHeight = screenHeight;
+            Window.IsBorderless = CFG["Borderless"].Value<bool>();
+            Graphics.IsFullScreen = CFG["Fullscreen"].Value<bool>();
             Window.Position = new Point(0, 0);
             IsFixedTimeStep = false;
             Graphics.SynchronizeWithVerticalRetrace = CFG["VSync"].Value<bool>();
@@ -153,11 +156,16 @@ namespace nixfps
 
             camera = new Camera(Graphics.GraphicsDevice.Viewport.AspectRatio);
             skybox = new Skybox();
+
             
         }
         float time = 0;
         float deltaTimeU;
         List<Keys> ignored = new List<Keys>(); 
+        float onesec = 0f;
+        int packetsIn;
+        int packetsOut;
+
         protected override void Update(GameTime gameTime)
         {
             deltaTimeU = (float)gameTime.ElapsedGameTime.TotalSeconds;
@@ -248,12 +256,23 @@ namespace nixfps
 
             lightsManager.Update(deltaTimeU);
 
-            //if (Player.List.TryGetValue(NetworkManager.Client.Id, out Player localPlayer))
-            //    localPlayer.Update((float)gameTime.ElapsedGameTime.TotalSeconds);
 
-            NetworkManager.Client.Update();
-            NetworkManager.SendData();
-
+            //TPS = min(165, framerate)
+            if (time >= 0.006f)
+            {
+                NetworkManager.Client.Update();
+                NetworkManager.SendData();
+                time = 0;
+            }
+            onesec += deltaTimeU;
+            if (onesec >= 1)
+            {
+                onesec = 0f;
+                packetsIn = NetworkManager.Client.Connection.Metrics.UnreliableIn;
+                packetsOut = NetworkManager.Client.Connection.Metrics.UnreliableOut;
+                NetworkManager.Client.Connection.Metrics.Reset();
+            }
+            //NetworkManager.SendData();
             base.Update(gameTime);
         }
 
@@ -274,6 +293,8 @@ namespace nixfps
                 fps = (int)(1 / deltaTimeD);
                 frameTime = deltaTimeD * 1000;
             }
+            
+
             basicModelEffect.SetView(camera.view);
             basicModelEffect.SetProjection(camera.projection);
             deferredEffect.SetView(camera.view);
@@ -359,7 +380,8 @@ namespace nixfps
                 pos2 = " player2 " + pNetStr;
             }
             
-            fpsStr += pc + pos + pos2 + NetworkManager.notFound;
+            fpsStr += pc + pos + pos2 + " "+NetworkManager.Client.RTT+" ms, in "+ packetsIn;
+            fpsStr += " out " + packetsOut;
 
             spriteBatch.Begin();
             spriteBatch.DrawString(font, fpsStr, Vector2.Zero, Color.White);
