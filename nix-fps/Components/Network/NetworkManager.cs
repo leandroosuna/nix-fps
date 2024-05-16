@@ -8,6 +8,7 @@ using System.Net;
 
 namespace nixfps.Components.Network
 {
+
     internal class NetworkManager
     {
         public static Client Client { get; set; }
@@ -15,8 +16,10 @@ namespace nixfps.Components.Network
         public static List<Vector3> positions = new List<Vector3>();
 
         public static List<Player> players = new List<Player>();
-        static NixFPS game;
+        public static Player localPlayer;
         public static uint localPlayerId;
+
+        static NixFPS game;
         public static Vector3 netPosition;
 
         public static void Connect()
@@ -29,7 +32,7 @@ namespace nixfps.Components.Network
             var serverIP = Dns.GetHostAddresses(server)[0].ToString();
             serverIP +=":7777";
             Client.Connect(serverIP);
- 
+            
             SendPlayerIdentity();
         }
 
@@ -38,20 +41,20 @@ namespace nixfps.Components.Network
             var id = game.CFG["ClientID"].Value<uint>();
             var playerName = game.CFG["PlayerName"].Value<string>();
 
-            Message msg = Message.Create(MessageSendMode.Reliable, MessageId.PlayerIdentity);
+            Message msg = Message.Create(MessageSendMode.Reliable, ClientToServer.PlayerIdentity);
             msg.AddUInt(id);
             msg.AddString(playerName);
             Client.Send(msg);
 
-            var p = new Player(id);
-            p.name = playerName;
-            players.Add(p);
-            localPlayerId = p.id;
+            localPlayer = new Player(id);
+            localPlayer.name = playerName;
+            //players.Add(localPlayer);
+            //localPlayerId = localPlayer.id;
         }
         public static void SendData()
         {
-            var msg = Message.Create(MessageSendMode.Unreliable, MessageId.PlayerData);
-            msg.AddUInt(localPlayerId);
+            var msg = Message.Create(MessageSendMode.Unreliable, ClientToServer.PlayerData);
+            msg.AddUInt(localPlayer.id);
             msg.AddVector3(game.camera.position - new Vector3(0,4,0));
             msg.AddVector3(game.camera.frontDirection);
             msg.AddFloat(game.camera.yaw);
@@ -59,7 +62,7 @@ namespace nixfps.Components.Network
             Client.Send(msg);
         }
 
-        [MessageHandler((ushort)MessageId.AllPlayerData)]
+        [MessageHandler((ushort)ServerToClient.AllPlayerData)]
         private static void HandleAllPlayerData(Message message)
         {
             playerCount = message.GetInt();
@@ -80,7 +83,7 @@ namespace nixfps.Components.Network
                             p.position = netPos;
                             p.frontDirection = netFD;
                             p.yaw = netYaw;
-                            game.animationManager.SetPlayerData(p);
+                            //game.animationManager.SetPlayerData(p);
                         }
                         else
                             netPosition = netPos;
@@ -94,7 +97,7 @@ namespace nixfps.Components.Network
                 
             }
         }
-        [MessageHandler((ushort)MessageId.PlayerConnected)]
+        [MessageHandler((ushort)ServerToClient.PlayerConnected)]
         private static void HandlePlayerConnected(Message message)
         {
             var id = message.GetUInt();
@@ -109,7 +112,7 @@ namespace nixfps.Components.Network
 
         }
 
-        [MessageHandler((ushort)MessageId.PlayerDisconnected)]
+        [MessageHandler((ushort)ServerToClient.PlayerDisconnected)]
         private static void HandlePlayerDisconnected(Message message)
         {
             var id = message.GetUInt();

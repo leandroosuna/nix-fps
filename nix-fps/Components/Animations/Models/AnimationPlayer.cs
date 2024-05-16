@@ -61,13 +61,13 @@ public class AnimationPlayer
         }
     }
 
-    public void SetActiveClip(PlayerDrawData playerDrawData)
+    public void SetActiveClip(Player player)
     {
         Clip clip = null;
         float pos;
         for (int i = 0; i < clips.Length; i++)
         {
-            if (clips[i].name == playerDrawData.clipName) { 
+            if (clips[i].name == player.clipName) { 
                 clip = clips[i];
                 break;
             }
@@ -76,7 +76,7 @@ public class AnimationPlayer
         {
             //apply an offset for different models, random at their creation
             pos = clip.position;
-            pos += playerDrawData.timeOffset;
+            pos += player.timeOffset;
             pos %= (float) clip.clip.Duration;
 
             foreach (var bone in clip.boneInfo)

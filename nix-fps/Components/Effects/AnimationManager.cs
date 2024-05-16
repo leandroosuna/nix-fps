@@ -5,6 +5,7 @@ using Newtonsoft.Json.Linq;
 using nixfps.Components.Animations.DataTypes;
 using nixfps.Components.Animations.Models;
 using nixfps.Components.Animations.PipelineExtension;
+using nixfps.Components.Network;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -25,10 +26,25 @@ namespace nixfps.Components.Effects
         CustomPipelineManager manager;
         public AnimationPlayer animationPlayer;
         public List<string> animationNames;
+        
         public string soldierPath = NixFPS.ContentFolder3D + "soldier/";
 
         List<PlayerDrawData> playerDrawData = new List<PlayerDrawData>();
 
+        public enum PlayerAnimation{
+            idle,
+            runForward,
+            runForwardRight,
+            runForwardLeft,
+            runBackward,
+            runBackwardRight,
+            runBackwardLeft,
+            runRight,
+            runLeft,
+            sprintForward,
+            sprintForwardRight,
+            sprintForwardLeft
+        }
         public AnimationManager()
         {
             
@@ -97,50 +113,22 @@ namespace nixfps.Components.Effects
 
         }
 
-
         public void DrawPlayers()
         {
-            foreach(var p in playerDrawData)
-                animatedModel.Draw(p);
+            animatedModel.DrawPlayer(NetworkManager.localPlayer);
+            foreach (var p in NetworkManager.players)
+                animatedModel.DrawPlayer(p);
+            
         }
-
-        public void SetPlayerData(Player p)
+        public void SetClipName(Player p, byte clipId)
         {
-            var pdd = GetPlayerData(p.id);
-
-            var rot = Matrix.CreateFromYawPitchRoll(-MathHelper.ToRadians(p.yaw) +MathHelper.PiOver2, 0, 0);
-            pdd.SRT = Matrix.CreateScale(0.025f) * Matrix.CreateRotationX(MathF.PI / 2) * rot * Matrix.CreateTranslation(p.position);
-
+            if (clipId < 0 || clipId > animationNames.Count - 1)
+                p.clipName = "idle";
+            p.clipName = animationNames[clipId];
         }
-
-        public void SetPlayerData(uint id, string clipName)
+        public void SetClipName(Player p, PlayerAnimation anim)
         {
-            var pdd = GetPlayerData(id);
-            pdd.clipName = clipName;
-        }
-        public void SetPlayerData(uint id, Matrix SRT)
-        {
-            var pdd = GetPlayerData(id);
-            pdd.SRT = SRT;
-        }
-        public void SetPlayerData(uint id, Matrix SRT, string clipName)
-        {
-            var pdd = GetPlayerData(id);
-            pdd.SRT = SRT;
-            pdd.clipName = clipName;
-        }
-        public PlayerDrawData GetPlayerData(uint id)
-        {
-            foreach(var p in playerDrawData)
-            {
-                if(p.id == id)
-                {
-                    return p;
-                }
-            }
-            var pdd = new PlayerDrawData(id);
-            playerDrawData.Add(pdd);
-            return pdd;
+            p.clipName = animationNames[(byte)anim];
         }
         public void Update(float deltaTime)
         {

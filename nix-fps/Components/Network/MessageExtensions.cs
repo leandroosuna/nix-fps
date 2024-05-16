@@ -3,14 +3,18 @@ using Microsoft.Xna.Framework;
 
 namespace nixfps.Components.Network
 {
-    public enum MessageId : ushort
+    public enum ClientToServer : ushort
+    {
+        PlayerIdentity,
+        PlayerData,
+    }
+    public enum ServerToClient: ushort
     {
         PlayerConnected,
         PlayerDisconnected,
-        PlayerIdentity,
-        PlayerData,
         AllPlayerData
     }
+
 
     public static class MessageExtensions
     {

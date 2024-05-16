@@ -5,6 +5,7 @@ using Microsoft.Xna.Framework.Content;
 using Microsoft.Xna.Framework.Graphics;
 using nixfps.Components.Animations.DataTypes;
 using nixfps.Components.Effects;
+using nixfps.Components.Network;
 
 
 namespace nixfps.Components.Animations.Models;
@@ -52,13 +53,19 @@ public class AnimatedModel
         game = NixFPS.GameInstance();
     }
 
-    public void Draw(PlayerDrawData playerDrawData)
+    public void DrawPlayer(Player player)
     {
         var animManager = game.animationManager;
         var effect = animManager.effect;
         var camera = game.camera;
 
-        animManager.animationPlayer.SetActiveClip(playerDrawData);
+        // Skip third person model for localplayer if camera is locked, draw gun
+        if (!camera.isFree && player.id == NetworkManager.localPlayer.id)
+        {
+            DrawPlayerGunModel();
+            return;
+        }
+        animManager.animationPlayer.SetActiveClip(player);
 
         // Compute all of the bone absolute transforms.
         var boneTransforms = new Matrix[_bones.Count];
@@ -88,7 +95,7 @@ public class AnimatedModel
 
         foreach (var mesh in _model.Meshes)
         {
-            var worldBone = boneTransforms[mesh.ParentBone.Index] * playerDrawData.SRT;
+            var worldBone = boneTransforms[mesh.ParentBone.Index] * player.GetWorld();
 
             effect.SetWorld(worldBone);
             effect.SetView(camera.view);
@@ -119,6 +126,11 @@ public class AnimatedModel
 
             //modelMesh.Draw();
         }
+    }
+
+    public void DrawPlayerGunModel()
+    {
+
     }
     /// <summary>
     ///     Load the Model asset from content.

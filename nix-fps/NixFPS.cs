@@ -12,6 +12,7 @@ using System.Diagnostics;
 using Newtonsoft.Json.Linq;
 using System.IO;
 using Riptide;
+using System.Security.Policy;
 
 namespace nixfps
 {
@@ -49,7 +50,7 @@ namespace nixfps
         RenderTarget2D positionTarget;
         RenderTarget2D lightTarget;
         public AnimationManager animationManager;
-
+        Player localPlayer;
         public JObject CFG;
         public NixFPS()
         {
@@ -103,6 +104,7 @@ namespace nixfps
             Pixel.SetData(new byte[] { 0xFF, 0xFF, 0xFF, 0xFF });
             
             NetworkManager.Connect();
+            localPlayer = NetworkManager.localPlayer;
             screenCenter = new Point(GraphicsDevice.Viewport.Width / 2, GraphicsDevice.Viewport.Height / 2);
 
             base.Initialize();
@@ -178,77 +180,125 @@ namespace nixfps
                 Exit();
 
             var keyState = Keyboard.GetState();
-            if(keyState.IsKeyDown(Keys.W))
+
+
+            var frontFlat = Vector3.Normalize(new Vector3(localPlayer.FrontDir().X, 0, localPlayer.FrontDir().Z));
+            var rightFlat = Vector3.Cross(Vector3.Up, frontFlat);
+
+            Vector3 dir = Vector3.Zero;
+            if (keyState.IsKeyDown(Keys.Up))
             {
-                camera.position += camera.frontDirection * 5 * deltaTimeU;
+                dir += frontFlat;
             }
-            if (keyState.IsKeyDown(Keys.S))
+            if (keyState.IsKeyDown(Keys.Down))
             {
-                camera.position -= camera.frontDirection * 5 * deltaTimeU;
+                dir -= frontFlat;
             }
-            if (keyState.IsKeyDown(Keys.A))
+            if (keyState.IsKeyDown(Keys.Left))
             {
-                camera.position -= camera.rightDirection * 5 * deltaTimeU;
+                dir += rightFlat;
             }
-            if (keyState.IsKeyDown(Keys.D))
+            if (keyState.IsKeyDown(Keys.Right))
             {
-                camera.position += camera.rightDirection * 5 * deltaTimeU;
+                dir -= rightFlat;
             }
-            if (keyState.IsKeyDown(Keys.Space))
+            var speed = keyState.IsKeyDown(Keys.RightShift) ? 18 : 9.5f;
+            if(dir != Vector3.Zero)
+                dir = Vector3.Normalize(dir);
+            localPlayer.position += dir * speed * deltaTimeU;
+
+            if (!camera.isFree)
             {
-                camera.position.Y += 5 * deltaTimeU;
+                localPlayer.yaw = camera.yaw;
+                //p.pitch = camera.pitch;
+                //p.position = camera.position - new Vector3(0,4,0);
+                localPlayer.frontDirection = camera.frontDirection;
+                
             }
-            if (keyState.IsKeyDown(Keys.LeftControl))
+            else
             {
-                camera.position.Y -= 5 * deltaTimeU;
+                if (keyState.IsKeyDown(Keys.W))
+                {
+                    camera.position += camera.frontDirection * 5 * deltaTimeU;
+                }
+                if (keyState.IsKeyDown(Keys.S))
+                {
+                    camera.position -= camera.frontDirection * 5 * deltaTimeU;
+                }
+                if (keyState.IsKeyDown(Keys.A))
+                {
+                    camera.position -= camera.rightDirection * 5 * deltaTimeU;
+                }
+                if (keyState.IsKeyDown(Keys.D))
+                {
+                    camera.position += camera.rightDirection * 5 * deltaTimeU;
+                }
+                if (keyState.IsKeyDown(Keys.Space))
+                {
+                    camera.position.Y += 5 * deltaTimeU;
+                }
+                if (keyState.IsKeyDown(Keys.LeftControl))
+                {
+                    camera.position.Y -= 5 * deltaTimeU;
+                }
             }
+            if (keyState.IsKeyDown(Keys.CapsLock))
+            {
+                if (!ignored.Contains(Keys.CapsLock))
+                {
+                    ignored.Add(Keys.CapsLock);
+                    camera.SetFreeToggle();
+                }
+            }
+            //animationManager.SetPlayerData(p);
+
             var dz = (keyState.IsKeyDown(Keys.Up) ? 1 : 0) - (keyState.IsKeyDown(Keys.Down) ? 1 : 0);
             var dx = (keyState.IsKeyDown(Keys.Right) ? 1 : 0) - (keyState.IsKeyDown(Keys.Left) ? 1 : 0);
 
-            if(dz > 0 && dx == 0)
+            if (dz > 0 && dx == 0)
             {
-                if(!keyState.IsKeyDown(Keys.LeftShift))
-                    animationManager.SetPlayerData(NetworkManager.localPlayerId,"run forward");
+                if (!keyState.IsKeyDown(Keys.RightShift))
+                    animationManager.SetClipName(localPlayer, AnimationManager.PlayerAnimation.runForward);
                 else
-                    animationManager.SetPlayerData(NetworkManager.localPlayerId, "sprint forward");
+                    animationManager.SetClipName(localPlayer, AnimationManager.PlayerAnimation.sprintForward);
             }
-            else if(dz > 0 && dx > 0)
+            else if (dz > 0 && dx > 0)
             {
-                if (!keyState.IsKeyDown(Keys.LeftShift))
-                    animationManager.SetPlayerData(NetworkManager.localPlayerId, "run forward right");
+                if (!keyState.IsKeyDown(Keys.RightShift))
+                    animationManager.SetClipName(localPlayer, AnimationManager.PlayerAnimation.runForwardRight);
                 else
-                    animationManager.SetPlayerData(NetworkManager.localPlayerId, "sprint forward right");
+                    animationManager.SetClipName(localPlayer, AnimationManager.PlayerAnimation.sprintForwardRight);
             }
             else if (dz > 0 && dx < 0)
             {
-                if (!keyState.IsKeyDown(Keys.LeftShift))
-                    animationManager.SetPlayerData(NetworkManager.localPlayerId, "run forward left");
+                if (!keyState.IsKeyDown(Keys.RightShift))
+                    animationManager.SetClipName(localPlayer, AnimationManager.PlayerAnimation.runForwardLeft);
                 else
-                    animationManager.SetPlayerData(NetworkManager.localPlayerId, "sprint forward left");
+                    animationManager.SetClipName(localPlayer, AnimationManager.PlayerAnimation.sprintForwardLeft);
             }
             else if (dz < 0 && dx == 0)
             {
-                animationManager.SetPlayerData(NetworkManager.localPlayerId, "run backward");
+                animationManager.SetClipName(localPlayer, AnimationManager.PlayerAnimation.runBackward);
             }
             else if (dz < 0 && dx > 0)
             {
-                animationManager.SetPlayerData(NetworkManager.localPlayerId, "run backward right");
+                animationManager.SetClipName(localPlayer, AnimationManager.PlayerAnimation.runBackwardRight);
             }
             else if (dz < 0 && dx < 0)
             {
-                animationManager.SetPlayerData(NetworkManager.localPlayerId, "run backward left");
+                animationManager.SetClipName(localPlayer, AnimationManager.PlayerAnimation.runBackwardLeft);
             }
             else if (dz == 0 && dx > 0)
             {
-                animationManager.SetPlayerData(NetworkManager.localPlayerId, "run right");
+                animationManager.SetClipName(localPlayer, AnimationManager.PlayerAnimation.runRight);
             }
             else if (dz == 0 && dx < 0)
             {
-                animationManager.SetPlayerData(NetworkManager.localPlayerId, "run left");
+                animationManager.SetClipName(localPlayer, AnimationManager.PlayerAnimation.runLeft);
             }
 
             else
-                animationManager.SetPlayerData(NetworkManager.localPlayerId, "idle");
+                animationManager.SetClipName(localPlayer, AnimationManager.PlayerAnimation.idle);
 
             
             ignored.RemoveAll(key => keyState.IsKeyUp(key));
@@ -372,13 +422,15 @@ namespace nixfps
             string ft = (frameTime * 1000).ToString("0,####");
             string fpsStr = "FPS " + fps;
             var pc = " PC " + NetworkManager.players.Count;
-            var camStr = string.Format("({0:F2}, {1:F2}, {2:F2})", camera.position.X, camera.position.Y, camera.position.Z);
+            var p = NetworkManager.localPlayer;
+            var camStr = string.Format("({0:F2}, {1:F2}, {2:F2})", p.position.X, p.position.Y, p.position.Z);
             var pos = " camlocal " + camStr;
             var pNetStr = "";
             var pos2 = "";
             if (NetworkManager.players.Count > 1 )
             {
                 var pNet = NetworkManager.GetPlayerFromId(222222).position;
+
                 pNetStr += string.Format("({0:F2}, {1:F2}, {2:F2})", pNet.X, pNet.Y, pNet.Z);
                 pos2 = " player2 " + pNetStr;
             }

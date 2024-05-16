@@ -3,6 +3,7 @@ using System.Diagnostics;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Input;
 using Newtonsoft.Json.Linq;
+using nixfps.Components.Network;
 using SharpFont;
 
 namespace nixfps.Components.Cameras
@@ -26,13 +27,14 @@ namespace nixfps.Components.Cameras
         public float pitch;
 
         public BoundingFrustum frustum;
+        public bool isFree = false;
 
         public Camera(float aspectRatio)
         {
             frustum = new BoundingFrustum(Matrix.Identity);
             fieldOfView = MathHelper.ToRadians(100);
             this.aspectRatio = aspectRatio;
-            position = new Vector3(0, 3.5f, 10);
+            position = new Vector3(0, 5f, 0);
             nearPlaneDistance = 1;
             farPlaneDistance = 1000;
             yaw = 270;
@@ -47,6 +49,26 @@ namespace nixfps.Components.Cameras
             center = new System.Drawing.Point(screenCenter.X, screenCenter.Y);
 
             mouseLocked = game.CFG["MouseLocked"].Value<bool>();
+        }
+        Player playerPrev = new Player(999999);
+        public void SetFreeToggle()
+        {
+            if(!isFree)
+            {
+                playerPrev.position = NetworkManager.localPlayer.position + new Vector3(0, 4, 0);
+                playerPrev.yaw = NetworkManager.localPlayer.yaw;
+                playerPrev.pitch = NetworkManager.localPlayer.pitch;
+                isFree = true;
+
+            }
+            else
+            {
+                position = playerPrev.position;
+                yaw = playerPrev.yaw;
+                pitch = playerPrev.pitch;
+                isFree = false;
+
+            }
         }
         public void UpdatePosition(Vector3 position)
         {
