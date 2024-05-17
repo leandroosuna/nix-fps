@@ -3,6 +3,7 @@ using System.Diagnostics;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Input;
 using Newtonsoft.Json.Linq;
+using nixfps.Components.Input;
 using nixfps.Components.Network;
 using SharpFont;
 
@@ -88,25 +89,10 @@ namespace nixfps.Components.Cameras
         public float mouseSensAdapt = .09f;
 
         public bool mouseLocked;
-        public void Update(float deltaTime)
+        public void Update(InputManager input)
         {
-            GetMouseDelta(deltaTime);
-            UpdateMouse();
-            frustum.Matrix = view * projection;
-        }
-        public void GetMouseDelta(float deltaTime)
-        {
-            delta.X = System.Windows.Forms.Cursor.Position.X - center.X;
-            delta.Y = System.Windows.Forms.Cursor.Position.Y - center.Y;
-
-            mouseDelta = delta * mouseSensitivity * mouseSensAdapt;
-            if (mouseLocked)
-                System.Windows.Forms.Cursor.Position = center;
-        }
-        public void UpdateMouse()
-        {
-            
-            yaw += mouseDelta.X ;
+            mouseDelta = input.mouseDelta;
+            yaw += mouseDelta.X;
             if (yaw < 0)
                 yaw += 360;
             yaw %= 360;
@@ -120,7 +106,11 @@ namespace nixfps.Components.Cameras
 
             UpdateCameraVectors();
             CalculateView();
-        }    
+
+            frustum.Matrix = view * projection;
+        }
+       
+           
         public void ResetToCenter()
         {
             yaw = 0;

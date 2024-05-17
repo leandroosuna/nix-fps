@@ -1,18 +1,16 @@
 ﻿using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
-using Microsoft.Xna.Framework.Input;
 using nixfps.Components.Cameras;
 using nixfps.Components.Effects;
 using nixfps.Components.Lights;
 using nixfps.Components.Network;
 using nixfps.Components.Skybox;
+using nixfps.Components.Input;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using Newtonsoft.Json.Linq;
 using System.IO;
-using Riptide;
-using System.Security.Policy;
 
 namespace nixfps
 {
@@ -50,8 +48,12 @@ namespace nixfps
         RenderTarget2D positionTarget;
         RenderTarget2D lightTarget;
         public AnimationManager animationManager;
-        Player localPlayer;
+        public Player localPlayer;
         public JObject CFG;
+        public GState gameState;
+        public InputManager inputManager;
+        InputManager inputRun;
+        InputManager inputMainMenu;
         public NixFPS()
         {
             CFG = JObject.Parse(File.ReadAllText("app-settings.json"));
@@ -64,7 +66,9 @@ namespace nixfps
             Graphics.PreferredBackBufferHeight = screenHeight;
             Window.IsBorderless = CFG["Borderless"].Value<bool>();
             Graphics.IsFullScreen = CFG["Fullscreen"].Value<bool>();
-            Window.Position = new Point(0, 0);
+            //Window.Position = new Point(0, 0);
+            screenCenter = new Point(screenWidth / 2 + Window.Position.X, screenHeight / 2 + Window.Position.Y);
+
             var framerateLimit = CFG["FramerateLimit"].Value<int>();
             IsFixedTimeStep = framerateLimit != 0;
             if(framerateLimit > 0)
@@ -74,8 +78,7 @@ namespace nixfps
             Graphics.ApplyChanges();
 
             Content.RootDirectory = "Content";
-            IsMouseVisible = false;
-
+            
             
             
             if (!CFG.ContainsKey("ClientID"))
@@ -102,11 +105,17 @@ namespace nixfps
         {
             Pixel = new Texture2D(GraphicsDevice, 1, 1);
             Pixel.SetData(new byte[] { 0xFF, 0xFF, 0xFF, 0xFF });
-            
+
+            inputMainMenu = new InputMainMenu();
+            inputRun = new InputGameRun();
+
+
             NetworkManager.Connect();
             localPlayer = NetworkManager.localPlayer;
-            screenCenter = new Point(GraphicsDevice.Viewport.Width / 2, GraphicsDevice.Viewport.Height / 2);
+            InputManager.Init();
+            SwitchGameState(GState.MAIN_MENU);
 
+            
             base.Initialize();
         }
 
@@ -166,7 +175,6 @@ namespace nixfps
         }
         double time = 0;
         float deltaTimeU;
-        List<Keys> ignored = new List<Keys>(); 
         float onesec = 0f;
         int packetsIn;
         int packetsOut;
@@ -175,135 +183,10 @@ namespace nixfps
         {
             deltaTimeU = (float)gameTime.ElapsedGameTime.TotalSeconds;
             time += gameTime.ElapsedGameTime.TotalSeconds;
-            // TODO: input manager(s)
-            if (GamePad.GetState(PlayerIndex.One).Buttons.Back == ButtonState.Pressed || Keyboard.GetState().IsKeyDown(Keys.Escape))
-                Exit();
 
-            var keyState = Keyboard.GetState();
+            inputManager.Update(deltaTimeU);
 
-
-            var frontFlat = Vector3.Normalize(new Vector3(localPlayer.FrontDir().X, 0, localPlayer.FrontDir().Z));
-            var rightFlat = Vector3.Cross(Vector3.Up, frontFlat);
-
-            Vector3 dir = Vector3.Zero;
-            if (keyState.IsKeyDown(Keys.Up))
-            {
-                dir += frontFlat;
-            }
-            if (keyState.IsKeyDown(Keys.Down))
-            {
-                dir -= frontFlat;
-            }
-            if (keyState.IsKeyDown(Keys.Left))
-            {
-                dir += rightFlat;
-            }
-            if (keyState.IsKeyDown(Keys.Right))
-            {
-                dir -= rightFlat;
-            }
-            var speed = keyState.IsKeyDown(Keys.RightShift) ? 18 : 9.5f;
-            if(dir != Vector3.Zero)
-                dir = Vector3.Normalize(dir);
-            localPlayer.position += dir * speed * deltaTimeU;
-
-            if (!camera.isFree)
-            {
-                localPlayer.yaw = camera.yaw;
-                //p.pitch = camera.pitch;
-                //p.position = camera.position - new Vector3(0,4,0);
-                localPlayer.frontDirection = camera.frontDirection;
-                
-            }
-            else
-            {
-                if (keyState.IsKeyDown(Keys.W))
-                {
-                    camera.position += camera.frontDirection * 5 * deltaTimeU;
-                }
-                if (keyState.IsKeyDown(Keys.S))
-                {
-                    camera.position -= camera.frontDirection * 5 * deltaTimeU;
-                }
-                if (keyState.IsKeyDown(Keys.A))
-                {
-                    camera.position -= camera.rightDirection * 5 * deltaTimeU;
-                }
-                if (keyState.IsKeyDown(Keys.D))
-                {
-                    camera.position += camera.rightDirection * 5 * deltaTimeU;
-                }
-                if (keyState.IsKeyDown(Keys.Space))
-                {
-                    camera.position.Y += 5 * deltaTimeU;
-                }
-                if (keyState.IsKeyDown(Keys.LeftControl))
-                {
-                    camera.position.Y -= 5 * deltaTimeU;
-                }
-            }
-            if (keyState.IsKeyDown(Keys.CapsLock))
-            {
-                if (!ignored.Contains(Keys.CapsLock))
-                {
-                    ignored.Add(Keys.CapsLock);
-                    camera.SetFreeToggle();
-                }
-            }
-            //animationManager.SetPlayerData(p);
-
-            var dz = (keyState.IsKeyDown(Keys.Up) ? 1 : 0) - (keyState.IsKeyDown(Keys.Down) ? 1 : 0);
-            var dx = (keyState.IsKeyDown(Keys.Right) ? 1 : 0) - (keyState.IsKeyDown(Keys.Left) ? 1 : 0);
-
-            if (dz > 0 && dx == 0)
-            {
-                if (!keyState.IsKeyDown(Keys.RightShift))
-                    animationManager.SetClipName(localPlayer, AnimationManager.PlayerAnimation.runForward);
-                else
-                    animationManager.SetClipName(localPlayer, AnimationManager.PlayerAnimation.sprintForward);
-            }
-            else if (dz > 0 && dx > 0)
-            {
-                if (!keyState.IsKeyDown(Keys.RightShift))
-                    animationManager.SetClipName(localPlayer, AnimationManager.PlayerAnimation.runForwardRight);
-                else
-                    animationManager.SetClipName(localPlayer, AnimationManager.PlayerAnimation.sprintForwardRight);
-            }
-            else if (dz > 0 && dx < 0)
-            {
-                if (!keyState.IsKeyDown(Keys.RightShift))
-                    animationManager.SetClipName(localPlayer, AnimationManager.PlayerAnimation.runForwardLeft);
-                else
-                    animationManager.SetClipName(localPlayer, AnimationManager.PlayerAnimation.sprintForwardLeft);
-            }
-            else if (dz < 0 && dx == 0)
-            {
-                animationManager.SetClipName(localPlayer, AnimationManager.PlayerAnimation.runBackward);
-            }
-            else if (dz < 0 && dx > 0)
-            {
-                animationManager.SetClipName(localPlayer, AnimationManager.PlayerAnimation.runBackwardRight);
-            }
-            else if (dz < 0 && dx < 0)
-            {
-                animationManager.SetClipName(localPlayer, AnimationManager.PlayerAnimation.runBackwardLeft);
-            }
-            else if (dz == 0 && dx > 0)
-            {
-                animationManager.SetClipName(localPlayer, AnimationManager.PlayerAnimation.runRight);
-            }
-            else if (dz == 0 && dx < 0)
-            {
-                animationManager.SetClipName(localPlayer, AnimationManager.PlayerAnimation.runLeft);
-            }
-
-            else
-                animationManager.SetClipName(localPlayer, AnimationManager.PlayerAnimation.idle);
-
-            
-            ignored.RemoveAll(key => keyState.IsKeyUp(key));
-
-            camera.Update(deltaTimeU);
+            camera.Update(inputManager);
             animationManager.Update(deltaTimeU);
             UpdatePointLights(deltaTimeU);
 
@@ -346,8 +229,28 @@ namespace nixfps
                 fps = (int)(1 / deltaTimeD);
                 frameTime = deltaTimeD * 1000;
             }
+
+            switch (gameState)
+            {
+                case GState.MAIN_MENU: DrawMenu(deltaTimeD); break;
+                case GState.RUN: DrawRun(deltaTimeD); break;
+            }
             
 
+            base.Draw(gameTime);
+        }
+
+        void DrawMenu(float deltaTime)
+        {
+            GraphicsDevice.SetRenderTarget(null);
+            GraphicsDevice.Clear(Color.Black);
+            spriteBatch.Begin();
+            var str = "MAIN MENU, enter to start";
+            spriteBatch.DrawString(font, str , new Vector2(screenWidth/2 - (font.MeasureString(str).X) /2 , screenHeight/2), Color.White);
+            spriteBatch.End();
+        }
+        void DrawRun(float deltaTime)
+        {
             basicModelEffect.SetView(camera.view);
             basicModelEffect.SetProjection(camera.projection);
             deferredEffect.SetView(camera.view);
@@ -364,7 +267,7 @@ namespace nixfps
 
             // Draw a simple plane, enable lighting on it
             DrawPlane();
-            
+
             animationManager.DrawPlayers();
 
             // Draw the geometry of the lights in the scene, so that we can see where the generators are
@@ -427,15 +330,15 @@ namespace nixfps
             var pos = " camlocal " + camStr;
             var pNetStr = "";
             var pos2 = "";
-            if (NetworkManager.players.Count > 1 )
+            if (NetworkManager.players.Count > 1)
             {
                 var pNet = NetworkManager.GetPlayerFromId(222222).position;
 
                 pNetStr += string.Format("({0:F2}, {1:F2}, {2:F2})", pNet.X, pNet.Y, pNet.Z);
                 pos2 = " player2 " + pNetStr;
             }
-            
-            fpsStr += pc + pos + pos2 + " "+NetworkManager.Client.RTT+" ms, in "+ packetsIn;
+
+            fpsStr += pos + pos2 + NetworkManager.Client.RTT + " ms, in " + packetsIn;
             fpsStr += " out " + packetsOut;
 
             spriteBatch.Begin();
@@ -445,8 +348,6 @@ namespace nixfps
 
 
 
-
-            base.Draw(gameTime);
         }
 
         private void DrawPlane()
@@ -520,6 +421,37 @@ namespace nixfps
             //    light.hasLightGeo = true;
             //}
 
+        }
+
+        public void SwitchGameState(GState state)
+        {
+            gameState = state;
+            switch(gameState)
+            {
+                case GState.MAIN_MENU:
+                    inputManager = inputMainMenu;
+                    IsMouseVisible = true;
+                    break;
+                case GState.RUN:
+                    System.Windows.Forms.Cursor.Position = inputManager.center;
+                    camera.pitch = 0;
+                    inputManager = inputRun;
+                    IsMouseVisible = CFG["MouseVisible"].Value<bool>();
+                    break;
+                case GState.PAUSE:
+                    break;
+                case GState.OPTIONS:
+                    break;
+            }
+
+        }
+
+        public enum GState
+        {
+            MAIN_MENU,
+            RUN,
+            PAUSE,
+            OPTIONS
         }
 
     }

@@ -15,7 +15,7 @@
   "VSync": true,
   "FramerateLimit": 0,
   "Borderless": true,
-  "MouseVisible": false,
+  "MouseVisible": true,
   "MouseLocked": true,
 
   "ServerIP": "nix.dynamic-dns.net",
