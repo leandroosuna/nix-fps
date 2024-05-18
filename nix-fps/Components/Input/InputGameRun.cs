@@ -24,10 +24,8 @@ namespace nixfps.Components.Input
         {
             localPlayer = game.localPlayer;
             camera = game.camera;
-            var frontFlat = Vector3.Normalize(new Vector3(localPlayer.FrontDir().X, 0, localPlayer.FrontDir().Z));
-            var rightFlat = Vector3.Cross(Vector3.Up, frontFlat);
-
-            if(keyMappings.Escape.IsDown())
+            
+            if (keyMappings.Escape.IsDown())
             {
                 if(!keysDown.Contains(keyMappings.Escape))
                 {
@@ -35,34 +33,18 @@ namespace nixfps.Components.Input
                     game.SwitchGameState(NixFPS.GState.MAIN_MENU);
                 }
             }
+            clientInputState = keyMappings.GetClientState();
+            clientInputState.deltaTime = deltaTime;
+            clientInputState.accDeltaTime += deltaTime;
+            
+            
+
             if (!camera.isFree)
             {
                 localPlayer.yaw = camera.yaw;
+                localPlayer.pitch = camera.pitch;
                 localPlayer.frontDirection = camera.frontDirection;
-                
-                Vector3 dir = Vector3.Zero;
-                int dz = 0;
-                int dx = 0;
-
-                if (keyMappings.Forward.IsDown())
-                    dz++;
-                if (keyMappings.Backward.IsDown())
-                    dz--;
-                if (keyMappings.Left.IsDown())
-                    dx++;
-                if (keyMappings.Right.IsDown())
-                    dx--;
-
-                dir += (dz * frontFlat + dx * rightFlat);
-                speed = 9.5f;
-                if (dz > 0 && keyMappings.Sprint.IsDown())
-                    speed = 18;
-
-                if (dir != Vector3.Zero)
-                    dir = Vector3.Normalize(dir);
-
-                localPlayer.position += dir * speed * deltaTime;
-                camera.position = localPlayer.position + new Vector3(0,4,0);
+                ApplyInput(clientInputState);
             }
             else
             {
@@ -91,6 +73,7 @@ namespace nixfps.Components.Input
                     camera.position.Y -= 5 * deltaTime;
                 }
             }
+
             if (keyMappings.CAPS.IsDown())
             {
                 if (!keysDown.Contains(keyMappings.CAPS))
@@ -148,6 +131,37 @@ namespace nixfps.Components.Input
 
             //else
             //    animationManager.SetClipName(localPlayer, AnimationManager.PlayerAnimation.idle);
+
+        }
+
+        public override void ApplyInput(ClientInputState state)
+        {
+            var frontFlat = Vector3.Normalize(new Vector3(localPlayer.frontDirection.X, 0, localPlayer.frontDirection.Z));
+            var rightFlat = Vector3.Cross(Vector3.Up, frontFlat);
+
+            Vector3 dir = Vector3.Zero;
+            int dz = 0;
+            int dx = 0;
+
+            if (state.Forward)
+                dz++;
+            if (state.Backward)
+                dz--;
+            if (state.Left)
+                dx++;
+            if (state.Right)
+                dx--;
+
+            dir += (dz * frontFlat + dx * rightFlat);
+            speed = 9.5f;
+            if (dz > 0 && state.Sprint)
+                speed = 18;
+
+            if (dir != Vector3.Zero)
+                dir = Vector3.Normalize(dir);
+
+            localPlayer.position += dir * speed * state.deltaTime;
+            camera.position = localPlayer.position + new Vector3(0, 4, 0);
 
         }
     }

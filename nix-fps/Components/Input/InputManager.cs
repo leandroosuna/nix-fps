@@ -16,7 +16,7 @@ namespace nixfps.Components.Input
         public static KeyboardState keyState;
         public static MouseState mouseState;
 
-        public Camera camera;
+        public static Camera camera;
         
         public float mouseSensitivity = .15f;
         public float mouseSensAdapt = .09f;
@@ -28,10 +28,16 @@ namespace nixfps.Components.Input
         public static KeyMappings keyMappings;
 
         public float speed;
+        public const int stateCacheSize = 1024;
+        public ClientInputState clientInputState = new ClientInputState();
+        public List<ClientInputState> InputStateCache = new List<ClientInputState>();
+        //public ServerState[] serverStateCache = new ServerState[stateCacheSize];
+        //public ServerState serverState;
+        public uint messagesSent = 0;
+
         public InputManager()
         {
             game = NixFPS.GameInstance();
-            camera = game.camera;
             
             center = new System.Drawing.Point(game.screenCenter.X, game.screenCenter.Y);
 
@@ -53,6 +59,7 @@ namespace nixfps.Components.Input
         }
 
         public abstract void ProcessInput(float deltaTime);
+        public abstract void ApplyInput(ClientInputState state);
         public void Update(float deltaTime)
         {
             keyState = Keyboard.GetState();
@@ -63,9 +70,10 @@ namespace nixfps.Components.Input
 
 
             UpdateMousePositionDelta();
+            camera.Update(this);
             ProcessInput(deltaTime);
         }
-
+        
         public void UpdateMousePositionDelta()
         {
             mousePosition.X = System.Windows.Forms.Cursor.Position.X;

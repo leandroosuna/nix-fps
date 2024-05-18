@@ -170,7 +170,8 @@ namespace nixfps
 
             camera = new Camera(Graphics.GraphicsDevice.Viewport.AspectRatio);
             skybox = new Skybox();
-
+            InputManager.camera = camera;
+            mainStopwatch.Start();
             
         }
         double time = 0;
@@ -178,15 +179,16 @@ namespace nixfps
         float onesec = 0f;
         int packetsIn;
         int packetsOut;
-
+        public Stopwatch mainStopwatch = new Stopwatch();
         protected override void Update(GameTime gameTime)
         {
             deltaTimeU = (float)gameTime.ElapsedGameTime.TotalSeconds;
             time += gameTime.ElapsedGameTime.TotalSeconds;
 
+            NetworkManager.InterpolatePlayers(mainStopwatch.ElapsedMilliseconds);
             inputManager.Update(deltaTimeU);
 
-            camera.Update(inputManager);
+            //camera.Update(inputManager);
             animationManager.Update(deltaTimeU);
             UpdatePointLights(deltaTimeU);
 
@@ -194,9 +196,16 @@ namespace nixfps
 
 
             //TPS = 200
-            while (time >= 0.005)
+            //while (time >= 0.005)
+            //{
+            //    time -= 0.005;
+            //    NetworkManager.Client.Update();
+            //    NetworkManager.SendData();
+            //}
+            //TPS = min(200,FPS)
+            if(time >= 0.005)
             {
-                time -= 0.005;
+                time = 0;
                 NetworkManager.Client.Update();
                 NetworkManager.SendData();
             }
@@ -340,6 +349,8 @@ namespace nixfps
 
             fpsStr += pos + pos2 + NetworkManager.Client.RTT + " ms, in " + packetsIn;
             fpsStr += " out " + packetsOut;
+
+            fpsStr += " diff " + string.Format("({0:F2}, {1:F2}, {2:F2})", NetworkManager.posDiff.X, NetworkManager.posDiff.Y, NetworkManager.posDiff.Z);
 
             spriteBatch.Begin();
             spriteBatch.DrawString(font, fpsStr, Vector2.Zero, Color.White);

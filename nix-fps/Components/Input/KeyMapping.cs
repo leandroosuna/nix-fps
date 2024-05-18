@@ -9,9 +9,9 @@ using System.Threading.Tasks;
 
 namespace nixfps.Components.Input
 {
-    
     public class KeyMappings
     {
+        static NixFPS game;
         public Key Enter;
         public Key Escape;
 
@@ -35,6 +35,35 @@ namespace nixfps.Components.Input
 
         public Key Debug1, Debug2, Debug3, Debug0, Debug7, Debug8, Debug9;
         public Key TAB, CAPS;
+
+        ClientInputState clientInputState = new ClientInputState();
+        ClientInputState emptyState = new ClientInputState(false, false, false, false, false, false,false, false, false, false, false, false, false, false);
+
+        public ClientInputState GetClientState()
+        {
+            clientInputState.Forward = Forward.IsDown();
+            clientInputState.Backward = Backward.IsDown();
+            clientInputState.Jump = Jump.IsDown();
+            clientInputState.Crouch = Crouch.IsDown();
+            clientInputState.Left = Left.IsDown();
+            clientInputState.Right = Right.IsDown();
+            clientInputState.Fire = Fire.IsDown();
+            clientInputState.ADS = ADS.IsDown();
+            clientInputState.Reload = Reload.IsDown();
+            clientInputState.Sprint = Sprint.IsDown();
+            clientInputState.Ability1 = Ability1.IsDown();
+            clientInputState.Ability2 = Ability2.IsDown();
+            clientInputState.Ability3 = Ability3.IsDown();
+            clientInputState.Ability4 = Ability4.IsDown();
+
+            if(game.camera.isFree)
+            {
+                emptyState.accDeltaTime = clientInputState.accDeltaTime;
+                return emptyState;
+            }
+
+            return clientInputState;
+        }
         public Key ConvertKey(Keys key)
         {
             //Keys.F20 = MB1
@@ -97,7 +126,7 @@ namespace nixfps.Components.Input
                 Forward, Backward, Left, Right, Fire, ADS, Reload, Jump, Crouch, Sprint, 
                 Ability1, Ability2, Ability3, Ability4
             });
-
+            game = NixFPS.GameInstance();
         }
 
         

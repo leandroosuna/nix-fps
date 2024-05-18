@@ -12,7 +12,7 @@
   "ScreenHeight": 720,
   "Fullscreen": false,
 
-  "VSync": true,
+  "VSync": false,
   "FramerateLimit": 0,
   "Borderless": true,
   "MouseVisible": true,

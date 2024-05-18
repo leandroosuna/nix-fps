@@ -7,10 +7,10 @@ using System.Threading.Tasks;
 
 namespace nixfps.Components.Input
 {
-    public class InputMainMenu: InputManager
+    public class InputMainMenu : InputManager
     {
-        public InputMainMenu() : base() 
-        { 
+        public InputMainMenu() : base()
+        {
             mouseLocked = false;
         }
         public new void Update(float deltaTime)
@@ -19,16 +19,20 @@ namespace nixfps.Components.Input
         }
         public override void ProcessInput(float deltaTime)
         {
-            if(keyMappings.Escape.IsDown())
+            if (keyMappings.Escape.IsDown())
             {
                 if (!keysDown.Contains(keyMappings.Escape))
                     game.Exit();
             }
-            if(keyMappings.Enter.IsDown())
+            if (keyMappings.Enter.IsDown())
             {
                 keysDown.Add(keyMappings.Enter);
                 game.SwitchGameState(NixFPS.GState.RUN);
             }
+        }
+        public override void ApplyInput(ClientInputState state)
+        {
+
         }
     }
 }

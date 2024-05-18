@@ -1,6 +1,10 @@
 ﻿using Microsoft.Xna.Framework;
+using nixfps.Components.Input;
 using Riptide;
 using System;
+using System.Collections.Generic;
+using System.Linq;
+using static Assimp.Metadata;
 
 namespace nixfps
 { 
@@ -19,6 +23,7 @@ namespace nixfps
         public Matrix world;
         public string clipName;
         public float timeOffset;
+        public List<PlayerCache> netDataCache = new List<PlayerCache>();
         public Player(uint id)
         {
             this.id = id;
@@ -50,6 +55,72 @@ namespace nixfps
 
             return frontDirection;
         }
-        
+
+        public void Interpolate(long now)
+        {
+            if (netDataCache.Count < 2)
+                return;
+            
+            netDataCache = netDataCache.OrderBy(pc => pc.timeStamp).ToList();
+
+            //rendering one server tick behind, 5ms
+            //long renderTimeStamp = now - 5;
+
+            //rendering 20ms behind
+            long renderTimeStamp = now - 5;
+
+
+            //check if there is at least one timestamp after renderTimeStamp to interpolate to
+            if (netDataCache.All(pc => pc.timeStamp <= renderTimeStamp))
+                return;
+            if (InputManager.keyMappings.TAB.IsDown())
+            {
+                var a = 0;
+            }
+            int indexFound = 0;
+            for(int i = 0; i < netDataCache.Count - 1; i++)
+            {
+                var t0 = netDataCache[i].timeStamp;
+                var t1 = netDataCache[i+1].timeStamp;
+                if (t0 <= renderTimeStamp && renderTimeStamp < t1)
+                {
+                    indexFound = i;
+                    var x0 = netDataCache[i].position;
+                    var x1 = netDataCache[i+1].position;
+
+                    var y0 = netDataCache[i].yaw;
+                    var y1 = netDataCache[i+1].yaw;
+
+                    var p0 = netDataCache[i].pitch;
+                    var p1 = netDataCache[i + 1].pitch;
+
+                    position = x0 + (x1 - x0) * (renderTimeStamp - t0) / (t1 - t0);
+                    yaw = y0 + (y1 - y0) * (renderTimeStamp - t0) / (t1 - t0);
+                    pitch = p0 + (p1 - p0) * (renderTimeStamp - t0) / (t1 - t0);
+                }
+            }
+
+            //we delete elements that are old
+            if (netDataCache.Count > 2 ) 
+            {
+                netDataCache.RemoveRange(0,indexFound);
+            }
+        }
+    }
+
+    public class PlayerCache
+    {
+        public Vector3 position;
+        public float yaw, pitch;
+        public byte clipId;
+        public long timeStamp;
+        public PlayerCache(Vector3 position, float yaw, float pitch, byte clipId, long timeStamp)
+        {
+            this.position = position;
+            this.yaw = yaw;
+            this.pitch = pitch;
+            this.clipId = clipId;
+            this.timeStamp = timeStamp;
+        }
     }
 }

@@ -1,10 +1,12 @@
 ﻿using Microsoft.Xna.Framework;
 using Newtonsoft.Json.Linq;
+using nixfps.Components.Input;
 using Riptide;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Net;
+using static System.Windows.Forms.VisualStyles.VisualStyleElement.TrackBar;
 
 namespace nixfps.Components.Network
 {
@@ -17,8 +19,7 @@ namespace nixfps.Components.Network
 
         public static List<Player> players = new List<Player>();
         public static Player localPlayer;
-        public static uint localPlayerId;
-
+        
         static NixFPS game;
         public static Vector3 netPosition;
 
@@ -48,20 +49,44 @@ namespace nixfps.Components.Network
 
             localPlayer = new Player(id);
             localPlayer.name = playerName;
-            //players.Add(localPlayer);
-            //localPlayerId = localPlayer.id;
+
         }
         public static void SendData()
         {
+            var inputMan = game.inputManager;
+
+            inputMan.clientInputState.messageId = inputMan.messagesSent;
+            inputMan.InputStateCache.Add(inputMan.clientInputState);
+            inputMan.messagesSent++;
+
+
             var msg = Message.Create(MessageSendMode.Unreliable, ClientToServer.PlayerData);
             msg.AddUInt(localPlayer.id);
-            msg.AddVector3(game.camera.position - new Vector3(0,4,0));
-            msg.AddVector3(game.camera.frontDirection);
-            msg.AddFloat(game.camera.yaw);
+            msg.AddVector3(localPlayer.position);
 
+            msg.AddUInt(inputMan.clientInputState.messageId);
+            msg.AddBool(inputMan.clientInputState.Forward);
+            msg.AddBool(inputMan.clientInputState.Backward);
+            msg.AddBool(inputMan.clientInputState.Left);
+            msg.AddBool(inputMan.clientInputState.Right);
+            msg.AddBool(inputMan.clientInputState.Sprint);
+            msg.AddBool(inputMan.clientInputState.Jump);
+            msg.AddBool(inputMan.clientInputState.Crouch);
+            msg.AddBool(inputMan.clientInputState.Fire);
+            msg.AddBool(inputMan.clientInputState.ADS);
+            msg.AddBool(inputMan.clientInputState.Ability1);
+            msg.AddBool(inputMan.clientInputState.Ability2);
+            msg.AddBool(inputMan.clientInputState.Ability3);
+            msg.AddBool(inputMan.clientInputState.Ability4);
+            msg.AddFloat(localPlayer.yaw);
+            msg.AddFloat(localPlayer.pitch);
+            
+            msg.AddFloat(inputMan.clientInputState.accDeltaTime);
+            inputMan.clientInputState.accDeltaTime = 0;
             Client.Send(msg);
         }
 
+        public static Vector3 posDiff;
         [MessageHandler((ushort)ServerToClient.AllPlayerData)]
         private static void HandleAllPlayerData(Message message)
         {
@@ -69,32 +94,52 @@ namespace nixfps.Components.Network
             for (int i = 0; i < playerCount; i++)
             {
                 var id = message.GetUInt();
+                var lastProcessedMessage = message.GetUInt();
                 var netPos = message.GetVector3();
-                var netFD = message.GetVector3();
                 var netYaw = message.GetFloat();
+                var netPitch = message.GetFloat();
+                var netClip = message.GetByte();
 
-                if(id != localPlayerId)
+                if (id != localPlayer.id)
                 {
                     var p = GetPlayerFromId(id);
                     if (p.id != uint.MaxValue)
                     {
-                        if (p.id != localPlayerId)
-                        {
-                            p.position = netPos;
-                            p.frontDirection = netFD;
-                            p.yaw = netYaw;
-                            //game.animationManager.SetPlayerData(p);
-                        }
-                        else
-                            netPosition = netPos;
-
+                        var cache = new PlayerCache(netPos, netYaw, netPitch, netClip, game.mainStopwatch.ElapsedMilliseconds); 
+                        
+                        p.netDataCache.Add(cache);
+                        
                     }
                     else
                     {
                         //Debug.WriteLine("player not found");
                     }
                 }
-                
+                else
+                {
+                    //server reconciliation
+                    //auth position from server
+                    var prevPos = localPlayer.position;
+
+                    localPlayer.position = netPos;
+                    var inputMan = game.inputManager;
+                    var cache = inputMan.InputStateCache;
+
+                    //we remove all processed messages from the cache
+                    cache.RemoveAll(c => c.messageId <= lastProcessedMessage);
+
+                    for(int j = 0; j < cache.Count; j++)
+                    {
+                        inputMan.ApplyInput(cache[j]);
+                        if(InputManager.keyMappings.TAB.IsDown())
+                        {
+                            var a = 0;
+                        }
+                    }
+                    posDiff = localPlayer.position - prevPos;
+
+
+                }
             }
         }
         [MessageHandler((ushort)ServerToClient.PlayerConnected)]
@@ -102,7 +147,7 @@ namespace nixfps.Components.Network
         {
             var id = message.GetUInt();
             var name = message.GetString();
-            if (id == localPlayerId)
+            if (id == localPlayer.id)
                 return;
             Debug.WriteLine(name + " (" + id + ") connected");
 
@@ -146,6 +191,12 @@ namespace nixfps.Components.Network
             }
 
             return new Player(uint.MaxValue);
+        }
+
+        public static void InterpolatePlayers(long now)
+        {
+            foreach (var player in players)
+                player.Interpolate(now);
         }
     }
 }
