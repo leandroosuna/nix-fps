@@ -20,6 +20,10 @@ namespace nixfps.Components.Effects
 
         public Texture2D playerModelTex;
         public Texture2D playerModelTex2;
+        public Texture2D playerEmissiveTex;
+        public Texture2D playerEmissiveTex2;
+        public Texture2D playerSpecTex;
+        public Texture2D playerSpecTex2;
 
         NixFPS game;
 
@@ -56,6 +60,11 @@ namespace nixfps.Components.Effects
 
             playerModelTex = game.Content.Load<Texture2D>(NixFPS.ContentFolder3D + "soldier/t-pose.fbm/Ch44_1001_Diffuse");
             playerModelTex2 = game.Content.Load<Texture2D>(NixFPS.ContentFolder3D + "soldier/t-pose.fbm/Ch44_1002_Diffuse");
+
+            playerEmissiveTex = game.Content.Load<Texture2D>(NixFPS.ContentFolder3D + "soldier/t-pose.fbm/Ch44_1001_Emissive");
+            playerEmissiveTex2 = game.Content.Load<Texture2D>(NixFPS.ContentFolder3D + "soldier/t-pose.fbm/Ch44_1002_Emissive");
+            playerSpecTex = game.Content.Load<Texture2D>(NixFPS.ContentFolder3D + "soldier/t-pose.fbm/Ch44_1001_Specular");
+            playerSpecTex2 = game.Content.Load<Texture2D>(NixFPS.ContentFolder3D + "soldier/t-pose.fbm/Ch44_1002_Specular");
 
             //custom model build
             var modelName = NixFPS.ContentFolder3D + "soldier/t-pose";
@@ -130,9 +139,10 @@ namespace nixfps.Components.Effects
         {
             p.clipName = animationNames[(byte)anim];
         }
-        public void Update(float deltaTime)
+        public void Update(GameTime gameTime)
         {
-           animationPlayer.Update(deltaTime);
+            animationPlayer.Update((float)gameTime.ElapsedGameTime.TotalSeconds);
+            effect.SetTime((float)gameTime.TotalGameTime.TotalSeconds);
         }
 
         

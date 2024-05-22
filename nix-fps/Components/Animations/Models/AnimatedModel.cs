@@ -89,7 +89,7 @@ public class AnimatedModel
         effect.SetCameraPosition(game.camera.position);
         effect.SetAmbientLight(game.lightsManager.ambientLight);
         effect.SetKA(0.3f);
-        effect.SetKD(0.8f);
+        effect.SetKD(0.9f);
         effect.SetKS(0.8f);
         effect.SetShininess(30f);
 
@@ -102,10 +102,13 @@ public class AnimatedModel
             effect.SetProjection(camera.projection);
             effect.SetBoneTransforms(skeleton);
             effect.SetInverseTransposeWorld(Matrix.Invert(Matrix.Transpose(worldBone)));
-            
+
+            effect.SetTeamColor(Vector3.Zero);
             var part = mesh.MeshParts[0];
 
             effect.SetTexture(animManager.playerModelTex2);
+            effect.SetEmissiveTexture(animManager.playerEmissiveTex2);
+            effect.SetSpecTexture(animManager.playerSpecTex2);
             foreach (var pass in effect.effect.CurrentTechnique.Passes)
             {
                 pass.Apply();
@@ -114,8 +117,10 @@ public class AnimatedModel
                 game.GraphicsDevice.DrawIndexedPrimitives(PrimitiveType.TriangleList, part.VertexOffset, part.StartIndex, part.PrimitiveCount);
             }
             part = mesh.MeshParts[1];
-
+            effect.SetTeamColor(player.teamColor);
             effect.SetTexture(animManager.playerModelTex);
+            effect.SetEmissiveTexture(animManager.playerEmissiveTex);
+            effect.SetSpecTexture(animManager.playerSpecTex); 
             foreach (var pass in effect.effect.CurrentTechnique.Passes)
             {
                 pass.Apply();

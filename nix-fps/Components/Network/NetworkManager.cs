@@ -5,7 +5,9 @@ using Riptide;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Diagnostics.Metrics;
 using System.Net;
+using System.Threading;
 using static System.Windows.Forms.VisualStyles.VisualStyleElement.TrackBar;
 
 namespace nixfps.Components.Network
@@ -22,7 +24,8 @@ namespace nixfps.Components.Network
         
         static NixFPS game;
         public static Vector3 netPosition;
-
+        static Thread netThread;
+        static bool netThreadEnabled = true;
         public static void Connect()
         {
             game = NixFPS.GameInstance();
@@ -35,6 +38,31 @@ namespace nixfps.Components.Network
             Client.Connect(serverIP);
             
             SendPlayerIdentity();
+
+            netThread = new Thread(() =>
+            {
+                while (game.inputManager == null);
+                var stopwatch = new Stopwatch();
+                stopwatch.Start();
+
+                while (netThreadEnabled)
+                {
+                    if (stopwatch.ElapsedMilliseconds > 4)
+                    {
+                        stopwatch.Restart();
+                        Client.Update();
+                        SendData();
+                    }
+                }
+            });
+
+            //thread.IsBackground = true;
+            netThread.Start();
+
+        }
+        public static void StopNetThread()
+        {
+            netThreadEnabled = false;
         }
 
         public static void SendPlayerIdentity()
@@ -49,22 +77,28 @@ namespace nixfps.Components.Network
 
             localPlayer = new Player(id);
             localPlayer.name = playerName;
-
+            localPlayer.teamColor = new Vector3(0, 1, 1);
         }
         public static void SendData()
         {
             var inputMan = game.inputManager;
 
             inputMan.clientInputState.messageId = inputMan.messagesSent;
-            inputMan.InputStateCache.Add(inputMan.clientInputState);
+            //inputMan.InputStateCache.Add(inputMan.clientInputState);
             inputMan.messagesSent++;
+
+            inputMan.clientInputState.positionDelta = localPlayer.position - localPlayer.positionPrev;
+            localPlayer.positionPrev = localPlayer.position;    
 
 
             var msg = Message.Create(MessageSendMode.Unreliable, ClientToServer.PlayerData);
             msg.AddUInt(localPlayer.id);
-            msg.AddVector3(localPlayer.position);
-
             msg.AddUInt(inputMan.clientInputState.messageId);
+
+            msg.AddVector3(localPlayer.position);
+            msg.AddVector3(inputMan.clientInputState.positionDelta);
+            msg.AddFloat(localPlayer.yaw);
+            msg.AddFloat(localPlayer.pitch);
             msg.AddBool(inputMan.clientInputState.Forward);
             msg.AddBool(inputMan.clientInputState.Backward);
             msg.AddBool(inputMan.clientInputState.Left);
@@ -78,11 +112,8 @@ namespace nixfps.Components.Network
             msg.AddBool(inputMan.clientInputState.Ability2);
             msg.AddBool(inputMan.clientInputState.Ability3);
             msg.AddBool(inputMan.clientInputState.Ability4);
-            msg.AddFloat(localPlayer.yaw);
-            msg.AddFloat(localPlayer.pitch);
             
-            msg.AddFloat(inputMan.clientInputState.accDeltaTime);
-            inputMan.clientInputState.accDeltaTime = 0;
+            //msg.AddFloat(inputMan.clientInputState.accDeltaTime);
             Client.Send(msg);
         }
 
@@ -95,6 +126,7 @@ namespace nixfps.Components.Network
             {
                 var id = message.GetUInt();
                 var lastProcessedMessage = message.GetUInt();
+                var lastMovementValid = message.GetBool();
                 var netPos = message.GetVector3();
                 var netYaw = message.GetFloat();
                 var netPitch = message.GetFloat();
@@ -105,10 +137,10 @@ namespace nixfps.Components.Network
                     var p = GetPlayerFromId(id);
                     if (p.id != uint.MaxValue)
                     {
-                        var cache = new PlayerCache(netPos, netYaw, netPitch, netClip, game.mainStopwatch.ElapsedMilliseconds); 
-                        
+                        var cache = new PlayerCache(netPos, netYaw, netPitch, netClip, game.mainStopwatch.ElapsedMilliseconds);
+                        game.playerCacheMutex.WaitOne();
                         p.netDataCache.Add(cache);
-                        
+                        game.playerCacheMutex.ReleaseMutex();
                     }
                     else
                     {
@@ -121,7 +153,7 @@ namespace nixfps.Components.Network
                     //auth position from server
                     var prevPos = localPlayer.position;
 
-                    localPlayer.position = netPos;
+                    //localPlayer.position = netPos;
                     var inputMan = game.inputManager;
                     var cache = inputMan.InputStateCache;
 
@@ -130,7 +162,7 @@ namespace nixfps.Components.Network
 
                     for(int j = 0; j < cache.Count; j++)
                     {
-                        inputMan.ApplyInput(cache[j]);
+                        //inputMan.ApplyInput(cache[j]);
                         if(InputManager.keyMappings.TAB.IsDown())
                         {
                             var a = 0;

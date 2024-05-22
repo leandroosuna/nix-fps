@@ -10,7 +10,7 @@ float3 cameraPosition;
 texture skyBoxTexture;
 samplerCUBE skyBoxSampler = sampler_state
 {
-    texture = <skyBoxTexture>;
+    texture = (skyBoxTexture);
     magfilter = LINEAR;
     minfilter = LINEAR;
     mipfilter = LINEAR;
@@ -18,9 +18,22 @@ samplerCUBE skyBoxSampler = sampler_state
     AddressV = Mirror;
 };
 
+texture skyBox2DTexture;
+sampler skySphereSampler = sampler_state
+{
+    texture = (skyBox2DTexture);
+    magfilter = LINEAR;
+    minfilter = LINEAR;
+    mipfilter = LINEAR;
+    AddressU = mirror;
+    AddressV = mirror;
+};
+
+
 struct VertexShaderInput
 {
     float4 Position : POSITION0;
+    float2 TextureCoordinate : TEXCOORD0;
 };
 
 struct VertexShaderOutput
@@ -28,7 +41,18 @@ struct VertexShaderOutput
     float4 Position : POSITION0;
     float3 TextureCoordinate : TEXCOORD0;
 };
+struct SphereVSO
+{
+    float4 Position : POSITION0;
+    float2 TextureCoordinate : TEXCOORD0;
+};
 
+struct PSO
+{
+    float4 color : COLOR0;
+    float4 normal : COLOR1;
+    float4 position : COLOR2;
+};
 VertexShaderOutput VertexShaderFunction(VertexShaderInput input)
 {
     VertexShaderOutput output;
@@ -43,17 +67,49 @@ VertexShaderOutput VertexShaderFunction(VertexShaderInput input)
     return output;
 }
 
-float4 PixelShaderFunction(VertexShaderOutput input) : COLOR0
+PSO PixelShaderFunction(VertexShaderOutput input)
 {
-    return float4(texCUBE(skyBoxSampler, normalize(input.TextureCoordinate)).rgb, 1);
+    PSO output;
+    output.color = float4(texCUBE(skyBoxSampler, normalize(input.TextureCoordinate)).rgb, 0);
+    
+    //output.color = float4(1, 0, 0, 1);
+    output.normal = float4(1, 1, 1, 1);
+    output.position = float4(1, 1, 1, 1);
+    return output;
+    
     //return float4(1, 0, 1, 1);
 }
 
+
+
+PSO SpherePS(VertexShaderOutput input)
+{
+    PSO output;
+    output.color = float4(tex2D(skySphereSampler, normalize(input.TextureCoordinate)).rgb, 0);
+    
+    //output.color = float4(1, 0, 0, 1);
+    output.normal = float4(1, 1, 1, 1);
+    output.position = float4(1, 1, 1, 1);
+    return output;
+    
+    //return float4(1, 0, 1, 1);
+}
 technique Skybox
 {
     pass Pass1
     {
+        AlphaBlendEnable = FALSE;
         VertexShader = compile VS_SHADERMODEL VertexShaderFunction();
         PixelShader = compile PS_SHADERMODEL PixelShaderFunction();
+    }
+}
+
+technique sphere2d
+{
+    pass Pass1
+    {
+        AlphaBlendEnable = FALSE;
+        VertexShader = compile VS_SHADERMODEL VertexShaderFunction();
+        PixelShader = compile PS_SHADERMODEL SpherePS();
     }
 }

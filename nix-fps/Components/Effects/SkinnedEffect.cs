@@ -15,6 +15,11 @@ namespace nixfps.Components.Effects
         EffectParameter projection;
         EffectParameter boneTransforms;
         EffectParameter texture;
+        EffectParameter emissiveTex;
+        EffectParameter specTex;
+        EffectParameter teamColor;
+        EffectParameter time;
+
         EffectParameter normalTexture;
         EffectParameter inverseTransposeWorld;
         EffectParameter cameraPosition;
@@ -52,6 +57,10 @@ namespace nixfps.Components.Effects
             KD = effect.Parameters["KD"];
             KS = effect.Parameters["KS"];
             shininess = effect.Parameters["shininess"];
+            emissiveTex = effect.Parameters["emissiveTex"];
+            specTex = effect.Parameters["specTex"];
+            teamColor = effect.Parameters["teamColor"];
+            time = effect.Parameters["time"];
         }
         public void SetWorld(Matrix world)
         {
@@ -73,9 +82,25 @@ namespace nixfps.Components.Effects
         {
             this.texture.SetValue(texture);
         }
+        public void SetEmissiveTexture(Texture2D texture)
+        {
+            this.emissiveTex.SetValue(texture);
+        }
+        public void SetSpecTexture(Texture2D texture)
+        {
+            this.specTex.SetValue(texture);
+        }
         public void SetNormalTexture(Texture2D texture)
         {
             this.normalTexture.SetValue(texture);
+        }
+        public void SetTeamColor(Vector3 color)
+        {
+            teamColor.SetValue(color);  
+        }
+        public void SetTime(float time)
+        {
+            this.time.SetValue(time);
         }
         public void SetTech(string tech)
         {

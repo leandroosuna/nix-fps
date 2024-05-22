@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Microsoft.Xna.Framework;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -8,6 +9,7 @@ namespace nixfps.Components.Input
 {
     public class ClientInputState
     {
+        public Vector3 positionDelta;
         public bool Forward;
         public bool Backward;
         public bool Left;

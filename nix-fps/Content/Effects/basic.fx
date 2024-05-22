@@ -36,12 +36,13 @@ texture colorTexture;
 sampler2D colorSampler = sampler_state
 {
     Texture = (colorTexture);
-    AddressU = CLAMP;
-    AddressV = CLAMP;
+    AddressU = WRAP;
+    AddressV = WRAP;
     MagFilter = LINEAR;
     MinFilter = LINEAR;
     Mipfilter = LINEAR;
 };
+float2 tiling;
 
 VertexShaderOutput ColorVS(in VertexShaderInput input)
 {
@@ -52,7 +53,7 @@ VertexShaderOutput ColorVS(in VertexShaderInput input)
     output.WorldPos = worldPosition;
     output.Position = screenPos;
     output.Normal = mul(float4(input.Normal, 1), inverseTransposeWorld);
-    output.TexCoord = input.TexCoord ;
+    output.TexCoord = input.TexCoord * tiling;
     return output;
 }
 PSO ColorPS(VertexShaderOutput input)
@@ -108,6 +109,8 @@ technique color_lightDis
 {
     pass P0
     {
+        //FillMode = WIREFRAME;
+        
         AlphaBlendEnable = FALSE;
         VertexShader = compile VS_SHADERMODEL ColorVS();
         PixelShader = compile PS_SHADERMODEL LightDisPS();

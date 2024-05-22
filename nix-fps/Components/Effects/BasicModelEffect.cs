@@ -26,6 +26,7 @@ namespace nixfps.Components.Effects
         EffectParameter shininess;
         EffectParameter cameraPosition;
         EffectParameter lightPosition;
+        EffectParameter tiling;
 
 
         public BasicModelEffect(string effect)
@@ -53,6 +54,7 @@ namespace nixfps.Components.Effects
             KD = effect.Parameters["KD"];
             KS = effect.Parameters["KS"];
             shininess = effect.Parameters["shininess"];
+            tiling = effect.Parameters["tiling"];
         }
         public void SetWorld(Matrix world)
         {
@@ -125,6 +127,10 @@ namespace nixfps.Components.Effects
             SetLightAmbientColor(ambient.ambientColor);
             SetLightPosition(ambient.position);
             SetLightSpecularColor(ambient.specularColor);
+        }
+        public void SetTiling(Vector2 tiling)
+        {
+            this.tiling.SetValue(tiling);
         }
     }
 }

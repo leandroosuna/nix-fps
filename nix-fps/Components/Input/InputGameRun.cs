@@ -34,16 +34,14 @@ namespace nixfps.Components.Input
                 }
             }
             clientInputState = keyMappings.GetClientState();
-            clientInputState.deltaTime = deltaTime;
-            clientInputState.accDeltaTime += deltaTime;
-            
-            
 
             if (!camera.isFree)
             {
                 localPlayer.yaw = camera.yaw;
                 localPlayer.pitch = camera.pitch;
                 localPlayer.frontDirection = camera.frontDirection;
+                
+                clientInputState.deltaTime = deltaTime;
                 ApplyInput(clientInputState);
             }
             else
@@ -82,56 +80,42 @@ namespace nixfps.Components.Input
                     camera.SetFreeToggle();
                 }
             }
-            //animationManager.SetPlayerData(p);
-
-            //var dz = (keyState.IsKeyDown(Keys.Up) ? 1 : 0) - (keyState.IsKeyDown(Keys.Down) ? 1 : 0);
-            //var dx = (keyState.IsKeyDown(Keys.Right) ? 1 : 0) - (keyState.IsKeyDown(Keys.Left) ? 1 : 0);
-
-            //if (dz > 0 && dx == 0)
+            //if(keyMappings.Debug0.IsDown())
             //{
-            //    if (!keyState.IsKeyDown(Keys.RightShift))
-            //        animationManager.SetClipName(localPlayer, AnimationManager.PlayerAnimation.runForward);
-            //    else
-            //        animationManager.SetClipName(localPlayer, AnimationManager.PlayerAnimation.sprintForward);
+            //    if(!keysDown.Contains(keyMappings.Debug0))
+            //    {
+            //        keysDown.Add(keyMappings.Debug0);
+            //        game.hud.crosshair.thickness++;
+            //        game.hud.crosshair.modified = true;
+            //    }
             //}
-            //else if (dz > 0 && dx > 0)
+            //if (keyMappings.Debug1.IsDown())
             //{
-            //    if (!keyState.IsKeyDown(Keys.RightShift))
-            //        animationManager.SetClipName(localPlayer, AnimationManager.PlayerAnimation.runForwardRight);
-            //    else
-            //        animationManager.SetClipName(localPlayer, AnimationManager.PlayerAnimation.sprintForwardRight);
+            //    if (!keysDown.Contains(keyMappings.Debug1))
+            //    {
+            //        keysDown.Add(keyMappings.Debug1);
+            //        game.hud.crosshair.thickness--;
+            //        game.hud.crosshair.modified = true;
+            //    }
             //}
-            //else if (dz > 0 && dx < 0)
+            //if (keyMappings.Debug2.IsDown())
             //{
-            //    if (!keyState.IsKeyDown(Keys.RightShift))
-            //        animationManager.SetClipName(localPlayer, AnimationManager.PlayerAnimation.runForwardLeft);
-            //    else
-            //        animationManager.SetClipName(localPlayer, AnimationManager.PlayerAnimation.sprintForwardLeft);
+            //    if (!keysDown.Contains(keyMappings.Debug2))
+            //    {
+            //        keysDown.Add(keyMappings.Debug2);
+            //        game.hud.crosshair.offset++;
+            //        game.hud.crosshair.modified = true;
+            //    }
             //}
-            //else if (dz < 0 && dx == 0)
+            //if (keyMappings.Debug3.IsDown())
             //{
-            //    animationManager.SetClipName(localPlayer, AnimationManager.PlayerAnimation.runBackward);
+            //    if (!keysDown.Contains(keyMappings.Debug3))
+            //    {
+            //        keysDown.Add(keyMappings.Debug3);
+            //        game.hud.crosshair.offset--;
+            //        game.hud.crosshair.modified = true;
+            //    }
             //}
-            //else if (dz < 0 && dx > 0)
-            //{
-            //    animationManager.SetClipName(localPlayer, AnimationManager.PlayerAnimation.runBackwardRight);
-            //}
-            //else if (dz < 0 && dx < 0)
-            //{
-            //    animationManager.SetClipName(localPlayer, AnimationManager.PlayerAnimation.runBackwardLeft);
-            //}
-            //else if (dz == 0 && dx > 0)
-            //{
-            //    animationManager.SetClipName(localPlayer, AnimationManager.PlayerAnimation.runRight);
-            //}
-            //else if (dz == 0 && dx < 0)
-            //{
-            //    animationManager.SetClipName(localPlayer, AnimationManager.PlayerAnimation.runLeft);
-            //}
-
-            //else
-            //    animationManager.SetClipName(localPlayer, AnimationManager.PlayerAnimation.idle);
-
         }
 
         public override void ApplyInput(ClientInputState state)

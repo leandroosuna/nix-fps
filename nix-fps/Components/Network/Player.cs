@@ -4,6 +4,7 @@ using Riptide;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using static Assimp.Metadata;
 
 namespace nixfps
@@ -15,6 +16,7 @@ namespace nixfps
         public bool connected = false;
 
         public Vector3 position = Vector3.Zero;
+        public Vector3 positionPrev = Vector3.Zero;
         public Vector3 frontDirection = Vector3.Zero;
         public float yaw;
         public float pitch = 0f;
@@ -24,6 +26,8 @@ namespace nixfps
         public string clipName;
         public float timeOffset;
         public List<PlayerCache> netDataCache = new List<PlayerCache>();
+        public Vector3 teamColor;
+        NixFPS game;
         public Player(uint id)
         {
             this.id = id;
@@ -34,7 +38,7 @@ namespace nixfps
             clipName = "idle";
 
             world = scale;
-
+            game = NixFPS.GameInstance();
         }
         public Matrix GetWorld()
         {
@@ -58,38 +62,42 @@ namespace nixfps
 
         public void Interpolate(long now)
         {
+            game.playerCacheMutex.WaitOne();
             if (netDataCache.Count < 2)
                 return;
             
             netDataCache = netDataCache.OrderBy(pc => pc.timeStamp).ToList();
 
             //rendering one server tick behind, 5ms
-            //long renderTimeStamp = now - 5;
+            long renderTimeStamp = now - 50;
 
-            //rendering 20ms behind
-            long renderTimeStamp = now - 5;
+            ////rendering 20ms behind
+            //long renderTimeStamp = now - 100;
 
 
-            //check if there is at least one timestamp after renderTimeStamp to interpolate to
+            ////check if there is at least one timestamp after renderTimeStamp to interpolate to
             if (netDataCache.All(pc => pc.timeStamp <= renderTimeStamp))
-                return;
-            if (InputManager.keyMappings.TAB.IsDown())
             {
-                var a = 0;
+                game.playerCacheMutex.ReleaseMutex();
+                return;
             }
+            //if (InputManager.keyMappings.TAB.IsDown())
+            //{
+            //    var a = 0;
+            //}
             int indexFound = 0;
-            for(int i = 0; i < netDataCache.Count - 1; i++)
+            for (int i = 0; i < netDataCache.Count - 1; i++)
             {
                 var t0 = netDataCache[i].timeStamp;
-                var t1 = netDataCache[i+1].timeStamp;
+                var t1 = netDataCache[i + 1].timeStamp;
                 if (t0 <= renderTimeStamp && renderTimeStamp < t1)
                 {
                     indexFound = i;
                     var x0 = netDataCache[i].position;
-                    var x1 = netDataCache[i+1].position;
+                    var x1 = netDataCache[i + 1].position;
 
                     var y0 = netDataCache[i].yaw;
-                    var y1 = netDataCache[i+1].yaw;
+                    var y1 = netDataCache[i + 1].yaw;
 
                     var p0 = netDataCache[i].pitch;
                     var p1 = netDataCache[i + 1].pitch;
@@ -100,11 +108,14 @@ namespace nixfps
                 }
             }
 
+            game.animationManager.SetClipName(this, netDataCache[indexFound].clipId);
+            
             //we delete elements that are old
-            if (netDataCache.Count > 2 ) 
+            if (netDataCache.Count > 2)
             {
-                netDataCache.RemoveRange(0,indexFound);
+                netDataCache.RemoveRange(0, indexFound);
             }
+            game.playerCacheMutex.ReleaseMutex();
         }
     }
 

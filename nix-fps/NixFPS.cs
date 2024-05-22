@@ -11,6 +11,8 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using Newtonsoft.Json.Linq;
 using System.IO;
+using System.Threading;
+using nixfps.Components.HUD;
 
 namespace nixfps
 {
@@ -41,6 +43,7 @@ namespace nixfps
 
         public Model plane;
         public Model cube;
+        Texture2D floorTex;
 
         public LightsManager lightsManager;
         RenderTarget2D colorTarget;
@@ -54,8 +57,13 @@ namespace nixfps
         public InputManager inputManager;
         InputManager inputRun;
         InputManager inputMainMenu;
+        Mutex updateMutex;
+        public Mutex playerCacheMutex = new Mutex(false, "player-data-cache");
+
+        public Hud hud;
         public NixFPS()
         {
+            updateMutex = new Mutex();
             CFG = JObject.Parse(File.ReadAllText("app-settings.json"));
             game = this;
             Graphics = new GraphicsDeviceManager(this);
@@ -66,7 +74,7 @@ namespace nixfps
             Graphics.PreferredBackBufferHeight = screenHeight;
             Window.IsBorderless = CFG["Borderless"].Value<bool>();
             Graphics.IsFullScreen = CFG["Fullscreen"].Value<bool>();
-            //Window.Position = new Point(0, 0);
+            Window.Position = new Point(320, 180);
             screenCenter = new Point(screenWidth / 2 + Window.Position.X, screenHeight / 2 + Window.Position.Y);
 
             var framerateLimit = CFG["FramerateLimit"].Value<int>();
@@ -91,7 +99,10 @@ namespace nixfps
 
 
 
-            Exiting += (s, e) => NetworkManager.Client.Disconnect();
+            Exiting += (s, e) => {
+                NetworkManager.Client.Disconnect();
+                NetworkManager.StopNetThread();
+            };
         }
         public static NixFPS GameInstance() { return game; } 
         
@@ -128,7 +139,7 @@ namespace nixfps
             fullScreenQuad = new FullScreenQuad(GraphicsDevice);
             plane = Content.Load<Model>(ContentFolder3D + "basic/plane");
             cube = Content.Load<Model>(ContentFolder3D + "basic/cube");
-            
+            floorTex = Content.Load<Texture2D>(ContentFolder3D + "basic/tex/metalfloor");
             font = Content.Load<SpriteFont>(ContentFolderFonts + "tahoma/15");
 
             LightVolume.Init();
@@ -142,11 +153,11 @@ namespace nixfps
 
             var mrt = Matrix.CreateScale(0.025f) * Matrix.CreateRotationX(MathF.PI / 2) * Matrix.CreateTranslation(0, 0f, 0);
             var mrt2 = Matrix.CreateScale(0.025f) * Matrix.CreateRotationX(MathF.PI / 2) * Matrix.CreateTranslation(10, 0f, 0);
-            
+
             animationManager = new AnimationManager();
             //animationManager.SetPlayerData(0, mrt, "idle");
             //animationManager.SetPlayerData(1, mrt2, "idle");
-            
+
             //Random r = new Random();
             //uint p = 0;
             //var count = 4;
@@ -171,7 +182,14 @@ namespace nixfps
             camera = new Camera(Graphics.GraphicsDevice.Viewport.AspectRatio);
             skybox = new Skybox();
             InputManager.camera = camera;
+
+            hud = new Hud();
+
             mainStopwatch.Start();
+
+            
+
+
             
         }
         double time = 0;
@@ -180,21 +198,22 @@ namespace nixfps
         int packetsIn;
         int packetsOut;
         public Stopwatch mainStopwatch = new Stopwatch();
+        TimeSpan timespan = TimeSpan.Zero;
         protected override void Update(GameTime gameTime)
         {
             deltaTimeU = (float)gameTime.ElapsedGameTime.TotalSeconds;
-            time += gameTime.ElapsedGameTime.TotalSeconds;
-
+            //time += gameTime.ElapsedGameTime.TotalMilliseconds;
+            timespan = timespan.Add(gameTime.ElapsedGameTime);
             NetworkManager.InterpolatePlayers(mainStopwatch.ElapsedMilliseconds);
             inputManager.Update(deltaTimeU);
 
             //camera.Update(inputManager);
-            animationManager.Update(deltaTimeU);
+            animationManager.Update(gameTime);
             UpdatePointLights(deltaTimeU);
 
             lightsManager.Update(deltaTimeU);
 
-
+            hud.Update(deltaTimeU);
             //TPS = 200
             //while (time >= 0.005)
             //{
@@ -203,12 +222,17 @@ namespace nixfps
             //    NetworkManager.SendData();
             //}
             //TPS = min(200,FPS)
-            if(time >= 0.005)
-            {
-                time = 0;
-                NetworkManager.Client.Update();
-                NetworkManager.SendData();
-            }
+
+            //updateMutex.WaitOne();
+
+            //NetworkManager.Client.Update();
+            //if (timespan.CompareTo(TimeSpan.FromMilliseconds(5)) > 0)
+            //{
+            //    timespan = TimeSpan.Zero;
+            //    NetworkManager.SendData();
+            //}
+            //updateMutex.ReleaseMutex();
+
             onesec += deltaTimeU;
             if (onesec >= 1)
             {
@@ -224,6 +248,7 @@ namespace nixfps
         float deltaTimeD;
         double frameTime;
         int fps;
+        int updatefps;
         float timeD;
         bool debugRTs = false;
         protected override void Draw(GameTime gameTime)
@@ -236,6 +261,7 @@ namespace nixfps
             if (timeD <= .025f)
             {
                 fps = (int)(1 / deltaTimeD);
+                updatefps = (int)(1 / deltaTimeU);
                 frameTime = deltaTimeD * 1000;
             }
 
@@ -251,6 +277,7 @@ namespace nixfps
 
         void DrawMenu(float deltaTime)
         {
+            hud.DrawMenu(deltaTime);
             GraphicsDevice.SetRenderTarget(null);
             GraphicsDevice.Clear(Color.Black);
             spriteBatch.Begin();
@@ -272,11 +299,14 @@ namespace nixfps
             GraphicsDevice.SetRenderTargets(colorTarget, normalTarget, positionTarget);
             GraphicsDevice.BlendState = BlendState.NonPremultiplied;
             GraphicsDevice.DepthStencilState = DepthStencilState.Default;
+            GraphicsDevice.RasterizerState = RasterizerState.CullClockwise;
+
+            skybox.Draw();
             GraphicsDevice.RasterizerState = RasterizerState.CullCounterClockwise;
 
             // Draw a simple plane, enable lighting on it
             DrawPlane();
-
+            
             animationManager.DrawPlayers();
 
             // Draw the geometry of the lights in the scene, so that we can see where the generators are
@@ -332,19 +362,22 @@ namespace nixfps
             }
 
             string ft = (frameTime * 1000).ToString("0,####");
-            string fpsStr = "FPS " + fps;
+            string fpsStr = "FPS " + fps +"|"+updatefps;
             var pc = " PC " + NetworkManager.players.Count;
             var p = NetworkManager.localPlayer;
             var camStr = string.Format("({0:F2}, {1:F2}, {2:F2})", p.position.X, p.position.Y, p.position.Z);
             var pos = " camlocal " + camStr;
             var pNetStr = "";
             var pos2 = "";
-            if (NetworkManager.players.Count > 1)
+            if (NetworkManager.players.Count > 0)
             {
-                var pNet = NetworkManager.GetPlayerFromId(222222).position;
+                var player2 = NetworkManager.players[0];
+                var pNet = player2.position;
 
-                pNetStr += string.Format("({0:F2}, {1:F2}, {2:F2})", pNet.X, pNet.Y, pNet.Z);
-                pos2 = " player2 " + pNetStr;
+                //pNetStr += string.Format("({0:F2}, {1:F2}, {2:F2})", pNet.X, pNet.Y, pNet.Z);
+
+                //pos2 = " player2 " + pNetStr;
+                pos2 = " player2Cache " + player2.netDataCache.Count + " ";
             }
 
             fpsStr += pos + pos2 + NetworkManager.Client.RTT + " ms, in " + packetsIn;
@@ -357,14 +390,15 @@ namespace nixfps
             //spriteBatch.DrawString(font, str, new Vector2(screenWidth - font.MeasureString(str).X, 0), Color.White);
             spriteBatch.End();
 
+            hud.DrawRun(deltaTimeD);
 
 
         }
 
         private void DrawPlane()
         {
-            basicModelEffect.SetTech("basic_color");
-
+            basicModelEffect.SetTech("colorTex_lightEn");
+            basicModelEffect.SetTiling(Vector2.One * 500);
             foreach (var mesh in plane.Meshes)
             {
                 var w = mesh.ParentBone.Transform * Matrix.CreateScale(10f) * Matrix.CreateTranslation(0, 0, 0);
@@ -374,12 +408,12 @@ namespace nixfps
                 basicModelEffect.SetKD(0.8f);
                 basicModelEffect.SetKS(0.8f);
                 basicModelEffect.SetShininess(30f);
-
+                basicModelEffect.SetColorTexture(floorTex);
                 basicModelEffect.SetInverseTransposeWorld(Matrix.Invert(Matrix.Transpose(w)));
 
                 mesh.Draw();
             }
-
+            basicModelEffect.SetTiling(Vector2.One);
         }
 
         void SetupRenderTargets()

@@ -12,6 +12,8 @@ float4x4 inverseTransposeWorld;
 
 float4x4 Bones[MAX_BONES];
 
+float3 teamColor;
+float time;
 struct VSI
 {
     float4 Position : POSITION;
@@ -72,6 +74,26 @@ sampler colorSampler = sampler_state
     MinFilter = LINEAR;
     Mipfilter = LINEAR;
 };
+texture emissiveTex;
+sampler emissiveTexSampler = sampler_state
+{
+    Texture = (emissiveTex);
+    AddressU = CLAMP;
+    AddressV = CLAMP;
+    MagFilter = LINEAR;
+    MinFilter = LINEAR;
+    Mipfilter = LINEAR;
+};
+texture specTex;
+sampler specTexSampler = sampler_state
+{
+    Texture = (specTex);
+    AddressU = CLAMP;
+    AddressV = CLAMP;
+    MagFilter = LINEAR;
+    MinFilter = LINEAR;
+    Mipfilter = LINEAR;
+};
 
 float4 MainPS(VSO input) : COLOR
 {
@@ -89,6 +111,12 @@ struct PSO
 PSO MRTPS(VSO input)
 {
     float3 color = tex2D(colorSampler, input.TexCoord).rgb;
+    color += tex2D(emissiveTexSampler, input.TexCoord).rgb;
+    color += tex2D(specTexSampler, input.TexCoord).rgb * .8;
+    
+    
+    color += teamColor * .25 * (sin(time * 5) + 1) *.5;
+
     float3 normal = normalize(input.Normal.xyz);
 
     float3 normalColor = 0.5f * (normal + 1.0f);

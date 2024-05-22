@@ -14,41 +14,40 @@ namespace nixfps.Components.Skybox
     {
         Model model;
         TextureCube texture;
+        Texture2D texture2D;
         Effect effect;
         float size;
+        NixFPS game;
         public Skybox()
         {
             
-            NixFPS game = NixFPS.GameInstance();
-            model = game.Content.Load<Model>(NixFPS.ContentFolder3D + "skybox/cube");
-            texture = game.Content.Load<TextureCube>(NixFPS.ContentFolder3D + "skybox/skybox");
+            game = NixFPS.GameInstance();
+            model = game.Content.Load<Model>(NixFPS.ContentFolder3D + "basic/skyboxSphere");
+            //texture = game.Content.Load<TextureCube>(NixFPS.ContentFolder3D + "skybox/space");
+            texture2D = game.Content.Load<Texture2D>(NixFPS.ContentFolder3D + "skybox/milkyway");
+
             var ef = NixFPS.ContentFolderEffects + "SkyBox";
             effect = game.Content.Load<Effect>(ef);
-            size = 50f;
+            size = 400;
             NixFPS.AssignEffectToModel(model, effect);
+            effect.CurrentTechnique = effect.Techniques["sphere2d"];
         }
-        public void Draw(Camera camera)
+        public void Draw()
         {
+            //effect.Parameters["skyBoxTexture"]?.SetValue(texture);
+            effect.Parameters["skyBox2DTexture"]?.SetValue(texture2D);
 
-            foreach (var pass in effect.CurrentTechnique.Passes)
+            effect.Parameters["cameraPosition"].SetValue(game.camera.position);
+
+            foreach (var mesh in model.Meshes)
             {
-                pass.Apply();
-
-                foreach (var mesh in model.Meshes)
-                {
-                    foreach (var part in mesh.MeshParts)
-                    {
-                        
-                        part.Effect.Parameters["world"]?.SetValue(
-                            Matrix.CreateScale(size) * Matrix.CreateTranslation(camera.position));
-                        part.Effect.Parameters["view"]?.SetValue(camera.view);
-                        part.Effect.Parameters["projection"]?.SetValue(camera.projection);
-                        part.Effect.Parameters["skyBoxTexture"]?.SetValue(texture);
-                        part.Effect.Parameters["cameraPosition"]?.SetValue(camera.position);
-                    }
-                    mesh.Draw();
-                }
+                effect.Parameters["world"].SetValue(Matrix.CreateScale(size) * Matrix.CreateTranslation(game.camera.position));
+                effect.Parameters["view"].SetValue(game.camera.view);
+                effect.Parameters["projection"].SetValue(game.camera.projection);
+                
+                mesh.Draw();
             }
+            
         }
     }
 }
