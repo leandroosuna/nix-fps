@@ -24,7 +24,7 @@ namespace nixfps.Components.HUD
 
         public int centerDotSize = 2;
         public int length = 10;
-        public int thickness = 4;
+        public int thickness = 2;
         public int offset = 10;
         public int correction = 0;
         SpriteBatch spriteBatch;

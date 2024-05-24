@@ -17,6 +17,9 @@ namespace nixfps.Components.Effects
         EffectParameter normalMap;
         EffectParameter positionMap;
         EffectParameter lightMap;
+        EffectParameter bloomFilter;
+        EffectParameter blurH;
+        EffectParameter blurV;
 
 
         EffectParameter screenSize;
@@ -66,6 +69,9 @@ namespace nixfps.Components.Effects
             KD = effect.Parameters["KD"];
             KS = effect.Parameters["KS"];
             shininess = effect.Parameters["shininess"];
+            bloomFilter = effect.Parameters["bloomFilter"];
+            blurH = effect.Parameters["blurH"];
+            blurV = effect.Parameters["blurV"];
         }
         public void SetWorld(Matrix world)
         {
@@ -94,6 +100,18 @@ namespace nixfps.Components.Effects
         public void SetLightMap(Texture2D texture)
         {
             lightMap.SetValue(texture);
+        }
+        public void SetBloomFilter(Texture2D texture)
+        {
+            bloomFilter.SetValue(texture);
+        }
+        public void SetBlurH(Texture2D texture)
+        {
+            blurH.SetValue(texture);
+        }
+        public void SetBlurV(Texture2D texture)
+        {
+            blurV.SetValue(texture);
         }
         public void SetScreenSize(Vector2 screenSize)
         {

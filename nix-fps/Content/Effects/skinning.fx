@@ -106,6 +106,7 @@ struct PSO
     float4 color : COLOR0;
     float4 normal : COLOR1;
     float4 position : COLOR2;
+    float4 bloomFilter : COLOR3;
 };
 
 PSO MRTPS(VSO input)
@@ -126,7 +127,7 @@ PSO MRTPS(VSO input)
     output.color = float4(color, KD); //alpha: KD
     output.normal = float4(normalColor, KS); //alpha KS
     output.position = float4(input.WorldPos, shininess); //shininess 20/60
-    
+    output.bloomFilter = float4(0, 0, 0, 1);
     return output;
 }
 

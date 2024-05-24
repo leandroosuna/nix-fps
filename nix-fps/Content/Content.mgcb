@@ -189,6 +189,49 @@
 /processorParam:TextureFormat=Color
 /build:3D/basic/Tex/white-pixel.png
 
+#begin 3D/basic/Tex/wood.jpg
+/importer:TextureImporter
+/processor:TextureProcessor
+/processorParam:ColorKeyColor=255,0,255,255
+/processorParam:ColorKeyEnabled=True
+/processorParam:GenerateMipmaps=True
+/processorParam:PremultiplyAlpha=True
+/processorParam:ResizeToPowerOfTwo=False
+/processorParam:MakeSquare=False
+/processorParam:TextureFormat=Color
+/build:3D/basic/Tex/wood.jpg
+
+#begin 3D/gun/m16/m16.fbx
+/importer:FbxImporter
+/processor:ModelProcessor
+/processorParam:ColorKeyColor=0,0,0,0
+/processorParam:ColorKeyEnabled=True
+/processorParam:DefaultEffect=BasicEffect
+/processorParam:GenerateMipmaps=True
+/processorParam:GenerateTangentFrames=False
+/processorParam:PremultiplyTextureAlpha=True
+/processorParam:PremultiplyVertexColors=True
+/processorParam:ResizeTexturesToPowerOfTwo=False
+/processorParam:RotationX=0
+/processorParam:RotationY=0
+/processorParam:RotationZ=0
+/processorParam:Scale=0.001
+/processorParam:SwapWindingOrder=False
+/processorParam:TextureFormat=Compressed
+/build:3D/gun/m16/m16.fbx
+
+#begin 3D/gun/m16/tex/baseColor.png
+/importer:TextureImporter
+/processor:TextureProcessor
+/processorParam:ColorKeyColor=255,0,255,255
+/processorParam:ColorKeyEnabled=True
+/processorParam:GenerateMipmaps=False
+/processorParam:PremultiplyAlpha=True
+/processorParam:ResizeToPowerOfTwo=False
+/processorParam:MakeSquare=False
+/processorParam:TextureFormat=Color
+/build:3D/gun/m16/tex/baseColor.png
+
 #begin 3D/skybox/cube.fbx
 /importer:FbxImporter
 /processor:ModelProcessor
@@ -363,6 +406,12 @@
 /processor:EffectProcessor
 /processorParam:DebugMode=Auto
 /build:Effects/deferred.fx
+
+#begin Effects/gizmos.fx
+/importer:EffectImporter
+/processor:EffectProcessor
+/processorParam:DebugMode=Auto
+/build:Effects/gizmos.fx
 
 #begin Effects/skinning.fx
 /importer:EffectImporter

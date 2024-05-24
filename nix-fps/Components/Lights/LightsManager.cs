@@ -64,9 +64,13 @@ namespace nixfps.Components.Lights
         {
             lightsToDraw.ForEach(l => l.DrawLightGeo());            
         }
-        public void register(LightVolume volume)
+        public void Register(LightVolume volume)
         { 
             lights.Add(volume);
+        }
+        public void Destroy(LightVolume volume)
+        {
+            lights.Remove(volume);
         }
     }
 }

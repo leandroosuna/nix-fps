@@ -70,8 +70,8 @@ namespace nixfps.Components.Input
 
 
             UpdateMousePositionDelta();
-            camera.Update(this);
             ProcessInput(deltaTime);
+            camera.Update(this);
         }
         
         public void UpdateMousePositionDelta()

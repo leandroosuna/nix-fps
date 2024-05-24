@@ -36,7 +36,7 @@ namespace nixfps.Components.Cameras
             fieldOfView = MathHelper.ToRadians(100);
             this.aspectRatio = aspectRatio;
             position = new Vector3(0, 5f, 0);
-            nearPlaneDistance = 1;
+            nearPlaneDistance = .1f;
             farPlaneDistance = 1000;
             yaw = 270;
             pitch = 0;

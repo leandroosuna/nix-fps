@@ -13,6 +13,8 @@ using Newtonsoft.Json.Linq;
 using System.IO;
 using System.Threading;
 using nixfps.Components.HUD;
+using nixfps.Components.Gun;
+using nixfps.Components.Gizmos;
 
 namespace nixfps
 {
@@ -43,13 +45,18 @@ namespace nixfps
 
         public Model plane;
         public Model cube;
+
         Texture2D floorTex;
 
         public LightsManager lightsManager;
         RenderTarget2D colorTarget;
         RenderTarget2D normalTarget;
         RenderTarget2D positionTarget;
+        RenderTarget2D bloomFilterTarget;
+        RenderTarget2D blurHTarget;
+        RenderTarget2D blurVTarget;
         RenderTarget2D lightTarget;
+
         public AnimationManager animationManager;
         public Player localPlayer;
         public JObject CFG;
@@ -57,10 +64,12 @@ namespace nixfps
         public InputManager inputManager;
         InputManager inputRun;
         InputManager inputMainMenu;
+        GunManager gunManager;
         Mutex updateMutex;
         public Mutex playerCacheMutex = new Mutex(false, "player-data-cache");
 
         public Hud hud;
+        public Gizmos gizmos;
         public NixFPS()
         {
             updateMutex = new Mutex();
@@ -114,6 +123,8 @@ namespace nixfps
         }
         protected override void Initialize()
         {
+            gizmos = new Gizmos();
+
             Pixel = new Texture2D(GraphicsDevice, 1, 1);
             Pixel.SetData(new byte[] { 0xFF, 0xFF, 0xFF, 0xFF });
 
@@ -129,9 +140,11 @@ namespace nixfps
             
             base.Initialize();
         }
-
+        Texture2D boxTex;
         protected override void LoadContent()
         {
+            gizmos.LoadContent(GraphicsDevice);
+
             basicModelEffect = new BasicModelEffect("basic");
             deferredEffect = new DeferredEffect("deferred");
 
@@ -141,18 +154,16 @@ namespace nixfps
             cube = Content.Load<Model>(ContentFolder3D + "basic/cube");
             floorTex = Content.Load<Texture2D>(ContentFolder3D + "basic/tex/metalfloor");
             font = Content.Load<SpriteFont>(ContentFolderFonts + "tahoma/15");
+            boxTex = Content.Load<Texture2D>(ContentFolder3D + "basic/tex/wood");
+
 
             LightVolume.Init();
 
             AssignEffectToModel(plane, basicModelEffect.effect);
-
+            
 
             lightsManager = new LightsManager();
             lightsManager.ambientLight = new AmbientLight(new Vector3(20, 50, 20), new Vector3(1f, 1f, 1f), Vector3.One, Vector3.One);
-
-
-            var mrt = Matrix.CreateScale(0.025f) * Matrix.CreateRotationX(MathF.PI / 2) * Matrix.CreateTranslation(0, 0f, 0);
-            var mrt2 = Matrix.CreateScale(0.025f) * Matrix.CreateRotationX(MathF.PI / 2) * Matrix.CreateTranslation(10, 0f, 0);
 
             animationManager = new AnimationManager();
             //animationManager.SetPlayerData(0, mrt, "idle");
@@ -166,7 +177,7 @@ namespace nixfps
             //{
             //    for (int z = 0; z < countMax; z += 10)
             //    {
-            //        var mx = Matrix.CreateScale(0.025f) * Matrix.CreateRotationX(MathF.PI / 2) * Matrix.CreateTranslation(x, 0f, z);
+                    //var mx = Matrix.CreateScale(0.025f) * Matrix.CreateRotationX(MathF.PI / 2) * Matrix.CreateTranslation(x, 0f, z);
             //        //int index = r.Next(11);
             //        animationManager.SetPlayerData(p, mx, "run forward");
             //        p++;
@@ -184,7 +195,7 @@ namespace nixfps
             InputManager.camera = camera;
 
             hud = new Hud();
-
+            gunManager = new GunManager();
             mainStopwatch.Start();
 
             
@@ -199,6 +210,7 @@ namespace nixfps
         int packetsOut;
         public Stopwatch mainStopwatch = new Stopwatch();
         TimeSpan timespan = TimeSpan.Zero;
+        Matrix gunWorld;
         protected override void Update(GameTime gameTime)
         {
             deltaTimeU = (float)gameTime.ElapsedGameTime.TotalSeconds;
@@ -207,31 +219,17 @@ namespace nixfps
             NetworkManager.InterpolatePlayers(mainStopwatch.ElapsedMilliseconds);
             inputManager.Update(deltaTimeU);
 
+            gizmos.UpdateViewProjection(camera.view, camera.projection);
+
             //camera.Update(inputManager);
             animationManager.Update(gameTime);
             UpdatePointLights(deltaTimeU);
 
             lightsManager.Update(deltaTimeU);
-
+            gunManager.Update(gameTime);
             hud.Update(deltaTimeU);
-            //TPS = 200
-            //while (time >= 0.005)
-            //{
-            //    time -= 0.005;
-            //    NetworkManager.Client.Update();
-            //    NetworkManager.SendData();
-            //}
-            //TPS = min(200,FPS)
 
-            //updateMutex.WaitOne();
-
-            //NetworkManager.Client.Update();
-            //if (timespan.CompareTo(TimeSpan.FromMilliseconds(5)) > 0)
-            //{
-            //    timespan = TimeSpan.Zero;
-            //    NetworkManager.SendData();
-            //}
-            //updateMutex.ReleaseMutex();
+            
 
             onesec += deltaTimeU;
             if (onesec >= 1)
@@ -295,8 +293,8 @@ namespace nixfps
             /// Target 1 (colorTarget) RGB = color, A = KD
             /// Target 2 (normalTarget) RGB = normal(scaled), A = KS
             /// Target 3 (positionTarget) RGB = world position, A = shininess(scale if necessary)
-            /// Target 4 (not in use, but could be used) 
-            GraphicsDevice.SetRenderTargets(colorTarget, normalTarget, positionTarget);
+            /// Target 4 (bloomTarget) RGB = filter, A = (not in use) 
+            GraphicsDevice.SetRenderTargets(colorTarget, normalTarget, positionTarget, bloomFilterTarget);
             GraphicsDevice.BlendState = BlendState.NonPremultiplied;
             GraphicsDevice.DepthStencilState = DepthStencilState.Default;
             GraphicsDevice.RasterizerState = RasterizerState.CullClockwise;
@@ -306,6 +304,9 @@ namespace nixfps
 
             // Draw a simple plane, enable lighting on it
             DrawPlane();
+            DrawBox();
+            gunManager.DrawGun(deltaTimeD);
+            
             
             animationManager.DrawPlayers();
 
@@ -321,14 +322,14 @@ namespace nixfps
             /// the same pixel.
             /// For pixels that shouldnt be lit, for example the light geometry, normals are set to rgb = 0
             /// and we can use that to simply output white in our lightTarget for that pixel.
-            GraphicsDevice.SetRenderTargets(lightTarget);
+            GraphicsDevice.SetRenderTargets(lightTarget, blurHTarget, blurVTarget);
             GraphicsDevice.BlendState = BlendState.Additive;
             GraphicsDevice.DepthStencilState = DepthStencilState.None;
 
             deferredEffect.SetColorMap(colorTarget);
             deferredEffect.SetNormalMap(normalTarget);
             deferredEffect.SetPositionMap(positionTarget);
-
+            deferredEffect.SetBloomFilter(bloomFilterTarget);
             lightsManager.Draw();
 
             /// Finally, we have our color texture we calculated in step one, and the lights from step two
@@ -342,10 +343,11 @@ namespace nixfps
             deferredEffect.SetLightMap(lightTarget);
             deferredEffect.SetScreenSize(new Vector2(screenWidth, screenHeight));
             deferredEffect.SetTech("integrate");
+            deferredEffect.SetBlurH(blurHTarget);
+            deferredEffect.SetBlurV(blurVTarget);
 
             fullScreenQuad.Draw(deferredEffect.effect);
 
-            var lightCount = lightsManager.lightsToDraw.Count;
             var rec = new Rectangle(0, 0, screenWidth, screenHeight);
 
             /// In this example, by hitting key 0 you can see the targets in the corners of the screen
@@ -385,6 +387,7 @@ namespace nixfps
 
             fpsStr += " diff " + string.Format("({0:F2}, {1:F2}, {2:F2})", NetworkManager.posDiff.X, NetworkManager.posDiff.Y, NetworkManager.posDiff.Z);
 
+            //fpsStr += lightsManager.lights.Count + " " + lightsManager.lightsToDraw.Count;
             spriteBatch.Begin();
             spriteBatch.DrawString(font, fpsStr, Vector2.Zero, Color.White);
             //spriteBatch.DrawString(font, str, new Vector2(screenWidth - font.MeasureString(str).X, 0), Color.White);
@@ -394,7 +397,7 @@ namespace nixfps
 
 
         }
-
+        
         private void DrawPlane()
         {
             basicModelEffect.SetTech("colorTex_lightEn");
@@ -416,12 +419,41 @@ namespace nixfps
             basicModelEffect.SetTiling(Vector2.One);
         }
 
+        private void DrawBox()
+        {
+            basicModelEffect.SetTech("colorTex_lightEn");
+            basicModelEffect.SetTiling(new Vector2(4.5f, 4.5f));
+            foreach (var mesh in cube.Meshes)
+            {
+                var w = mesh.ParentBone.Transform * Matrix.CreateScale(.01f) * Matrix.CreateTranslation(4, 2, 4);
+                basicModelEffect.SetWorld(w);
+                basicModelEffect.SetKA(0.3f);
+                basicModelEffect.SetKD(0.8f);
+                basicModelEffect.SetKS(0.8f);
+                basicModelEffect.SetShininess(30f);
+                basicModelEffect.SetColorTexture(boxTex);
+                basicModelEffect.SetInverseTransposeWorld(Matrix.Invert(Matrix.Transpose(w)));
+
+                mesh.Draw();
+            }
+            basicModelEffect.SetTiling(Vector2.One);
+
+
+            gizmos.DrawCube(Matrix.CreateScale(2f) * Matrix.CreateTranslation(4,2,4), Color.Magenta);
+            gizmos.Draw();
+        }
+
+
         void SetupRenderTargets()
         {
             colorTarget = new RenderTarget2D(GraphicsDevice, screenWidth, screenHeight, false, SurfaceFormat.HalfVector4, DepthFormat.Depth24Stencil8);
             normalTarget = new RenderTarget2D(GraphicsDevice, screenWidth, screenHeight, false, SurfaceFormat.HalfVector4, DepthFormat.Depth24Stencil8);
             positionTarget = new RenderTarget2D(GraphicsDevice, screenWidth, screenHeight, false, SurfaceFormat.HalfVector4, DepthFormat.Depth24Stencil8);
             lightTarget = new RenderTarget2D(GraphicsDevice, screenWidth, screenHeight, false, SurfaceFormat.HalfVector4, DepthFormat.Depth24Stencil8);
+            bloomFilterTarget = new RenderTarget2D(GraphicsDevice, screenWidth, screenHeight, false, SurfaceFormat.HalfVector4, DepthFormat.Depth24Stencil8);
+            blurHTarget= new RenderTarget2D(GraphicsDevice, screenWidth, screenHeight, false, SurfaceFormat.HalfVector4, DepthFormat.Depth24Stencil8);
+            blurVTarget = new RenderTarget2D(GraphicsDevice, screenWidth, screenHeight, false, SurfaceFormat.HalfVector4, DepthFormat.Depth24Stencil8);
+
         }
         float timeL = 0f;
         int maxPointLights = 1;
@@ -444,7 +476,7 @@ namespace nixfps
         {
             var random = new Random();
             var light = new PointLight(Vector3.Zero, 15f, new Vector3(1,0,0), new Vector3(1, 0, 0));
-            lightsManager.register(light);
+            lightsManager.Register(light);
             lights.Add(light);
             light.hasLightGeo = true;
             offsetR.Add(5);

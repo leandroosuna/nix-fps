@@ -52,6 +52,7 @@ struct PSO
     float4 color : COLOR0;
     float4 normal : COLOR1;
     float4 position : COLOR2;
+    float4 bloomFilter : COLOR3;
 };
 VertexShaderOutput VertexShaderFunction(VertexShaderInput input)
 {
@@ -75,6 +76,7 @@ PSO PixelShaderFunction(VertexShaderOutput input)
     //output.color = float4(1, 0, 0, 1);
     output.normal = float4(1, 1, 1, 1);
     output.position = float4(1, 1, 1, 1);
+    output.bloomFilter = float4(0, 0, 0, 1);
     return output;
     
     //return float4(1, 0, 1, 1);
@@ -90,6 +92,7 @@ PSO SpherePS(VertexShaderOutput input)
     //output.color = float4(1, 0, 0, 1);
     output.normal = float4(1, 1, 1, 1);
     output.position = float4(1, 1, 1, 1);
+    output.bloomFilter = float4(0, 0, 0, 1);
     return output;
     
     //return float4(1, 0, 1, 1);
