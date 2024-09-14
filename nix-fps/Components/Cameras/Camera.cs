@@ -109,7 +109,25 @@ namespace nixfps.Components.Cameras
 
             frustum.Matrix = view * projection;
         }
-       
+        public void RotateBy(Vector2 pitchYaw)
+        {
+            yaw += pitchYaw.X;
+            if (yaw < 0)
+                yaw += 360;
+            yaw %= 360;
+
+            pitch -= pitchYaw.Y;
+
+            if (pitch > 89.0f)
+                pitch = 89.0f;
+            else if (pitch < -89.0f)
+                pitch = -89.0f;
+
+            UpdateCameraVectors();
+            CalculateView();
+
+            frustum.Matrix = view * projection;
+        }
            
         public void ResetToCenter()
         {

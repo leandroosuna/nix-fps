@@ -62,10 +62,15 @@ public class AnimatedModel
         // Skip third person model for localplayer if camera is locked, draw gun
         if (!camera.isFree && player.id == NetworkManager.localPlayer.id)
         {
-            DrawPlayerGunModel();
             return;
         }
+        if (!camera.FrustumContains(player.zoneCollider))
+            return;
+
         animManager.animationPlayer.SetActiveClip(player);
+
+        //animManager.animationPlayer.SetBonesClipTransitionFor(player);
+
 
         // Compute all of the bone absolute transforms.
         var boneTransforms = new Matrix[_bones.Count];
@@ -76,6 +81,8 @@ public class AnimatedModel
             bone.ComputeAbsoluteTransform();
 
             boneTransforms[i] = bone.AbsoluteTransform;
+           // boneTransforms[i].Decompose(out var scale, out var rot, out var translation);
+            
         }
 
         // Determine the skin transforms from the skeleton.
@@ -96,7 +103,7 @@ public class AnimatedModel
         foreach (var mesh in _model.Meshes)
         {
             var worldBone = boneTransforms[mesh.ParentBone.Index] * player.GetWorld();
-
+        
             effect.SetWorld(worldBone);
             effect.SetView(camera.view);
             effect.SetProjection(camera.projection);
@@ -116,6 +123,32 @@ public class AnimatedModel
                 game.GraphicsDevice.Indices = part.IndexBuffer;
                 game.GraphicsDevice.DrawIndexedPrimitives(PrimitiveType.TriangleList, part.VertexOffset, part.StartIndex, part.PrimitiveCount);
             }
+
+            //Matrix parentBoneTransform = game.CreateTransform(mesh.ParentBone);
+            //VertexDeclaration declaration = part.VertexBuffer.VertexDeclaration;
+            //VertexElement[] vertexElements = declaration.GetVertexElements();
+            //VertexElement vertexPosition = vertexElements[0];
+
+            //Vector3[] allVertex = new Vector3[part.NumVertices];
+            //part.VertexBuffer.GetData(
+            //                part.VertexOffset * declaration.VertexStride + vertexPosition.Offset,
+            //                allVertex,
+            //                0,
+            //                part.NumVertices,
+            //                declaration.VertexStride);
+
+            //short[] indices = new short[part.PrimitiveCount * 3];
+            //part.IndexBuffer.GetData(part.StartIndex * 2, indices, 0, part.PrimitiveCount * 3);
+
+            //for (int i = 0; i != allVertex.Length; ++i)
+            //{
+            //    Vector3.Transform(ref allVertex[i], ref parentBoneTransform, out allVertex[i]);
+            //}
+            ////14648
+
+            //game.gizmos.DrawSphere(allVertex[game.selectedVertexIndex], new Vector3(.5F, .5F, .5F), Color.Magenta);
+
+
             part = mesh.MeshParts[1];
             effect.SetTeamColor(player.teamColor);
             effect.SetTexture(animManager.playerModelTex);
@@ -131,11 +164,6 @@ public class AnimatedModel
 
             //modelMesh.Draw();
         }
-    }
-
-    public void DrawPlayerGunModel()
-    {
-
     }
     /// <summary>
     ///     Load the Model asset from content.

@@ -12,11 +12,11 @@
   "ScreenHeight": 720,
   "Fullscreen": false,
 
-  "VSync": true,
+  "VSync": false,
   "FramerateLimit": 0,
   "Borderless": true,
   "MouseVisible": false,
-  "MouseLocked": true,
+  "MouseLocked": false,
 
   "ServerIP": "nix.dynamic-dns.net",
   "ClientID": 111111,

@@ -35,7 +35,7 @@ float3 getPixelAmbient(float3 worldPos, float3 normal, float KD, float KS, float
     float3 diffuseLight = KD * lightDiffuseColor * NdotL;
     float NdotH = dot(normal, halfVector);
     float3 specularLight = sign(NdotL) * KS * lightSpecularColor * pow(saturate(NdotH), shininess);
-    return diffuseLight *1.3 + specularLight;
+    return diffuseLight *.8 + specularLight;
 }
 
 

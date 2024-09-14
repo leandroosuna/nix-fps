@@ -124,6 +124,7 @@ namespace nixfps.Components.Effects
 
         public void DrawPlayers()
         {
+            
             animatedModel.DrawPlayer(NetworkManager.localPlayer);
             foreach (var p in NetworkManager.players)
                 animatedModel.DrawPlayer(p);
@@ -132,8 +133,13 @@ namespace nixfps.Components.Effects
         public void SetClipName(Player p, byte clipId)
         {
             if (clipId < 0 || clipId > animationNames.Count - 1)
+            {
                 p.clipName = "idle";
+                p.clipId = 0;
+                return;
+            }
             p.clipName = animationNames[clipId];
+            p.clipId = clipId;
         }
         public void SetClipName(Player p, PlayerAnimation anim)
         {
@@ -163,5 +169,20 @@ namespace nixfps.Components.Effects
             SRT = Matrix.CreateScale(0.025f) * Matrix.CreateRotationX(MathF.PI / 2) * Matrix.CreateTranslation(Vector3.Zero);
 
         }
+    }
+    public enum PlayerAnimation
+    {
+        idle,
+        runForward,
+        runForwardRight,
+        runForwardLeft,
+        runBackward,
+        runBackwardRight,
+        runBackwardLeft,
+        runRight,
+        runLeft,
+        sprintForward,
+        sprintForwardRight,
+        sprintForwardLeft
     }
 }

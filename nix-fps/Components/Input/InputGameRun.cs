@@ -40,35 +40,41 @@ namespace nixfps.Components.Input
                 localPlayer.yaw = camera.yaw;
                 localPlayer.pitch = camera.pitch;
                 localPlayer.frontDirection = camera.frontDirection;
-                
+                localPlayer.rightDirection = camera.rightDirection;
+
                 clientInputState.deltaTime = deltaTime;
                 ApplyInput(clientInputState);
             }
             else
             {
+                var speed = 8;
+                if (keyMappings.Sprint.IsDown())
+                {
+                    speed *= 2;
+                }
                 if (keyMappings.Forward.IsDown())
                 {
-                    camera.position += camera.frontDirection * 5 * deltaTime;
+                    camera.position += camera.frontDirection * speed * deltaTime;
                 }
                 if (keyMappings.Backward.IsDown())
                 {
-                    camera.position -= camera.frontDirection * 5 * deltaTime;
+                    camera.position -= camera.frontDirection * speed * deltaTime;
                 }
                 if (keyMappings.Left.IsDown())
                 {
-                    camera.position -= camera.rightDirection * 5 * deltaTime;
+                    camera.position -= camera.rightDirection * speed * deltaTime;
                 }
                 if (keyMappings.Right.IsDown())
                 {
-                    camera.position += camera.rightDirection * 5 * deltaTime;
+                    camera.position += camera.rightDirection * speed * deltaTime;
                 }
                 if (keyMappings.Jump.IsDown())
                 {
-                    camera.position.Y += 5 * deltaTime;
+                    camera.position.Y += speed * deltaTime;
                 }
                 if (keyMappings.Crouch.IsDown())
                 {
-                    camera.position.Y -= 5 * deltaTime;
+                    camera.position.Y -= speed * deltaTime;
                 }
             }
 
@@ -78,6 +84,24 @@ namespace nixfps.Components.Input
                 {
                     keysDown.Add(keyMappings.CAPS);
                     camera.SetFreeToggle();
+                }
+            }
+            if (keyMappings.Debug0.IsDown())
+            {
+                if (!keysDown.Contains(keyMappings.Debug0))
+                {
+                    keysDown.Add(keyMappings.Debug0);
+                    if(game.selectedVertexIndex < 14500)
+                        game.selectedVertexIndex+=20;
+                }
+            }
+            if (keyMappings.Debug9.IsDown())
+            {
+                if (!keysDown.Contains(keyMappings.Debug9))
+                {
+                    keysDown.Add(keyMappings.Debug9);
+                    if (game.selectedVertexIndex >= 10)
+                        game.selectedVertexIndex -= 20;
                 }
             }
             //if(keyMappings.Debug0.IsDown())

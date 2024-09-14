@@ -1,11 +1,14 @@
 ﻿using Microsoft.Xna.Framework;
+using nixfps.Components.Animations.Models;
+using nixfps.Components.Collisions;
+using nixfps.Components.Effects;
 using nixfps.Components.Input;
 using Riptide;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
-using static Assimp.Metadata;
+
 
 namespace nixfps
 { 
@@ -18,27 +21,150 @@ namespace nixfps
         public Vector3 position = Vector3.Zero;
         public Vector3 positionPrev = Vector3.Zero;
         public Vector3 frontDirection = Vector3.Zero;
+        public Vector3 rightDirection = Vector3.Zero;
         public float yaw;
         public float pitch = 0f;
-
+        
         public Matrix scale = Matrix.CreateScale(0.025f);
         public Matrix world;
         public string clipName;
+        public byte clipId;
         public float timeOffset;
         public List<PlayerCache> netDataCache = new List<PlayerCache>();
         public Vector3 teamColor;
         NixFPS game;
+
+        public BoundingSphere zoneCollider;
+        public BoundingCylinder headCollider;
+        public BoundingCylinder bodyCollider;
+        
         public Player(uint id)
         {
             this.id = id;
             name = "noname";
-            position = Vector3.Zero;
+            position = new Vector3(7,0,34);
 
             timeOffset = (float)new Random().NextDouble() * 5;
             clipName = "idle";
-
+            clipId = 0;
             world = scale;
             game = NixFPS.GameInstance();
+            zoneCollider = new BoundingSphere(Vector3.Zero, 2.5f);
+            headCollider = new BoundingCylinder(Vector3.Zero, .25f, .34f);
+            bodyCollider = new BoundingCylinder(Vector3.Zero, .5f, .75f);
+
+        }
+        public void UpdateColliders() 
+        {
+            zoneCollider.Center = position + new Vector3(0, 2.4f, 0); 
+            
+            headCollider.Center = position + new Vector3(0, 4.3f, 0);
+            bodyCollider.Center = position + new Vector3(0, 3.15f, 0);
+
+            Matrix headRotation = Matrix.Identity;
+            Matrix bodyRotation = Matrix.Identity;
+            
+            var correctedYaw = -MathHelper.ToRadians(yaw) + MathHelper.PiOver2;
+            var colliderPitch = 0f;
+
+            var dir = Vector3.Zero;
+                
+            var sprint = false;
+            switch (clipId)
+            {
+                case (byte)PlayerAnimation.idle:break;
+                case (byte)PlayerAnimation.runForward: 
+                    colliderPitch -= 20;
+                    dir = Vector3.Normalize(frontDirection + rightDirection * 0.2f);
+                    headCollider.Center += dir * 0.6f + new Vector3(0, -.45f, 0);
+                    bodyCollider.Center += dir * 0.25f + new Vector3(0, -.15f, 0);
+                    break;
+                
+                case (byte)PlayerAnimation.runRight: 
+                    correctedYaw -= (MathHelper.PiOver4 + .001f);  colliderPitch -= 20;
+                    dir = Vector3.Normalize(frontDirection * 0.8f + rightDirection);
+                    headCollider.Center += dir * 0.6f + new Vector3(0, -.45f, 0);
+                    bodyCollider.Center += dir * 0.25f + new Vector3(0, -.15f, 0);
+                    break;
+
+                case (byte)PlayerAnimation.runLeft:
+                    correctedYaw -= (MathHelper.PiOver4 + .001f); colliderPitch -= 20;
+                    dir = Vector3.Normalize(frontDirection * 0.8f + rightDirection);
+                    headCollider.Center += dir * 0.6f + new Vector3(0, -.45f, 0);
+                    bodyCollider.Center += dir * 0.25f + new Vector3(0, -.15f, 0);
+
+                    break;
+                case (byte)PlayerAnimation.runForwardRight: 
+                    correctedYaw -= MathHelper.PiOver4; colliderPitch -= 20;
+                    dir = Vector3.Normalize(frontDirection + rightDirection);
+                    headCollider.Center += dir * 0.6f + new Vector3(0, -.45f, 0);
+                    bodyCollider.Center += dir * 0.25f + new Vector3(0, -.15f, 0);
+                    break;
+                case (byte)PlayerAnimation.runForwardLeft:
+                    correctedYaw += MathHelper.PiOver4;
+                    colliderPitch -= 7;
+                    dir = Vector3.Normalize(frontDirection - rightDirection * 0.15f);
+                    headCollider.Center += dir * 0.4f + new Vector3(0, -.3f, 0);
+                    bodyCollider.Center += dir * 0.20f + new Vector3(0, -.15f, 0);
+                    break;
+                case (byte)PlayerAnimation.sprintForward:
+                    colliderPitch -= 20;
+                    dir = frontDirection;
+                    headCollider.Center += dir * 0.9f + new Vector3(0, -.45f, 0);
+                    bodyCollider.Center += dir * 0.25f + new Vector3(0, -.15f, 0);
+                    
+                    break;
+                case (byte)PlayerAnimation.sprintForwardRight:
+                    correctedYaw -= MathHelper.PiOver4; colliderPitch -= 20;
+                    dir = Vector3.Normalize(frontDirection + rightDirection * .35f);
+                    headCollider.Center += dir * 0.9f + new Vector3(0, -.45f, 0);
+                    bodyCollider.Center += dir * 0.25f + new Vector3(0, -.15f, 0);
+                    break;
+                case (byte)PlayerAnimation.sprintForwardLeft:
+                    correctedYaw += MathHelper.PiOver4; colliderPitch -= 20;
+                    dir = Vector3.Normalize(frontDirection - rightDirection * .35f);
+                    headCollider.Center += dir * 0.9f + new Vector3(0, -.45f, 0);
+                    bodyCollider.Center += dir * 0.25f + new Vector3(0, -.15f, 0);
+                    break;
+                case (byte)PlayerAnimation.runBackward:
+                    dir = Vector3.Normalize(frontDirection + rightDirection * 0.9f);
+                    headCollider.Center += dir * .3f +new Vector3(0, -.15f, 0);
+                    correctedYaw -= MathHelper.PiOver4; colliderPitch -= 15;
+                    break;
+                case (byte)PlayerAnimation.runBackwardLeft:
+                    headCollider.Center += new Vector3(0, -.10f, 0);
+                    correctedYaw -= MathHelper.PiOver4; colliderPitch -= 15;
+                    break;
+                case (byte)PlayerAnimation.runBackwardRight:
+                    headCollider.Center += new Vector3(0, -.1f, 0);
+                    correctedYaw -= MathHelper.PiOver4; colliderPitch -= 15;
+                    break;
+            }
+            
+
+            colliderPitch = -MathHelper.ToRadians(colliderPitch);
+            headRotation = Matrix.CreateFromYawPitchRoll(correctedYaw, colliderPitch, 0);
+            bodyRotation = Matrix.CreateFromYawPitchRoll(correctedYaw, colliderPitch, 0);
+
+            headCollider.Rotation = headRotation;
+            bodyCollider.Rotation = bodyRotation;
+
+        }
+        public int lastHit = -1;
+        public bool Hit(Ray ray)
+        {
+            if(headCollider.Intersects(ray))
+            {
+                lastHit = 1;
+                return true;
+            }
+            if(bodyCollider.Intersects(ray))
+            {
+                lastHit = 2;
+                return true;
+            }
+            lastHit = -1;
+            return false;
         }
         public Matrix GetWorld()
         {
