@@ -47,15 +47,14 @@ namespace nixfps.Components.Network
             //var serverIP = "192.168.1.45";
             serverIP +=":7777";
 
-            Debug.WriteLine("attempting to connect ");
             Client.Connect(serverIP);
-            
-            
+
             Client.ConnectionFailed += Client_ConnectionFailed;
-            Client.Connected += Client_Connected; 
+            Client.Connected += Client_Connected;
             netThread = new Thread(() =>
             {
-                while (game.inputManager == null);
+            
+                
                 var stopwatch = new Stopwatch();
                 stopwatch.Start();
 
@@ -69,10 +68,6 @@ namespace nixfps.Components.Network
                         {
                             SendData();
                         }
-                        
-
-
-
                     }
                 }
             });
@@ -118,7 +113,7 @@ namespace nixfps.Components.Network
         }
         public static void SendData()
         {
-            var inputMan = game.inputManager;
+            var inputMan = game.gameState.inputManager;
 
             inputMan.clientInputState.messageId = inputMan.messagesSent;
             //inputMan.InputStateCache.Add(inputMan.clientInputState);
@@ -191,7 +186,7 @@ namespace nixfps.Components.Network
                     var prevPos = localPlayer.position;
 
                     //localPlayer.position = netPos;
-                    var inputMan = game.inputManager;
+                    var inputMan = game.gameState.inputManager;
                     var cache = inputMan.InputStateCache;
 
                     //we remove all processed messages from the cache

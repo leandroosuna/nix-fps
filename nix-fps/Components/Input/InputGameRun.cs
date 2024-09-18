@@ -1,6 +1,7 @@
 ﻿using Microsoft.Xna.Framework;
 using nixfps.Components.Cameras;
 using nixfps.Components.Effects;
+using nixfps.Components.States;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -30,7 +31,7 @@ namespace nixfps.Components.Input
                 if(!keysDown.Contains(keyMappings.Escape))
                 {
                     keysDown.Add(keyMappings.Escape);
-                    game.SwitchGameState(NixFPS.GState.MAIN_MENU);
+                    GameStateManager.SwitchTo(State.MAIN);
                 }
             }
             clientInputState = keyMappings.GetClientState();
@@ -47,7 +48,7 @@ namespace nixfps.Components.Input
             }
             else
             {
-                var speed = 8;
+                var speed = 30;
                 if (keyMappings.Sprint.IsDown())
                 {
                     speed *= 2;
@@ -161,9 +162,9 @@ namespace nixfps.Components.Input
                 dx--;
 
             dir += (dz * frontFlat + dx * rightFlat);
-            speed = 9.5f;
+            speed = 18;
             if (dz > 0 && state.Sprint)
-                speed = 18;
+                speed = 25;
 
             if (dir != Vector3.Zero)
                 dir = Vector3.Normalize(dir);

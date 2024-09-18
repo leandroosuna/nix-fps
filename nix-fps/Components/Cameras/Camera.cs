@@ -33,7 +33,7 @@ namespace nixfps.Components.Cameras
         public Camera(float aspectRatio)
         {
             frustum = new BoundingFrustum(Matrix.Identity);
-            fieldOfView = MathHelper.ToRadians(100);
+            fieldOfView = MathHelper.ToRadians(95);
             this.aspectRatio = aspectRatio;
             position = new Vector3(0, 5f, 0);
             nearPlaneDistance = .1f;
@@ -50,6 +50,12 @@ namespace nixfps.Components.Cameras
             center = new System.Drawing.Point(screenCenter.X, screenCenter.Y);
 
             mouseLocked = game.CFG["MouseLocked"].Value<bool>();
+        }
+
+        public void ChangeFOV(float deg)
+        {
+            fieldOfView = MathHelper.ToRadians(deg);
+            CalculateProjection();
         }
         Player playerPrev = new Player(999999);
         public void SetFreeToggle()
