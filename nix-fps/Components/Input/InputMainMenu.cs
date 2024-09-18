@@ -1,4 +1,5 @@
 ﻿using Microsoft.Xna.Framework;
+using nixfps.Components.States;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -22,12 +23,12 @@ namespace nixfps.Components.Input
             if (keyMappings.Escape.IsDown())
             {
                 if (!keysDown.Contains(keyMappings.Escape))
-                    game.Exit();
+                    game.StopGame();
             }
             if (keyMappings.Enter.IsDown())
             {
                 keysDown.Add(keyMappings.Enter);
-                game.SwitchGameState(NixFPS.GState.RUN);
+                GameStateManager.SwitchTo(State.RUN);
             }
         }
         public override void ApplyInput(ClientInputState state)

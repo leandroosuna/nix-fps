@@ -314,5 +314,57 @@ namespace nixfps.Components.Collisions
             // No hit at all
             return false;
         }
+        public static Vector3? IntersectRayWithTriangle(Vector3 rayOrigin, Vector3 rayDirection, Vector3 v0, Vector3 v1, Vector3 v2)
+        {
+            // Tolerance for floating-point comparisons
+            float epsilon = 1e-8f;
+
+            // Find vectors for two edges sharing v0
+            Vector3 edge1 = v1 - v0;
+            Vector3 edge2 = v2 - v0;
+
+            // Calculate the determinant
+            Vector3 h = Vector3.Cross(rayDirection, edge2);
+            float a = Vector3.Dot(edge1, h);
+
+            // If the determinant is near zero, the ray is parallel to the triangle
+            if (a > -epsilon && a < epsilon)
+            {
+                return null;  // No intersection
+            }
+
+            // Calculate f, u, and v
+            float f = 1.0f / a;
+            Vector3 s = rayOrigin - v0;
+            float u = f * Vector3.Dot(s, h);
+
+            // If the intersection is outside the triangle
+            if (u < 0.0f || u > 1.0f)
+            {
+                return null;
+            }
+
+            Vector3 q = Vector3.Cross(s, edge1);
+            float v = f * Vector3.Dot(rayDirection, q);
+
+            // The intersection is outside the triangle
+            if (v < 0.0f || u + v > 1.0f)
+            {
+                return null;
+            }
+
+            // Calculate where the intersection point is on the ray
+            float t = f * Vector3.Dot(edge2, q);
+
+            // If t is greater than epsilon, the intersection is on the ray
+            if (t > epsilon)
+            {
+                // Calculate the exact intersection point
+                return rayOrigin + rayDirection * t;
+            }
+
+            // No intersection; the ray does not hit the triangle
+            return null;
+        }
     }
 }

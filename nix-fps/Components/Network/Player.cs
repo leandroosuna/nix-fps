@@ -42,7 +42,7 @@ namespace nixfps
         {
             this.id = id;
             name = "noname";
-            position = new Vector3(7,0,34);
+            position = new Vector3(97,8,-205);
 
             timeOffset = (float)new Random().NextDouble() * 5;
             clipName = "idle";

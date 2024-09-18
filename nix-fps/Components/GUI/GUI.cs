@@ -5,6 +5,7 @@ using Microsoft.Xna.Framework.Graphics;
 using nixfps.Components.GUI.ImGuiNET;
 using nixfps.Components.GUI.Modifiers;
 using nixfps.Components.Network;
+using nixfps.Components.States;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -16,7 +17,7 @@ using static System.Windows.Forms.VisualStyles.VisualStyleElement.StartPanel;
 
 namespace nixfps.Components.GUI
 {
-    public class GUI
+    public class Gui
     {
         static NixFPS game;
         static ImGuiRenderer renderer;
@@ -48,16 +49,16 @@ namespace nixfps.Components.GUI
         {
             renderer.BeforeLayout(gameTime);
 
-            switch(game.gameState)
+            if (game.gameState is StateMainMenu)
             {
-                case GState.MAIN_MENU:
-                    DrawLayoutMainMenu();
-                    break;
-                case GState.RUN:
-                    DrawLayoutRun();
-                    break;
-
+                DrawLayoutMainMenu();
             }
+            else if (game.gameState is StateRun)
+            {
+                //DrawLayoutRun();
+                DrawLayoutMainMenu();
+            }
+            
 
             controller.Draw();
             renderer.AfterLayout();
@@ -135,7 +136,7 @@ namespace nixfps.Components.GUI
             ImGui.Dummy(new System.Numerics.Vector2(1, 30));
             if (ImGui.Button("Salir"))
             {
-                game.Exit();
+                game.StopGame();
             }
 
         }

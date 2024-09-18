@@ -8,11 +8,11 @@
   "ProcessorName": "Animation Processor",
   "rebuild-animations": false,
 
-  "ScreenWidth": 1280,
-  "ScreenHeight": 720,
-  "Fullscreen": false,
+  "ScreenWidth": 1920,
+  "ScreenHeight": 1080,
+  "Fullscreen": true,
 
-  "VSync": false,
+  "VSync": true,
   "FramerateLimit": 0,
   "Borderless": true,
   "MouseVisible": false,

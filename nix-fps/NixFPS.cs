@@ -19,6 +19,7 @@ using Microsoft.Xna.Framework.Input;
 using System.Linq;
 using nixfps.Components.Collisions;
 using nixfps.Components.GUI;
+using nixfps.Components.States;
 
 
 
@@ -40,9 +41,9 @@ namespace nixfps
         public GraphicsDeviceManager Graphics;
         public SpriteBatch spriteBatch;
         public FullScreenQuad fullScreenQuad;
-        SpriteFont font;
+        public SpriteFont font;
 
-        Skybox skybox;
+        public Skybox skybox;
         public static Texture2D Pixel { get; set; }
 
         //public IConfigurationRoot CFG;
@@ -52,29 +53,30 @@ namespace nixfps
         public Model plane;
         public Model cube;
         public BoundingBox boundingBox;
-        Model aztec;
-        Texture2D[] aztecTex;
-        Texture2D[] numTex;
+        public Model aztec;
+        public Model dust2;
+        public Texture2D[] aztecTex;
+        public Texture2D[] numTex;
+        public Texture2D[] dust2Tex;
 
-        Texture2D floorTex;
+
+        public Texture2D floorTex;
 
         public LightsManager lightsManager;
-        RenderTarget2D colorTarget;
-        RenderTarget2D normalTarget;
-        RenderTarget2D positionTarget;
-        RenderTarget2D bloomFilterTarget;
-        RenderTarget2D blurHTarget;
-        RenderTarget2D blurVTarget;
-        RenderTarget2D lightTarget;
+        public RenderTarget2D colorTarget;
+        public RenderTarget2D normalTarget;
+        public RenderTarget2D positionTarget;
+        public RenderTarget2D bloomFilterTarget;
+        public RenderTarget2D blurHTarget;
+        public RenderTarget2D blurVTarget;
+        public RenderTarget2D lightTarget;
 
         public AnimationManager animationManager;
         public Player localPlayer;
         public JObject CFG;
-        public GState gameState;
-        public InputManager inputManager;
-        InputManager inputRun;
-        InputManager inputMainMenu;
-        GunManager gunManager;
+        //public GState gameState;
+        public GameState gameState;
+        public GunManager gunManager;
         Mutex updateMutex;
         public Mutex playerCacheMutex = new Mutex(false, "player-data-cache");
 
@@ -82,7 +84,7 @@ namespace nixfps
         public Gizmos gizmos;
         public int selectedVertexIndex = 3000;
 
-        public GUI GUI;
+        //public GUI GUI;
         public NixFPS()
         {
             updateMutex = new Mutex();
@@ -108,10 +110,7 @@ namespace nixfps
             Graphics.ApplyChanges();
 
             Content.RootDirectory = "Content";
-            
-            
-            
-            
+
             if (!CFG.ContainsKey("ClientID"))
             {
                 var ri = new Random().NextInt64();
@@ -123,8 +122,11 @@ namespace nixfps
 
 
             Exiting += (s, e) => {
+                
                 NetworkManager.Client.Disconnect();
                 NetworkManager.StopNetThread();
+                mainStopwatch.Stop();
+
             };
         }
         public static NixFPS GameInstance() { return game; } 
@@ -142,22 +144,20 @@ namespace nixfps
             Pixel = new Texture2D(GraphicsDevice, 1, 1);
             Pixel.SetData(new byte[] { 0xFF, 0xFF, 0xFF, 0xFF });
 
-            inputMainMenu = new InputMainMenu();
-            inputRun = new InputGameRun();
-
+            InputManager.Init();
+            
+            GameStateManager.Init();
+            GameStateManager.SwitchTo(State.MAIN);
 
             NetworkManager.Connect();
             localPlayer = NetworkManager.localPlayer;
-            InputManager.Init();
-            SwitchGameState(GState.MAIN_MENU);
-            
 
             base.Initialize();
         }
-        Texture2D boxTex;
+        public Texture2D boxTex;
         protected override void LoadContent()
         {
-            GUI.Init();
+            Gui.Init();
             gizmos.LoadContent(GraphicsDevice);
             basicModelEffect = new BasicModelEffect("basic");
             deferredEffect = new DeferredEffect("deferred");
@@ -171,6 +171,8 @@ namespace nixfps
             boxTex = Content.Load<Texture2D>(ContentFolder3D + "basic/tex/wood");
 
             aztec = Content.Load<Model>(ContentFolder3D + "aztec/de_aztec");
+            dust2 = Content.Load<Model>(ContentFolder3D + "dust2/dust2");
+            
             //Content.Load<Texture2D>(ContentFolder3D + "aztec/de_aztec_texture_0"),
             BuildMapCollider();
             aztecTex = new Texture2D[61];
@@ -183,10 +185,17 @@ namespace nixfps
             {
                 numTex[i] = Content.Load<Texture2D>(ContentFolder3D + "basic/tex/num/" + i);
             }
+            dust2Tex = new Texture2D[34];
+            for (int i = 0; i < 33; i++)
+            {
+                dust2Tex[i] = Content.Load<Texture2D>(ContentFolder3D + "dust2/de_dust2_material_" + i);
+            }
+
             LightVolume.Init();
 
             AssignEffectToModel(plane, basicModelEffect.effect);
             AssignEffectToModel(aztec, basicModelEffect.effect);
+            AssignEffectToModel(dust2, basicModelEffect.effect);
 
 
             lightsManager = new LightsManager();
@@ -221,14 +230,18 @@ namespace nixfps
             skybox = new Skybox();
             InputManager.camera = camera;
 
-            GUI.AddControllers();
-            GUI.Bind();
+            Gui.AddControllers();
+            Gui.Bind();
             hud = new Hud();
             gunManager = new GunManager();
             mainStopwatch.Start();
             
         }
 
+        public void StopGame()
+        {
+            Exit();
+        }
         
 
         double time = 0;
@@ -237,103 +250,112 @@ namespace nixfps
         int packetsIn;
         int packetsOut;
         public Stopwatch mainStopwatch = new Stopwatch();
-        TimeSpan timespan = TimeSpan.Zero;
         Matrix gunWorld;
+        bool firstUpdate = true;
         protected override void Update(GameTime gameTime)
         {
+            if (firstUpdate)
+            {
+                Process currentProcess = Process.GetCurrentProcess();
+                Debug.WriteLine("PID Update " + currentProcess.Id);
+                firstUpdate = false;
+            }
+
             deltaTimeU = (float)gameTime.ElapsedGameTime.TotalSeconds;
             //time += gameTime.ElapsedGameTime.TotalMilliseconds;
-            timespan = timespan.Add(gameTime.ElapsedGameTime);
-            if (gameState == GState.MAIN_MENU)
-            {
-                camera.RotateBy(new Vector2(deltaTimeU, 0));
-            }
-            else if (gameState == GState.RUN)
-            {
+        
+            gameState.Update(gameTime);
 
-                NetworkManager.InterpolatePlayers(mainStopwatch.ElapsedMilliseconds);
-                inputManager.Update(deltaTimeU);
+            //if (gameState == GState.MAIN_MENU)
+            //{
+            //    camera.RotateBy(new Vector2(deltaTimeU, 0));
+            //}
+            //else if (gameState == GState.RUN)
+            //{
 
-                gizmos.UpdateViewProjection(camera.view, camera.projection);
+            //    NetworkManager.InterpolatePlayers(mainStopwatch.ElapsedMilliseconds);
+            //    inputManager.Update(deltaTimeU);
 
-                //camera.Update(inputManager);
-                animationManager.Update(gameTime);
-                UpdatePointLights(deltaTimeU);
+            //    gizmos.UpdateViewProjection(camera.view, camera.projection);
 
-                lightsManager.Update(deltaTimeU);
-                gunManager.Update(gameTime);
-                hud.Update(deltaTimeU);
+            //    //camera.Update(inputManager);
+            //    animationManager.Update(gameTime);
+            //    UpdatePointLights(deltaTimeU);
 
-                DistToGround();
+            //    lightsManager.Update(deltaTimeU);
+            //    gunManager.Update(gameTime);
+            //    hud.Update(deltaTimeU);
 
-                //camera.position.Y -= deltaTimeU * 4;
-                var keyState = Keyboard.GetState();
+            //    DistToGround();
+
+            //    //camera.position.Y -= deltaTimeU * 4;
+            //    var keyState = Keyboard.GetState();
             
-                var forward = keyState.IsKeyDown(Keys.I);
-                var backward = keyState.IsKeyDown(Keys.K);
-                var left = keyState.IsKeyDown(Keys.J);
-                var right= keyState.IsKeyDown(Keys.L);
-                var sprint = keyState.IsKeyDown(Keys.U);
+            //    var forward = keyState.IsKeyDown(Keys.I);
+            //    var backward = keyState.IsKeyDown(Keys.K);
+            //    var left = keyState.IsKeyDown(Keys.J);
+            //    var right= keyState.IsKeyDown(Keys.L);
+            //    var sprint = keyState.IsKeyDown(Keys.U);
 
-                var dz = (forward? 1 : 0) - (backward? 1: 0);
-                var dx = (right? 1 : 0) - (left? 1 : 0);
-                byte clipId = 0;
-                if (dz > 0 && dx == 0)
-                {
-                    if (sprint)
-                        clipId = (byte)PlayerAnimation.sprintForward;
-                    else
-                        clipId = (byte)PlayerAnimation.runForward;
-                }
-                else if (dz > 0 && dx > 0)
-                {
-                    if (sprint)
-                        clipId = (byte)PlayerAnimation.sprintForwardRight;
-                    else
-                        clipId = (byte)PlayerAnimation.runForwardRight;
-                }
-                else if (dz > 0 && dx < 0)
-                {
-                    if (sprint)
-                        clipId = (byte)PlayerAnimation.sprintForwardLeft;
-                    else
-                        clipId = (byte)PlayerAnimation.runForwardLeft;
-                }
-                else if (dz < 0 && dx == 0)
-                {
-                    clipId = (byte)PlayerAnimation.runBackward;
-                }
-                else if (dz < 0 && dx > 0)
-                {
-                    clipId = (byte)PlayerAnimation.runBackwardRight;
-                }
-                else if (dz < 0 && dx < 0)
-                {
-                    clipId = (byte)PlayerAnimation.runBackwardLeft;
-                }
-                else if (dz == 0 && dx > 0)
-                {
-                    clipId = (byte)PlayerAnimation.runRight;
-                }
-                else if (dz == 0 && dx < 0)
-                {
-                    clipId = (byte)PlayerAnimation.runLeft;
-                }
-                else
-                    clipId = (byte)PlayerAnimation.idle;
+            //    var dz = (forward? 1 : 0) - (backward? 1: 0);
+            //    var dx = (right? 1 : 0) - (left? 1 : 0);
+            //    byte clipId = 0;
+            //    if (dz > 0 && dx == 0)
+            //    {
+            //        if (sprint)
+            //            clipId = (byte)PlayerAnimation.sprintForward;
+            //        else
+            //            clipId = (byte)PlayerAnimation.runForward;
+            //    }
+            //    else if (dz > 0 && dx > 0)
+            //    {
+            //        if (sprint)
+            //            clipId = (byte)PlayerAnimation.sprintForwardRight;
+            //        else
+            //            clipId = (byte)PlayerAnimation.runForwardRight;
+            //    }
+            //    else if (dz > 0 && dx < 0)
+            //    {
+            //        if (sprint)
+            //            clipId = (byte)PlayerAnimation.sprintForwardLeft;
+            //        else
+            //            clipId = (byte)PlayerAnimation.runForwardLeft;
+            //    }
+            //    else if (dz < 0 && dx == 0)
+            //    {
+            //        clipId = (byte)PlayerAnimation.runBackward;
+            //    }
+            //    else if (dz < 0 && dx > 0)
+            //    {
+            //        clipId = (byte)PlayerAnimation.runBackwardRight;
+            //    }
+            //    else if (dz < 0 && dx < 0)
+            //    {
+            //        clipId = (byte)PlayerAnimation.runBackwardLeft;
+            //    }
+            //    else if (dz == 0 && dx > 0)
+            //    {
+            //        clipId = (byte)PlayerAnimation.runRight;
+            //    }
+            //    else if (dz == 0 && dx < 0)
+            //    {
+            //        clipId = (byte)PlayerAnimation.runLeft;
+            //    }
+            //    else
+            //        clipId = (byte)PlayerAnimation.idle;
 
-                animationManager.SetClipName(localPlayer, clipId);
+            //    animationManager.SetClipName(localPlayer, clipId);
 
-                onesec += deltaTimeU;
-                if (onesec >= 1)
-                {
-                    onesec = 0f;
-                    packetsIn = NetworkManager.Client.Connection.Metrics.UnreliableIn;
-                    packetsOut = NetworkManager.Client.Connection.Metrics.UnreliableOut;
-                    NetworkManager.Client.Connection.Metrics.Reset();
-                }
+            //    onesec += deltaTimeU;
+            //    if (onesec >= 1)
+            //    {
+            //        onesec = 0f;
+            //        packetsIn = NetworkManager.Client.Connection.Metrics.UnreliableIn;
+            //        packetsOut = NetworkManager.Client.Connection.Metrics.UnreliableOut;
+            //        NetworkManager.Client.Connection.Metrics.Reset();
+            //    }
             
-            }
+            //}
                 
 
 
@@ -346,345 +368,189 @@ namespace nixfps
         int updatefps;
         float timeD;
         bool debugRTs = false;
+        bool firstDraw = true;
         protected override void Draw(GameTime gameTime)
         {
             //TODO: custom basic and skinning effect, decide deferred or not 
             // skybox (fix
-            deltaTimeD = (float)gameTime.ElapsedGameTime.TotalSeconds;
-            timeD += deltaTimeD;
-            timeD %= 0.12f;
-            if (timeD <= .025f)
+            if (firstDraw)
             {
-                fps = (int)(1 / deltaTimeD);
-                updatefps = (int)(1 / deltaTimeU);
-                frameTime = deltaTimeD * 1000;
+                Process currentProcess = Process.GetCurrentProcess();
+                Debug.WriteLine("PID Draw " + currentProcess.Id);
+                firstDraw = false;
             }
+            gameState.Draw(gameTime);
 
-            switch (gameState)
-            {
-                case GState.MAIN_MENU: DrawMenu(deltaTimeD); GUI.Draw(gameTime); break;
-                case GState.RUN: DrawRun(deltaTimeD, gameTime); break;
-            }
-            
+            //deltaTimeD = (float)gameTime.ElapsedGameTime.TotalSeconds;
+            //timeD += deltaTimeD;
+            //timeD %= 0.12f;
+            //if (timeD <= .025f)
+            //{
+            //    fps = (int)(1 / deltaTimeD);
+            //    updatefps = (int)(1 / deltaTimeU);
+            //    frameTime = deltaTimeD * 1000;
+            //}
+
+            //switch (gameState)
+            //{
+            //    case GState.MAIN_MENU: DrawMenu(deltaTimeD); GUI.Draw(gameTime); break;
+            //    case GState.RUN: DrawRun(deltaTimeD, gameTime); break;
+            //}
+            //GUI.Draw(gameTime);
 
             base.Draw(gameTime);
         }
 
-        void DrawMenu(float deltaTime)
-        {
-            hud.DrawMenu(deltaTime);
-            GraphicsDevice.SetRenderTarget(null);
-            GraphicsDevice.Clear(Color.Black);
-            GraphicsDevice.RasterizerState = RasterizerState.CullClockwise;
-            skybox.Draw();
-        }
-        void DrawRun(float deltaTime, GameTime gt)
-        {
-            basicModelEffect.SetView(camera.view);
-            basicModelEffect.SetProjection(camera.projection);
-            deferredEffect.SetView(camera.view);
-            deferredEffect.SetProjection(camera.projection);
-            deferredEffect.SetCameraPosition(camera.position);
-            /// Target 1 (colorTarget) RGB = color, A = KD
-            /// Target 2 (normalTarget) RGB = normal(scaled), A = KS
-            /// Target 3 (positionTarget) RGB = world position, A = shininess(scale if necessary)
-            /// Target 4 (bloomTarget) RGB = filter, A = (not in use) 
-            GraphicsDevice.SetRenderTargets(colorTarget, normalTarget, positionTarget, bloomFilterTarget);
-            GraphicsDevice.BlendState = BlendState.NonPremultiplied;
-            GraphicsDevice.DepthStencilState = DepthStencilState.Default;
-            GraphicsDevice.RasterizerState = RasterizerState.CullClockwise;
+        //void DrawMenu(float deltaTime)
+        //{
+        //    hud.DrawMenu(deltaTime);
+        //    GraphicsDevice.SetRenderTarget(null);
+        //    GraphicsDevice.Clear(Color.Black);
+        //    GraphicsDevice.RasterizerState = RasterizerState.CullClockwise;
+        //    skybox.Draw();
+        //}
+        //void DrawRun(float deltaTime, GameTime gt)
+        //{
+        //    basicModelEffect.SetView(camera.view);
+        //    basicModelEffect.SetProjection(camera.projection);
+        //    deferredEffect.SetView(camera.view);
+        //    deferredEffect.SetProjection(camera.projection);
+        //    deferredEffect.SetCameraPosition(camera.position);
+        //    /// Target 1 (colorTarget) RGB = color, A = KD
+        //    /// Target 2 (normalTarget) RGB = normal(scaled), A = KS
+        //    /// Target 3 (positionTarget) RGB = world position, A = shininess(scale if necessary)
+        //    /// Target 4 (bloomTarget) RGB = filter, A = (not in use) 
+        //    GraphicsDevice.SetRenderTargets(colorTarget, normalTarget, positionTarget, bloomFilterTarget);
+        //    GraphicsDevice.BlendState = BlendState.NonPremultiplied;
+        //    GraphicsDevice.DepthStencilState = DepthStencilState.Default;
+        //    GraphicsDevice.RasterizerState = RasterizerState.CullClockwise;
 
-            skybox.Draw();
-            GraphicsDevice.RasterizerState = RasterizerState.CullCounterClockwise;
+        //    skybox.Draw();
+        //    GraphicsDevice.RasterizerState = RasterizerState.CullCounterClockwise;
 
-            // Draw a simple plane, enable lighting on it
-            //DrawPlane();
-            DrawAztec();
-            //DrawBox();
+        //    // Draw a simple plane, enable lighting on it
+        //    //DrawPlane();
+        //    DrawAztec();
+        //    //DrawBox();
 
-            localPlayer.UpdateColliders();
+        //    localPlayer.UpdateColliders();
 
-            //gizmos.DrawSphere(localPlayer.zoneCollider.Center, new Vector3(localPlayer.zoneCollider.Radius), Color.White);
-            //gizmos.DrawCylinder(localPlayer.headCollider.Center, localPlayer.headCollider.Rotation, 
-            //    new Vector3(localPlayer.headCollider.Radius, localPlayer.headCollider.HalfHeight, localPlayer.headCollider.Radius), Color.Red);
-            //gizmos.DrawCylinder(localPlayer.bodyCollider.Center, localPlayer.bodyCollider.Rotation, 
-            //    new Vector3(localPlayer.bodyCollider.Radius, localPlayer.bodyCollider.HalfHeight, localPlayer.bodyCollider.Radius), Color.Green);
-            //gizmos.Draw();
-            gunManager.DrawGun(deltaTimeD);
+        //    //gizmos.DrawSphere(localPlayer.zoneCollider.Center, new Vector3(localPlayer.zoneCollider.Radius), Color.White);
+        //    //gizmos.DrawCylinder(localPlayer.headCollider.Center, localPlayer.headCollider.Rotation, 
+        //    //    new Vector3(localPlayer.headCollider.Radius, localPlayer.headCollider.HalfHeight, localPlayer.headCollider.Radius), Color.Red);
+        //    //gizmos.DrawCylinder(localPlayer.bodyCollider.Center, localPlayer.bodyCollider.Rotation, 
+        //    //    new Vector3(localPlayer.bodyCollider.Radius, localPlayer.bodyCollider.HalfHeight, localPlayer.bodyCollider.Radius), Color.Green);
+        //    //gizmos.Draw();
+        //    gunManager.DrawGun(deltaTimeD);
             
             
-            animationManager.DrawPlayers();
-            gizmos.Draw();
+        //    animationManager.DrawPlayers();
+        //    gizmos.Draw();
             
-            // Draw the geometry of the lights in the scene, so that we can see where the generators are
-            lightsManager.DrawLightGeo();
+        //    // Draw the geometry of the lights in the scene, so that we can see where the generators are
+        //    lightsManager.DrawLightGeo();
 
-            /// Now we calculate the lights. first we start by sending the targets from before as textures
-            /// First, we use a fullscreen quad to calculate the ambient light, as a baseline (optional)
-            /// Then, we iterate our point lights and render them as spheres in the correct position. 
-            /// This will launch pixel shader functions only for the necessary pixels in range of that light.
-            /// From the G-Buffer we sample the required information for that pixel, and we compute the color
-            /// BlendState should be additive, to correctly sum up the contributions of multiple lights in
-            /// the same pixel.
-            /// For pixels that shouldnt be lit, for example the light geometry, normals are set to rgb = 0
-            /// and we can use that to simply output white in our lightTarget for that pixel.
-            GraphicsDevice.SetRenderTargets(lightTarget, blurHTarget, blurVTarget);
-            GraphicsDevice.BlendState = BlendState.Additive;
-            GraphicsDevice.DepthStencilState = DepthStencilState.None;
+        //    /// Now we calculate the lights. first we start by sending the targets from before as textures
+        //    /// First, we use a fullscreen quad to calculate the ambient light, as a baseline (optional)
+        //    /// Then, we iterate our point lights and render them as spheres in the correct position. 
+        //    /// This will launch pixel shader functions only for the necessary pixels in range of that light.
+        //    /// From the G-Buffer we sample the required information for that pixel, and we compute the color
+        //    /// BlendState should be additive, to correctly sum up the contributions of multiple lights in
+        //    /// the same pixel.
+        //    /// For pixels that shouldnt be lit, for example the light geometry, normals are set to rgb = 0
+        //    /// and we can use that to simply output white in our lightTarget for that pixel.
+        //    GraphicsDevice.SetRenderTargets(lightTarget, blurHTarget, blurVTarget);
+        //    GraphicsDevice.BlendState = BlendState.Additive;
+        //    GraphicsDevice.DepthStencilState = DepthStencilState.None;
 
-            deferredEffect.SetColorMap(colorTarget);
-            deferredEffect.SetNormalMap(normalTarget);
-            deferredEffect.SetPositionMap(positionTarget);
-            deferredEffect.SetBloomFilter(bloomFilterTarget);
-            lightsManager.Draw();
+        //    deferredEffect.SetColorMap(colorTarget);
+        //    deferredEffect.SetNormalMap(normalTarget);
+        //    deferredEffect.SetPositionMap(positionTarget);
+        //    deferredEffect.SetBloomFilter(bloomFilterTarget);
+        //    lightsManager.Draw();
 
-            /// Finally, we have our color texture we calculated in step one, and the lights from step two
-            /// we combine them here by simply multiplying them, finalColor = color * light, 
-            /// using a final fullscreen quad pass.
-            GraphicsDevice.SetRenderTarget(null);
-            //GUI.Draw(gt);
-            GraphicsDevice.BlendState = BlendState.Opaque;
-            GraphicsDevice.DepthStencilState = DepthStencilState.Default;
-            GraphicsDevice.RasterizerState = RasterizerState.CullCounterClockwise;
+        //    /// Finally, we have our color texture we calculated in step one, and the lights from step two
+        //    /// we combine them here by simply multiplying them, finalColor = color * light, 
+        //    /// using a final fullscreen quad pass.
+        //    GraphicsDevice.SetRenderTarget(null);
+        //    //GUI.Draw(gt);
+        //    GraphicsDevice.BlendState = BlendState.Opaque;
+        //    GraphicsDevice.DepthStencilState = DepthStencilState.Default;
+        //    GraphicsDevice.RasterizerState = RasterizerState.CullCounterClockwise;
 
-            deferredEffect.SetLightMap(lightTarget);
-            deferredEffect.SetScreenSize(new Vector2(screenWidth, screenHeight));
-            deferredEffect.SetTech("integrate");
-            deferredEffect.SetBlurH(blurHTarget);
-            deferredEffect.SetBlurV(blurVTarget);
+        //    deferredEffect.SetLightMap(lightTarget);
+        //    deferredEffect.SetScreenSize(new Vector2(screenWidth, screenHeight));
+        //    deferredEffect.SetTech("integrate");
+        //    deferredEffect.SetBlurH(blurHTarget);
+        //    deferredEffect.SetBlurV(blurVTarget);
 
-            fullScreenQuad.Draw(deferredEffect.effect);
+        //    fullScreenQuad.Draw(deferredEffect.effect);
             
-            var rec = new Rectangle(0, 0, screenWidth, screenHeight);
+        //    var rec = new Rectangle(0, 0, screenWidth, screenHeight);
 
-            /// In this example, by hitting key 0 you can see the targets in the corners of the screen
-            if (debugRTs)
-            {
-                spriteBatch.Begin(blendState: BlendState.Opaque);
+        //    /// In this example, by hitting key 0 you can see the targets in the corners of the screen
+        //    if (debugRTs)
+        //    {
+        //        spriteBatch.Begin(blendState: BlendState.Opaque);
 
-                spriteBatch.Draw(colorTarget, Vector2.Zero, rec, Color.White, 0f, Vector2.Zero, 0.25f, SpriteEffects.None, 0f);
-                spriteBatch.Draw(normalTarget, new Vector2(0, screenHeight - screenHeight / 4), rec, Color.White, 0f, Vector2.Zero, 0.25f, SpriteEffects.None, 0f);
-                spriteBatch.Draw(positionTarget, new Vector2(screenWidth - screenWidth / 4, 0), rec, Color.White, 0f, Vector2.Zero, 0.25f, SpriteEffects.None, 0f);
-                spriteBatch.Draw(lightTarget, new Vector2(screenWidth - screenWidth / 4, screenHeight - screenHeight / 4), rec, Color.White, 0f, Vector2.Zero, 0.25f, SpriteEffects.None, 0f);
+        //        spriteBatch.Draw(colorTarget, Vector2.Zero, rec, Color.White, 0f, Vector2.Zero, 0.25f, SpriteEffects.None, 0f);
+        //        spriteBatch.Draw(normalTarget, new Vector2(0, screenHeight - screenHeight / 4), rec, Color.White, 0f, Vector2.Zero, 0.25f, SpriteEffects.None, 0f);
+        //        spriteBatch.Draw(positionTarget, new Vector2(screenWidth - screenWidth / 4, 0), rec, Color.White, 0f, Vector2.Zero, 0.25f, SpriteEffects.None, 0f);
+        //        spriteBatch.Draw(lightTarget, new Vector2(screenWidth - screenWidth / 4, screenHeight - screenHeight / 4), rec, Color.White, 0f, Vector2.Zero, 0.25f, SpriteEffects.None, 0f);
 
-                spriteBatch.End();
-            }
+        //        spriteBatch.End();
+        //    }
 
-            string ft = (frameTime * 1000).ToString("0,####");
-            string fpsStr = "FPS " + fps +"|"+updatefps;
-            var pc = " PC " + NetworkManager.players.Count;
-            var p = NetworkManager.localPlayer;
-            var camStr = string.Format("({0:F2}, {1:F2}, {2:F2})", p.position.X, p.position.Y, p.position.Z);
-            var pos = " camlocal " + camStr;
-            var pNetStr = "";
-            var pos2 = "";
-            if (NetworkManager.players.Count > 0)
-            {
-                var player2 = NetworkManager.players[0];
-                var pNet = player2.position;
+        //    string ft = (frameTime * 1000).ToString("0,####");
+        //    string fpsStr = "FPS " + fps +"|"+updatefps;
+        //    var pc = " PC " + NetworkManager.players.Count;
+        //    var p = NetworkManager.localPlayer;
+        //    var camStr = string.Format("({0:F2}, {1:F2}, {2:F2})", p.position.X, p.position.Y, p.position.Z);
+        //    var pos = " camlocal " + camStr;
+        //    var pNetStr = "";
+        //    var pos2 = "";
+        //    if (NetworkManager.players.Count > 0)
+        //    {
+        //        var player2 = NetworkManager.players[0];
+        //        var pNet = player2.position;
 
-                //pNetStr += string.Format("({0:F2}, {1:F2}, {2:F2})", pNet.X, pNet.Y, pNet.Z);
+        //        //pNetStr += string.Format("({0:F2}, {1:F2}, {2:F2})", pNet.X, pNet.Y, pNet.Z);
 
-                //pos2 = " player2 " + pNetStr;
-                pos2 = " player2Cache " + player2.netDataCache.Count + " ";
-            }
+        //        //pos2 = " player2 " + pNetStr;
+        //        pos2 = " player2Cache " + player2.netDataCache.Count + " ";
+        //    }
 
-            fpsStr += pos + pos2 + NetworkManager.Client.RTT + " ms, in " + packetsIn;
-            fpsStr += " out " + packetsOut;
+        //    fpsStr += pos + pos2 + NetworkManager.Client.RTT + " ms, in " + packetsIn;
+        //    fpsStr += " out " + packetsOut;
 
-            fpsStr += " diff " + string.Format("({0:F2}, {1:F2}, {2:F2})", NetworkManager.posDiff.X, NetworkManager.posDiff.Y, NetworkManager.posDiff.Z);
-            //fpsStr += "MP " + meshPartDrawCount;
-            //fpsStr += lightsManager.lights.Count + " " + lightsManager.lightsToDraw.Count;
-            fpsStr += "selected " + selectedVertexIndex;
-            spriteBatch.Begin();
-            spriteBatch.DrawString(font, fpsStr, Vector2.Zero, Color.White);
-            //spriteBatch.DrawString(font, str, new Vector2(screenWidth - font.MeasureString(str).X, 0), Color.White);
-            spriteBatch.End();
+        //    fpsStr += " diff " + string.Format("({0:F2}, {1:F2}, {2:F2})", NetworkManager.posDiff.X, NetworkManager.posDiff.Y, NetworkManager.posDiff.Z);
+        //    //fpsStr += "MP " + meshPartDrawCount;
+        //    //fpsStr += lightsManager.lights.Count + " " + lightsManager.lightsToDraw.Count;
+        //    fpsStr += "selected " + selectedVertexIndex;
+        //    spriteBatch.Begin();
+        //    spriteBatch.DrawString(font, fpsStr, Vector2.Zero, Color.White);
+        //    //spriteBatch.DrawString(font, str, new Vector2(screenWidth - font.MeasureString(str).X, 0), Color.White);
+        //    spriteBatch.End();
 
-            //hud.DrawRun(deltaTimeD);
+        //    //hud.DrawRun(deltaTimeD);
 
 
-        }
+        //}
         
-        private void DrawPlane()
-        {
-            basicModelEffect.SetTech("colorTex_lightEn");
-            basicModelEffect.SetTiling(Vector2.One * 500);
-            foreach (var mesh in plane.Meshes)
-            {
-                var w = mesh.ParentBone.Transform * Matrix.CreateScale(10f) * Matrix.CreateTranslation(0, 0, 0);
-                basicModelEffect.SetColor(Color.DarkGray.ToVector3());
-                basicModelEffect.SetWorld(w);
-                basicModelEffect.SetKA(0.3f);
-                basicModelEffect.SetKD(0.8f);
-                basicModelEffect.SetKS(0.8f);
-                basicModelEffect.SetShininess(30f);
-                basicModelEffect.SetColorTexture(floorTex);
-                basicModelEffect.SetInverseTransposeWorld(Matrix.Invert(Matrix.Transpose(w)));
-
-                mesh.Draw();
-            }
-            basicModelEffect.SetTiling(Vector2.One);
-        }
-
-        private void DrawBox()
-        {
-            basicModelEffect.SetTech("colorTex_lightEn");
-            basicModelEffect.SetTiling(new Vector2(4.5f, 4.5f));
-            foreach (var mesh in cube.Meshes)
-            {
-                var w = mesh.ParentBone.Transform * Matrix.CreateScale(.01f) * Matrix.CreateTranslation(4, 2, 4);
-                basicModelEffect.SetWorld(w);
-                basicModelEffect.SetKA(0.3f);
-                basicModelEffect.SetKD(0.8f);
-                basicModelEffect.SetKS(0.8f);
-                basicModelEffect.SetShininess(30f);
-                basicModelEffect.SetColorTexture(boxTex);
-                basicModelEffect.SetInverseTransposeWorld(Matrix.Invert(Matrix.Transpose(w)));
-
-                mesh.Draw();
-            }
-            basicModelEffect.SetTiling(Vector2.One);
-
-            var min = new Vector3(4, 2, 4) - new Vector3(1, 1f, 1);
-            var max = new Vector3(4, 2, 4) + new Vector3(1, 1f, 1);
-
-            boundingBox = new BoundingBox(min, max);
-            //gizmos.DrawCube(Matrix.CreateScale(2f) * , Color.Magenta);
-            gizmos.DrawCube(new Vector3(4, 2, 4), new Vector3(2, 2, 2), Color.Magenta);
-           
-        }
-        int meshPartDrawCount = 0;
-
-
-
-        void DrawAztec()
-        {
-            meshPartDrawCount = 0;
-            //basicModelEffect.SetTech("colorTex_lightEn");
-            //basicModelEffect.SetTech("basic_color");
-            basicModelEffect.SetTech("number");
-            basicModelEffect.SetTiling(new Vector2(2f));
-            basicModelEffect.SetKA(.3f);
-            basicModelEffect.SetKD(.8f);
-            basicModelEffect.SetKS(.8f);
-            basicModelEffect.SetShininess(10f);
-
-            foreach (var mesh in aztec.Meshes)
-            {
-                meshPartDrawCount = 0;
-
-
-                var w = mesh.ParentBone.Transform * Matrix.CreateScale(1f);
-                basicModelEffect.SetWorld(w);
-
-                basicModelEffect.SetInverseTransposeWorld(Matrix.Invert(Matrix.Transpose(w)));
-                
-                for(int partindex = 0; partindex < mesh.MeshParts.Count; partindex++)
-                {
-                    //if (camera.FrustumContains(aztecMPColliders[partindex]))
-                    //    continue;
-                    meshPartDrawCount++;
-                    var (found, tex) = AztecTexFor(partindex);
-                    basicModelEffect.SetColorTexture(tex);
-                    basicModelEffect.SetColor(Color.White.ToVector3());
-                    basicModelEffect.SetTiling(new Vector2(1f));
-                    if (!found)
-                    {
-                        basicModelEffect.SetTiling(new Vector2(2f));
-                        if (partindex < 100)
-                        {
-                            basicModelEffect.SetColor(Color.Red.ToVector3());
-                        }
-                        else if (partindex < 200)
-                        {
-                            basicModelEffect.SetColor(Color.Green.ToVector3());
-                        }
-                        else
-                        {
-                            basicModelEffect.SetColor(Color.Blue.ToVector3());
-                        }
-                    }
-
-
-                    var part = mesh.MeshParts[partindex];
-                    
-                    foreach (var pass in basicModelEffect.effect.CurrentTechnique.Passes)
-                    {
-                        pass.Apply();
-                        game.GraphicsDevice.SetVertexBuffer(part.VertexBuffer);
-                        game.GraphicsDevice.Indices = part.IndexBuffer;
-                        game.GraphicsDevice.DrawIndexedPrimitives(PrimitiveType.TriangleList, part.VertexOffset, part.StartIndex, part.PrimitiveCount);
-                    }
-                }
-
-                //mesh.Draw();
-            }
-        }
-        Vector3 ColorFor(int index)
-        {
-            if (index <= 71)
-            {
-                byte R = (byte)(index * 255 / 71);
-                return new Color(R, 0, 0).ToVector3();
-            }
-            else if (index <= 143)
-            {
-                byte G = (byte)((index - 72) * 255 / 71);
-                return new Color(0, G, 0).ToVector3();
-            }
-            else
-            {
-                byte B = (byte)((index - 144) * 255 / 71);
-                return new Color(0, 0, B).ToVector3();
-            }
-            
-        }
-
-        public (bool,Texture2D) AztecTexFor(int index)
-        {
-            switch (index)
-            {
-                case 0: return (true, aztecTex[0]);
-                case 1: return (true, aztecTex[22]);
-                case 2: return (true, aztecTex[3]);
-                case 3: return (true, aztecTex[3]);
-
-                case 4: return (true, aztecTex[52]);
-                case 5: return (true, aztecTex[53]);
-                case 6: return (true, aztecTex[49]);
-                case 10: return (true, aztecTex[10]);
-                case 17: return (true, aztecTex[22]);
-
-                case 26: return (true, aztecTex[31]);
-                case 27: return (true, aztecTex[32]);
-    
-                case 30: return (true, aztecTex[35]);
-                case 46: return (true, aztecTex[46]);
-                case 200: return (true, aztecTex[60]);
-                case 201: return (true, aztecTex[58]);
-
-                case 214: return (true, aztecTex[35]);
-
-
-                default:
-                    return (false,numTex[index % 100]);
-            }
-        }
+        
         void SetupRenderTargets()
         {
-            colorTarget = new RenderTarget2D(GraphicsDevice, screenWidth, screenHeight, false, SurfaceFormat.HalfVector4, DepthFormat.Depth24Stencil8);
-            normalTarget = new RenderTarget2D(GraphicsDevice, screenWidth, screenHeight, false, SurfaceFormat.HalfVector4, DepthFormat.Depth24Stencil8);
-            positionTarget = new RenderTarget2D(GraphicsDevice, screenWidth, screenHeight, false, SurfaceFormat.HalfVector4, DepthFormat.Depth24Stencil8);
-            lightTarget = new RenderTarget2D(GraphicsDevice, screenWidth, screenHeight, false, SurfaceFormat.HalfVector4, DepthFormat.Depth24Stencil8);
-            bloomFilterTarget = new RenderTarget2D(GraphicsDevice, screenWidth, screenHeight, false, SurfaceFormat.HalfVector4, DepthFormat.Depth24Stencil8);
-            blurHTarget= new RenderTarget2D(GraphicsDevice, screenWidth, screenHeight, false, SurfaceFormat.HalfVector4, DepthFormat.Depth24Stencil8);
-            blurVTarget = new RenderTarget2D(GraphicsDevice, screenWidth, screenHeight, false, SurfaceFormat.HalfVector4, DepthFormat.Depth24Stencil8);
-
+            colorTarget = new RenderTarget2D(GraphicsDevice, screenWidth, screenHeight, false, SurfaceFormat.Vector4, DepthFormat.Depth24Stencil8);
+            normalTarget = new RenderTarget2D(GraphicsDevice, screenWidth, screenHeight, false, SurfaceFormat.Vector4, DepthFormat.Depth24Stencil8);
+            positionTarget = new RenderTarget2D(GraphicsDevice, screenWidth, screenHeight, false, SurfaceFormat.Vector4, DepthFormat.Depth24Stencil8);
+            lightTarget = new RenderTarget2D(GraphicsDevice, screenWidth, screenHeight, false, SurfaceFormat.Vector4, DepthFormat.Depth24Stencil8);
+            bloomFilterTarget = new RenderTarget2D(GraphicsDevice, screenWidth, screenHeight, false, SurfaceFormat.Vector4, DepthFormat.Depth24Stencil8);
+            blurHTarget= new RenderTarget2D(GraphicsDevice, screenWidth, screenHeight, false, SurfaceFormat.Vector4, DepthFormat.Depth24Stencil8);
+            blurVTarget = new RenderTarget2D(GraphicsDevice, screenWidth, screenHeight, false, SurfaceFormat.Vector4, DepthFormat.Depth24Stencil8);
         }
         float timeL = 0f;
         int maxPointLights = 1;
-        void UpdatePointLights(float deltaTime)
+        public void UpdatePointLights(float deltaTime)
         {
             timeL += deltaTime * .5f;
             for (int i = 0; i < maxPointLights; i++)
@@ -726,7 +592,7 @@ namespace nixfps
             //}
 
         }
-        class CollisionTriangle
+        public class CollisionTriangle
         {
             public Vector3[] v;
             public CollisionTriangle()
@@ -734,10 +600,10 @@ namespace nixfps
                 v = new Vector3[3];
             }
         }
-        bool CheckTriangle(CollisionTriangle t)
+        public bool CheckTriangle(CollisionTriangle t)
         {
             return
-                Vector3.DistanceSquared(t.v[0], camera.position) < 30f;
+                Vector3.DistanceSquared(t.v[0], camera.position) < 500f;
         }
         List<PointLight> minilights = new List<PointLight>();
 
@@ -871,10 +737,10 @@ namespace nixfps
 
             return false;
         }
-        List<CollisionTriangle> mapTriangles = new List<CollisionTriangle>();
+        public List<CollisionTriangle> mapTriangles = new List<CollisionTriangle>();
         private void BuildMapCollider()
         {
-            foreach (ModelMesh mesh in aztec.Meshes)
+            foreach (ModelMesh mesh in dust2.Meshes)
             {
 
                 Matrix transform = CreateTransform(mesh.ParentBone);
@@ -882,8 +748,8 @@ namespace nixfps
                 {
                     ExtractMeshPart(meshPart, transform);
                 }
-                aztecMPColliders = aztecMeshPartColliders.ToArray();
-                aztecMeshPartColliders.Clear();
+                //aztecMPColliders = aztecMeshPartColliders.ToArray();
+                //aztecMeshPartColliders.Clear();
             }
         }
         public Matrix CreateTransform(ModelBone bone)
@@ -893,8 +759,8 @@ namespace nixfps
 
             return bone.Transform * CreateTransform(bone.Parent);
         }
-        BoundingSphere[] aztecMPColliders;
-        List<BoundingSphere> aztecMeshPartColliders = new List<BoundingSphere>();
+        //BoundingSphere[] aztecMPColliders;
+        //List<BoundingSphere> aztecMeshPartColliders = new List<BoundingSphere>();
         public void ExtractMeshPart(ModelMeshPart meshPart, Matrix transform)
         {
     
@@ -931,10 +797,11 @@ namespace nixfps
                         triangle.v[1] = allVertex[indices[i + 1]];
                         triangle.v[2] = allVertex[indices[i + 2]];
 
-                        if(i==0)
-                            aztecMeshPartColliders.Add(new BoundingSphere(allVertex[indices[i]], 25f));
+                        //if(i==0)
+                        //    aztecMeshPartColliders.Add(new BoundingSphere(allVertex[indices[i]], 25f));
                         
                         mapTriangles.Add(triangle);
+                        
                     }
                 }
             }
@@ -942,29 +809,28 @@ namespace nixfps
 
         }
 
+        //public void SwitchGameState(GState state)
+        //{
+        //    gameState = state;
+        //    switch(gameState)
+        //    {
+        //        case GState.MAIN_MENU:
+        //            inputManager = inputMainMenu;
+        //            IsMouseVisible = true;
+        //            break;
+        //        case GState.RUN:
+        //            System.Windows.Forms.Cursor.Position = inputManager.center;
+        //            camera.pitch = 0;
+        //            inputManager = inputRun;
+        //            IsMouseVisible = CFG["MouseVisible"].Value<bool>();
+        //            break;
+        //        case GState.PAUSE:
+        //            break;
+        //        case GState.OPTIONS:
+        //            break;
+        //    }
 
-        public void SwitchGameState(GState state)
-        {
-            gameState = state;
-            switch(gameState)
-            {
-                case GState.MAIN_MENU:
-                    inputManager = inputMainMenu;
-                    IsMouseVisible = true;
-                    break;
-                case GState.RUN:
-                    System.Windows.Forms.Cursor.Position = inputManager.center;
-                    camera.pitch = 0;
-                    inputManager = inputRun;
-                    IsMouseVisible = CFG["MouseVisible"].Value<bool>();
-                    break;
-                case GState.PAUSE:
-                    break;
-                case GState.OPTIONS:
-                    break;
-            }
-
-        }
+        //}
 
         public enum GState
         {
