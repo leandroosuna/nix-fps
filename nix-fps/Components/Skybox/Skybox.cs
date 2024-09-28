@@ -10,10 +10,10 @@ using System.Threading.Tasks;
 
 namespace nixfps.Components.Skybox
 {
-    internal class Skybox
+    public class Skybox
     {
         Model model;
-        TextureCube texture;
+        //TextureCube texture;
         Texture2D texture2D;
         Effect effect;
         float size;

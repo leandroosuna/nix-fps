@@ -57,7 +57,7 @@ namespace nixfps.Components.Lights
             effect.SetTech("point_light");
             game.GraphicsDevice.RasterizerState = RasterizerState.CullClockwise; //remove front side of spheres to be drawn
 
-            lightsToDraw.ForEach(l => l.Draw());
+            lightsToDraw.ForEach(l => { if (!l.skipDraw) l.Draw(); });
             
         }
         public void DrawLightGeo()

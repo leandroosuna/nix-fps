@@ -29,6 +29,7 @@ namespace nixfps.Components.Lights
 
         public bool enabled;
         public bool hasLightGeo;
+        public bool skipDraw;
         static NixFPS game;
         public LightVolume(Vector3 position, Vector3 color, Vector3 ambientColor, Vector3 specularColor)
         {
@@ -72,7 +73,7 @@ namespace nixfps.Components.Lights
             
                 foreach (var mesh in sphere.Meshes)
                 {
-                    var w = mesh.ParentBone.Transform * Matrix.CreateScale(0.01f) * Matrix.CreateTranslation(position);
+                    var w = mesh.ParentBone.Transform * Matrix.CreateScale(0.001f) * Matrix.CreateTranslation(position);
                     basicModelEffect.SetWorld(w);
                     basicModelEffect.SetInverseTransposeWorld(Matrix.Invert(Matrix.Transpose(w)));
                     mesh.Draw();

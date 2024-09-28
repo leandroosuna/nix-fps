@@ -23,36 +23,57 @@ namespace nixfps.Components.Network
         public static Player localPlayer;
         
         static NixFPS game;
-        public static Vector3 netPosition;
         static Thread netThread;
         static bool netThreadEnabled = true;
+        public static int ConnectionAttempts = 1;
+        static String serverIP;
         public static void Connect()
         {
             game = NixFPS.GameInstance();
+            
+            var id = game.CFG["ClientID"].Value<uint>();
+            var playerName = game.CFG["PlayerName"].Value<string>();
+            localPlayer = new Player(id);
+            localPlayer.name = playerName;
+            localPlayer.teamColor = new Vector3(0, 1, 1);
 
             Client = new Client();
 
             var server = game.CFG["ServerIP"].Value<string>();
-            var serverIP = Dns.GetHostAddresses(server)[0].ToString();
+            serverIP = Dns.GetHostAddresses(server)[0].ToString();
+            //var serverIP = "192.168.1.45";
             serverIP +=":7777";
-            Client.Connect(serverIP);
-            
-            SendPlayerIdentity();
 
+            Client.Connect(serverIP);
+
+            Client.ConnectionFailed += Client_ConnectionFailed;
+            Client.Connected += Client_Connected;
+
+            long msTarget = 4;
+            long syncErrorMs = 0;
+            long currentTargetMs;
+            long ms;
             netThread = new Thread(() =>
             {
-                while (game.inputManager == null);
                 var stopwatch = new Stopwatch();
                 stopwatch.Start();
 
                 while (netThreadEnabled)
                 {
-                    if (stopwatch.ElapsedMilliseconds > 4)
+                    ms = stopwatch.ElapsedMilliseconds;
+                    currentTargetMs = msTarget + syncErrorMs;
+                    if (ms >= currentTargetMs)
                     {
-                        stopwatch.Restart();
+                        syncErrorMs = (ms - currentTargetMs);
+
                         Client.Update();
-                        SendData();
+                        if(Client.IsConnected)
+                        {
+                            SendData();
+                        }
+                        stopwatch.Restart();
                     }
+                    Thread.Sleep(1);
                 }
             });
 
@@ -60,6 +81,29 @@ namespace nixfps.Components.Network
             netThread.Start();
 
         }
+
+        private static void Client_Connected(object sender, EventArgs e)
+        {
+            Debug.WriteLine("CONNECTED");
+            //SendPlayerIdentity(); //connect button should send this.
+            ConnectionAttempts = 1;
+        }
+        
+        private static void Client_ConnectionFailed(object sender, ConnectionFailedEventArgs e)
+        {
+            
+            if(ConnectionAttempts < 5)
+            {
+                Debug.WriteLine("Server connection failed, retrying...") ;
+                Client.Connect(serverIP);
+                ConnectionAttempts++;
+            }
+
+            
+        }
+
+
+
         public static void StopNetThread()
         {
             netThreadEnabled = false;
@@ -67,21 +111,14 @@ namespace nixfps.Components.Network
 
         public static void SendPlayerIdentity()
         {
-            var id = game.CFG["ClientID"].Value<uint>();
-            var playerName = game.CFG["PlayerName"].Value<string>();
-
             Message msg = Message.Create(MessageSendMode.Reliable, ClientToServer.PlayerIdentity);
-            msg.AddUInt(id);
-            msg.AddString(playerName);
-            Client.Send(msg);
-
-            localPlayer = new Player(id);
-            localPlayer.name = playerName;
-            localPlayer.teamColor = new Vector3(0, 1, 1);
+            msg.AddUInt(localPlayer.id);
+            msg.AddString(localPlayer.name);
+            Client.Send(msg);  
         }
         public static void SendData()
         {
-            var inputMan = game.inputManager;
+            var inputMan = game.gameState.inputManager;
 
             inputMan.clientInputState.messageId = inputMan.messagesSent;
             //inputMan.InputStateCache.Add(inputMan.clientInputState);
@@ -154,7 +191,7 @@ namespace nixfps.Components.Network
                     var prevPos = localPlayer.position;
 
                     //localPlayer.position = netPos;
-                    var inputMan = game.inputManager;
+                    var inputMan = game.gameState.inputManager;
                     var cache = inputMan.InputStateCache;
 
                     //we remove all processed messages from the cache

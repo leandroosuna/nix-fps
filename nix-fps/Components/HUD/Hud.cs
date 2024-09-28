@@ -11,12 +11,12 @@ namespace nixfps.Components.HUD
     {
         public Crosshair crosshair;
         NixFPS game;
-        SpriteBatch spriteBatch;
+        public SpriteBatch spriteBatch;
         public Hud()
         {
             game = NixFPS.GameInstance();
             crosshair = new Crosshair(game);
-            spriteBatch = game.spriteBatch;
+           
         }
         public void Update(float deltaTime)
         {

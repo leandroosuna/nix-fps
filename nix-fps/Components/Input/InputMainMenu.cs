@@ -1,4 +1,5 @@
 ﻿using Microsoft.Xna.Framework;
+using nixfps.Components.States;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -19,16 +20,16 @@ namespace nixfps.Components.Input
         }
         public override void ProcessInput(float deltaTime)
         {
-            if (keyMappings.Escape.IsDown())
-            {
-                if (!keysDown.Contains(keyMappings.Escape))
-                    game.Exit();
-            }
-            if (keyMappings.Enter.IsDown())
-            {
-                keysDown.Add(keyMappings.Enter);
-                game.SwitchGameState(NixFPS.GState.RUN);
-            }
+            //if (keyMappings.Escape.IsDown())
+            //{
+            //    if (!keysDown.Contains(keyMappings.Escape))
+            //        game.StopGame();
+            //}
+            //if (keyMappings.Enter.IsDown())
+            //{
+            //    keysDown.Add(keyMappings.Enter);
+            //    GameStateManager.SwitchTo(State.RUN);
+            //}
         }
         public override void ApplyInput(ClientInputState state)
         {

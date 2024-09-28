@@ -14,6 +14,13 @@ struct VertexShaderOutput
     float4 Position : SV_POSITION;
     float3 Color : TEXCOORD0;
 };
+struct PSO
+{
+    float4 color : COLOR0;
+    float4 normal : COLOR1;
+    float4 position : COLOR2;
+    float4 bloomFilter : COLOR3;
+};
 
 VertexShaderOutput MainVertexShader(in VertexShaderInput input)
 {
@@ -26,14 +33,25 @@ VertexShaderOutput MainVertexShader(in VertexShaderInput input)
     return output;
 }
 
-float4 MainPixelShader(VertexShaderOutput input) : COLOR
+
+PSO MainPixelShader(VertexShaderOutput input) : COLOR
 {
-    return float4(Color, 1.0);
+    PSO output = (PSO) 0;
+    
+    output.color = float4(Color, 0);            //disable lighting
+    output.bloomFilter = float4(0, 0, 0, 1);    //dont add to filter
+    
+    return output;
 }
 
-float4 BackgroundPixelShader(VertexShaderOutput input) : COLOR
+PSO BackgroundPixelShader(VertexShaderOutput input) : COLOR
 {
-    return float4(Color * 0.5, 1.0);
+    PSO output = (PSO) 0;
+    
+    output.color = float4(Color * 0.5, 0);      //disable lighting
+    output.bloomFilter = float4(0, 0, 0, 1);    //dont add to filter
+    
+    return output;
 }
 
 

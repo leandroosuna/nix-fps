@@ -12,7 +12,7 @@ float3 color;
 float filter;
 struct VertexShaderInput
 {
-    float4 Position : POSITION;
+    float4 Position : SV_POSITION;
     float3 Normal : NORMAL0; 
     float2 TexCoord: TEXCOORD;
 };
@@ -69,6 +69,26 @@ PSO ColorPS(VertexShaderOutput input)
     output.bloomFilter = float4(0, 0, 0, 1);
     return output;
 }
+PSO NumPS(VertexShaderOutput input)
+{
+    PSO output;
+    float3 n = normalize(input.Normal.xyz);
+  
+    float3 normal = (n + 1.0) * 0.5;
+
+    float3 texColor = tex2D(colorSampler, input.TexCoord).rgb;
+    texColor += color * .25f;
+    
+    if (distance(color, float3(1, 1, 1)) < .1f)
+        output.color = float4(texColor, KD);
+    else
+        output.color = float4(texColor, 0);
+    
+    output.normal = float4(normal, KS);
+    output.position = float4(input.WorldPos.xyz, shininess);
+    output.bloomFilter = float4(0, 0, 0, 1);
+    return output;
+}
 PSO LightDisPS(VertexShaderOutput input)
 {
     PSO output;
@@ -108,6 +128,16 @@ technique basic_color
         PixelShader = compile PS_SHADERMODEL ColorPS();
     }
 }
+technique number
+{
+    pass P0
+    {
+        AlphaBlendEnable = FALSE;
+        VertexShader = compile VS_SHADERMODEL ColorVS();
+        PixelShader = compile PS_SHADERMODEL NumPS();
+    }
+}
+
 technique color_lightDis
 {
     pass P0

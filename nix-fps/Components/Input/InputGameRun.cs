@@ -1,6 +1,7 @@
 ﻿using Microsoft.Xna.Framework;
 using nixfps.Components.Cameras;
 using nixfps.Components.Effects;
+using nixfps.Components.States;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -24,13 +25,14 @@ namespace nixfps.Components.Input
         {
             localPlayer = game.localPlayer;
             camera = game.camera;
-            
+
             if (keyMappings.Escape.IsDown())
             {
-                if(!keysDown.Contains(keyMappings.Escape))
+                if (!keysDown.Contains(keyMappings.Escape))
                 {
                     keysDown.Add(keyMappings.Escape);
-                    game.SwitchGameState(NixFPS.GState.MAIN_MENU);
+
+                    GameStateManager.TogglePause();
                 }
             }
             clientInputState = keyMappings.GetClientState();
@@ -40,35 +42,41 @@ namespace nixfps.Components.Input
                 localPlayer.yaw = camera.yaw;
                 localPlayer.pitch = camera.pitch;
                 localPlayer.frontDirection = camera.frontDirection;
-                
+                localPlayer.rightDirection = camera.rightDirection;
+
                 clientInputState.deltaTime = deltaTime;
                 ApplyInput(clientInputState);
             }
             else
             {
+                var speed = 30;
+                if (keyMappings.Sprint.IsDown())
+                {
+                    speed *= 2;
+                }
                 if (keyMappings.Forward.IsDown())
                 {
-                    camera.position += camera.frontDirection * 5 * deltaTime;
+                    camera.position += camera.frontDirection * speed * deltaTime;
                 }
                 if (keyMappings.Backward.IsDown())
                 {
-                    camera.position -= camera.frontDirection * 5 * deltaTime;
+                    camera.position -= camera.frontDirection * speed * deltaTime;
                 }
                 if (keyMappings.Left.IsDown())
                 {
-                    camera.position -= camera.rightDirection * 5 * deltaTime;
+                    camera.position -= camera.rightDirection * speed * deltaTime;
                 }
                 if (keyMappings.Right.IsDown())
                 {
-                    camera.position += camera.rightDirection * 5 * deltaTime;
+                    camera.position += camera.rightDirection * speed * deltaTime;
                 }
                 if (keyMappings.Jump.IsDown())
                 {
-                    camera.position.Y += 5 * deltaTime;
+                    camera.position.Y += speed * deltaTime;
                 }
                 if (keyMappings.Crouch.IsDown())
                 {
-                    camera.position.Y -= 5 * deltaTime;
+                    camera.position.Y -= speed * deltaTime;
                 }
             }
 
@@ -78,6 +86,24 @@ namespace nixfps.Components.Input
                 {
                     keysDown.Add(keyMappings.CAPS);
                     camera.SetFreeToggle();
+                }
+            }
+            if (keyMappings.Debug0.IsDown())
+            {
+                if (!keysDown.Contains(keyMappings.Debug0))
+                {
+                    keysDown.Add(keyMappings.Debug0);
+                    if(game.selectedVertexIndex < 14500)
+                        game.selectedVertexIndex+=20;
+                }
+            }
+            if (keyMappings.Debug9.IsDown())
+            {
+                if (!keysDown.Contains(keyMappings.Debug9))
+                {
+                    keysDown.Add(keyMappings.Debug9);
+                    if (game.selectedVertexIndex >= 10)
+                        game.selectedVertexIndex -= 20;
                 }
             }
             //if(keyMappings.Debug0.IsDown())
@@ -137,9 +163,9 @@ namespace nixfps.Components.Input
                 dx--;
 
             dir += (dz * frontFlat + dx * rightFlat);
-            speed = 9.5f;
+            speed = 18;
             if (dz > 0 && state.Sprint)
-                speed = 18;
+                speed = 25;
 
             if (dir != Vector3.Zero)
                 dir = Vector3.Normalize(dir);

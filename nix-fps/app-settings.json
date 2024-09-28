@@ -1,24 +1,23 @@
 ﻿{
-  "BinFolder": "bin/",
-  "ObjFolder": "obj/",
-  "ContentExtension": ".xnb",
-  "ContentFolder": "Content/",
-  "FbxExtension": ".fbx",
-  "FbxImporterName": "FbxImporter",
-  "ProcessorName": "Animation Processor",
-  "rebuild-animations": false,
+    "BinFolder": "bin/",
+    "ObjFolder": "obj/",
+    "ContentExtension": ".xnb",
+    "ContentFolder": "Content/",
+    "FbxExtension": ".fbx",
+    "FbxImporterName": "FbxImporter",
+    "ProcessorName": "Animation Processor",
+    "rebuild-animations": false,
 
-  "ScreenWidth": 1280,
-  "ScreenHeight": 720,
-  "Fullscreen": false,
+    "ScreenWidth": 1280,
+    "ScreenHeight": 720,
+    "Fullscreen": false,
+    "GraphicsPreset": "ultra",
+    "VSync": false,
 
-  "VSync": true,
-  "FramerateLimit": 0,
-  "Borderless": true,
-  "MouseVisible": false,
-  "MouseLocked": true,
+    "FOV": 95,
+    "MouseSensitivity": 0.15,
 
-  "ServerIP": "nix.dynamic-dns.net",
-  "ClientID": 111111,
-  "PlayerName": "nix"
+    "ServerIP": "nix.dynamic-dns.net",
+    "ClientID": 111111,
+    "PlayerName": "nix"
 }

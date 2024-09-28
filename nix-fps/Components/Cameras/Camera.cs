@@ -33,12 +33,12 @@ namespace nixfps.Components.Cameras
         public Camera(float aspectRatio)
         {
             frustum = new BoundingFrustum(Matrix.Identity);
-            fieldOfView = MathHelper.ToRadians(100);
+            fieldOfView = MathHelper.ToRadians(95);
             this.aspectRatio = aspectRatio;
             position = new Vector3(0, 5f, 0);
             nearPlaneDistance = .1f;
             farPlaneDistance = 1000;
-            yaw = 270;
+            yaw = 120;
             pitch = 0;
             
             UpdateCameraVectors();
@@ -49,7 +49,13 @@ namespace nixfps.Components.Cameras
             screenCenter = game.screenCenter + windowPos;
             center = new System.Drawing.Point(screenCenter.X, screenCenter.Y);
 
-            mouseLocked = game.CFG["MouseLocked"].Value<bool>();
+            mouseLocked = false;
+        }
+
+        public void ChangeFOV(int deg)
+        {
+            fieldOfView = MathHelper.ToRadians(deg);
+            CalculateProjection();
         }
         Player playerPrev = new Player(999999);
         public void SetFreeToggle()
@@ -109,7 +115,25 @@ namespace nixfps.Components.Cameras
 
             frustum.Matrix = view * projection;
         }
-       
+        public void RotateBy(Vector2 pitchYaw)
+        {
+            yaw += pitchYaw.X;
+            if (yaw < 0)
+                yaw += 360;
+            yaw %= 360;
+
+            pitch -= pitchYaw.Y;
+
+            if (pitch > 89.0f)
+                pitch = 89.0f;
+            else if (pitch < -89.0f)
+                pitch = -89.0f;
+
+            UpdateCameraVectors();
+            CalculateView();
+
+            frustum.Matrix = view * projection;
+        }
            
         public void ResetToCenter()
         {
@@ -118,7 +142,7 @@ namespace nixfps.Components.Cameras
             UpdateCameraVectors();
             CalculateView();
         }
-        void UpdateCameraVectors()
+        public void UpdateCameraVectors()
         {
             Vector3 tempFront;
 

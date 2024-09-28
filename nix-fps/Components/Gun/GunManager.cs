@@ -2,8 +2,11 @@
 using Microsoft.Xna.Framework.Graphics;
 using nixfps.Components.Cameras;
 using nixfps.Components.Effects;
+using nixfps.Components.Input;
+using nixfps.Components.Network;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Reflection.Metadata;
 using System.Text;
@@ -45,7 +48,8 @@ namespace nixfps.Components.Gun
             float elapsedTime = (float)gameTime.ElapsedGameTime.TotalSeconds;
             float totalTime = (float)gameTime.TotalGameTime.TotalSeconds;
 
-            if (game.inputManager.clientInputState.Fire)
+            if(InputManager.keyMappings.Fire.IsDown())
+            //if (game.inputManager.clientInputState.Fire)
             {
                 if (fireRateTimer == 0)
                 {
@@ -87,12 +91,37 @@ namespace nixfps.Components.Gun
                         + camera.frontDirection * 1.6f;
 
             var dir = camera.frontDirection;
-            //dir = hitPos - camera.position;
             tracers.Add(new Tracer(new Vector3((float)240.0 / 255, (float)111.0 / 255, (float)12.0 / 255), pos, dir));
+            Ray ray = new Ray(camera.position, camera.frontDirection);
+            
+            //check environment 
+            var hitEnv = ray.Intersects(game.boundingBox) != null;
+            if (hitEnv)
+            {
+                Debug.WriteLine("hit env, stopping");
+                //return;
+            }
+
+            //check players
+            List<Player> hit = new List<Player>();
+            if(game.localPlayer.Hit(ray))
+                hit.Add(game.localPlayer);
+            hit.AddRange(NetworkManager.players.FindAll(p => p.Hit(ray)));
+
+            foreach (var p in hit)
+            {
+                if (p.lastHit == 1)
+                    Debug.WriteLine("hit " + p.name + " headshot");
+                else if(p.lastHit == 2)
+                    Debug.WriteLine("hit " + p.name + " bodyshot");
+            }
+            //dir = hitPos - camera.position;
 
         }
         public void DrawGun(float deltaTime)
         {
+            if (camera.isFree)
+                return;
             tracers.ForEach(tracers => tracers.Draw());
 
             var pos = camera.position
@@ -112,7 +141,6 @@ namespace nixfps.Components.Gun
             }
             var rot = Matrix.CreateFromYawPitchRoll(-MathHelper.ToRadians(yaw) + MathHelper.PiOver2, -MathHelper.ToRadians(pitch), 0);
             gunWorld = Matrix.CreateScale(.8f) * rot * Matrix.CreateTranslation(pos);
-
 
             basicModelEffect.SetTech("colorTex_lightEn");
             basicModelEffect.SetKA(0.3f);
