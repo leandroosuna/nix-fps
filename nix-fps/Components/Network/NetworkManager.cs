@@ -23,11 +23,8 @@ namespace nixfps.Components.Network
         public static Player localPlayer;
         
         static NixFPS game;
-        public static Vector3 netPosition;
         static Thread netThread;
         static bool netThreadEnabled = true;
-        static bool justConnected = true;
-        static int timer = 0;
         public static int ConnectionAttempts = 1;
         static String serverIP;
         public static void Connect()
@@ -51,24 +48,32 @@ namespace nixfps.Components.Network
 
             Client.ConnectionFailed += Client_ConnectionFailed;
             Client.Connected += Client_Connected;
+
+            long msTarget = 4;
+            long syncErrorMs = 0;
+            long currentTargetMs;
+            long ms;
             netThread = new Thread(() =>
             {
-            
-                
                 var stopwatch = new Stopwatch();
                 stopwatch.Start();
 
                 while (netThreadEnabled)
                 {
-                    if (stopwatch.ElapsedMilliseconds > 4)
+                    ms = stopwatch.ElapsedMilliseconds;
+                    currentTargetMs = msTarget + syncErrorMs;
+                    if (ms >= currentTargetMs)
                     {
-                        stopwatch.Restart();
+                        syncErrorMs = (ms - currentTargetMs);
+
                         Client.Update();
                         if(Client.IsConnected)
                         {
                             SendData();
                         }
+                        stopwatch.Restart();
                     }
+                    Thread.Sleep(1);
                 }
             });
 

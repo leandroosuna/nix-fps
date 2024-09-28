@@ -1,5 +1,6 @@
 ﻿using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Input;
+using Newtonsoft.Json.Linq;
 using nixfps.Components.Cameras;
 using System;
 using System.Collections.Generic;
@@ -18,8 +19,8 @@ namespace nixfps.Components.Input
 
         public static Camera camera;
         
-        public float mouseSensitivity = .15f;
-        public float mouseSensAdapt = .09f;
+        public static float mouseSensitivity = .15f;
+        public static float mouseSensAdapt = .09f;
         public System.Drawing.Point center;
         Vector2 delta;
         Vector2 mousePosition;
@@ -38,7 +39,7 @@ namespace nixfps.Components.Input
         public InputManager()
         {
             game = NixFPS.GameInstance();
-            
+            mouseSensitivity = game.CFG["MouseSensitivity"].Value<float>();
             center = new System.Drawing.Point(game.screenCenter.X, game.screenCenter.Y);
 
         }
@@ -82,9 +83,15 @@ namespace nixfps.Components.Input
             delta.X = mousePosition.X - center.X;
             delta.Y = mousePosition.Y - center.Y;
 
-            mouseDelta = delta * mouseSensitivity * mouseSensAdapt;
             if (mouseLocked)
+            {
+                mouseDelta = delta * mouseSensitivity * mouseSensAdapt;
                 System.Windows.Forms.Cursor.Position = center;
+            }
+            else
+            {
+                mouseDelta = Vector2.Zero;
+            }
         }
     }
     

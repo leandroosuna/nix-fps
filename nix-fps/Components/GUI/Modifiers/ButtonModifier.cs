@@ -40,6 +40,7 @@ namespace nixfps.Components.GUI.Modifiers
         {
         }
 
+
         /// <summary>
         ///     Draws the Button Modifier
         /// </summary>

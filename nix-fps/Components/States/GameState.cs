@@ -1,4 +1,5 @@
 ﻿using Microsoft.Xna.Framework;
+using nixfps.Components.GUI;
 using nixfps.Components.Input;
 using System;
 using System.Collections.Generic;
@@ -17,9 +18,11 @@ namespace nixfps.Components.States
         public double dDeltaTimeDouble;
         public float dDeltaTimeFloat;
         public int FPS;
+        public Gui gui;
         public GameState()
         {
             game = NixFPS.GameInstance();
+            //gui = new GuiRun();
         }
         public abstract void OnSwitch();
         public virtual void Update(GameTime gameTime)

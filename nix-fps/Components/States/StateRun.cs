@@ -1,6 +1,7 @@
 ﻿using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Audio;
 using Microsoft.Xna.Framework.Graphics;
+using Microsoft.Xna.Framework.Input;
 using Newtonsoft.Json.Linq;
 using nixfps.Components.Collisions;
 using nixfps.Components.Effects;
@@ -24,16 +25,16 @@ namespace nixfps.Components.States
 {
     public class StateRun : GameState
     {
-        float oneSec = 0f;
         public StateRun() : base()
         {
             inputManager = new InputGameRun();
+            gui = new GuiPause();
         }
         public override void OnSwitch()
         {
+            
             System.Windows.Forms.Cursor.Position = inputManager.center;
-            game.camera.pitch = 0;
-            game.IsMouseVisible = game.CFG["MouseVisible"].Value<bool>();
+            game.IsMouseVisible = false;
         }
         List<PointLight> miniLights = new List<PointLight>();
         float jumpForce = 10f * 2;
@@ -41,25 +42,18 @@ namespace nixfps.Components.States
         float verticalVelocity = 0f;
 
 
-        List<float> hitBuffer0 = new List<float>();
-        List<float> hitBuffer1 = new List<float>();
-        List<float> hitBuffer2 = new List<float>();
-        List<float> hitBuffer3 = new List<float>();
-        List<float> hitBuffer4 = new List<float>();
         public int closeEnoughC;
-
         public bool onAir = false;
         public float airTime = 0f;
         public override void Update(GameTime gameTime)
         {
+            
             base.Update(gameTime);
 
             NetworkManager.InterpolatePlayers(game.mainStopwatch.ElapsedMilliseconds);
 
             game.gizmos.UpdateViewProjection(game.camera.view, game.camera.projection);
 
-
-            //camera.Update(inputManager);
             game.animationManager.Update(gameTime);
             game.UpdatePointLights(uDeltaTimeFloat);
 
@@ -68,6 +62,42 @@ namespace nixfps.Components.States
             game.hud.Update(uDeltaTimeFloat);
 
             game.camera.Update(inputManager);
+
+            var keyState = Keyboard.GetState();
+            var changed = false;
+            if(keyState.IsKeyDown(Keys.Up))
+            {
+                game.camera.pitch += uDeltaTimeFloat * 70;
+                if (game.camera.pitch > 90f)
+                    game.camera.pitch = 90;
+                changed = true;
+            }
+            if (keyState.IsKeyDown(Keys.Down))
+            {
+                game.camera.pitch -= uDeltaTimeFloat * 70;
+                if (game.camera.pitch < -90)
+                    game.camera.pitch = -90;
+                changed = true;
+            }
+            if (keyState.IsKeyDown(Keys.Left))
+            {
+                game.camera.yaw -= uDeltaTimeFloat * 70;
+                if (game.camera.yaw < 0)
+                    game.camera.yaw= 0;
+                changed = true;
+            }
+            if (keyState.IsKeyDown(Keys.Right))
+            {
+                game.camera.yaw += uDeltaTimeFloat * 70;
+                if (game.camera.yaw > 360)
+                    game.camera.yaw = 0;
+                changed = true;
+            }
+            if(changed)
+            {
+                game.camera.UpdateCameraVectors();
+            }
+
             //oneSec += uDeltaTimeFloat;
             //if (oneSec >= 1)
             //{
@@ -80,83 +110,39 @@ namespace nixfps.Components.States
             foreach (var l in miniLights)
                 game.lightsManager.Destroy(l);
             miniLights.Clear();
-            //if (onAir && !jumping)
-            //{
-            //    game.localPlayer.position.Y -= uDeltaTimeFloat * 15f;
-            //    airTime += uDeltaTimeFloat;
-
-            //    if(airTime > 3f)
-            //    {
-            //        airTime = 0;
-            //        onAir = false;
-
-            //        game.localPlayer.position = GetSafeLocation();
-
-
-            //    }
-            //}
-
-            //if(!onAir && inputManager.clientInputState.Jump)
-            //{
-            //    jumping = true;
-            //    onAir = true;
-            //}
-            //if(jumping && jumpTimer <= jumpDuration)
-            //{
-            //    jumpTimer += uDeltaTimeFloat;
-            //    game.localPlayer.position.Y += uDeltaTimeFloat * 20f * 1.5f/(jumpDuration/jumpTimer);
-            //    if(jumpTimer >= jumpDuration)
-            //    {
-            //        jumpTimer = 0f;
-            //        jumping = false;
-            //    }
-            //}
 
             if (!onAir && inputManager.clientInputState.Jump)
             {
-                // Apply jump force
                 verticalVelocity = jumpForce;
-                onAir = true;  // Player is now in the air
+                onAir = true;  
             }
 
-            // Apply gravity if the player is in the air
             if (onAir)
             {
-                // Reduce the vertical velocity by gravity
                 verticalVelocity += gravity * uDeltaTimeFloat;
 
-                // Update the player's Y position
                 game.localPlayer.position.Y += verticalVelocity * uDeltaTimeFloat;
 
                 airTime += uDeltaTimeFloat;
-                if (airTime > 5f)
+                if (airTime > 2.5f)
                 {
                     airTime = 0;
                     onAir = false;
 
                     game.localPlayer.position = GetSafeLocation();
                 }
-                // Check if the player has landed (collision with the ground)
-                //if (game.localPlayer.position.Y <= groundHeight)  // Assuming groundHeight is the Y level of the ground
-                //{
-                //    // Reset player's position to the ground level
-                //    game.localPlayer.position.Y = groundHeight;
-
-                //    // Player is no longer in the air
-                //    onAir = false;
-
-                //    // Reset vertical velocity
-                //    verticalVelocity = 0f;
-                //}
             }
+            //game.hud.crosshair.SetColor(onAir?Color.Blue:Color.White);
+
             ShowPointingAt();
             MapCollision();
 
             foreach (var l in miniLights)
                 game.lightsManager.Register(l);
         }
+
         
-        
+
         float DistanceSqrNoY(Vector3 v1, Vector3 v2)
         {
             Vector2 v21 = new Vector2(v1.X, v1.Z);
@@ -166,151 +152,243 @@ namespace nixfps.Components.States
         }
         Vector3 GetSafeLocation()
         {
-            return game.mapTriangles
-                      .FindAll(t => DistanceSqrNoY(t.v[0],game.localPlayer.position) < 100f)
-                      .OrderByDescending(t => DistanceSqrNoY(t.v[0], game.localPlayer.position)).ToList()[0].v[0];
+            var safe = game.mapTriangles
+                      .FindAll(t => DistanceSqrNoY(t.v[0], game.localPlayer.position) < 100f);
+
+            if(safe.Count == 0)
+                return new Vector3(97, 8, -205);
+
+            var ordered = 
+                      safe.OrderByDescending(t => DistanceSqrNoY(t.v[0], game.localPlayer.position)).ToList();
+
+            return ordered[0].v[0];
+
+           
+            
         }
        
-        
+        Vector3 Vec3Avg(NixFPS.CollisionTriangle t)
+        {
+            return new Vector3(
+                (t.v[0].X + t.v[1].X + t.v[2].X) / 3,
+                (t.v[0].Y + t.v[1].Y + t.v[2].Y) / 3,
+                (t.v[0].Z + t.v[1].Z + t.v[2].Z) / 3);
+        }
 
         void MapCollision()
         {
+            var bodyCheckPos = game.localPlayer.position + new Vector3(0, 1.8f, 0);
+
             var closeEnough = game.mapTriangles
-                .FindAll(t => Vector3.DistanceSquared(t.v[0], game.localPlayer.position) < 500f)
-                .OrderByDescending(t => Vector3.DistanceSquared(t.v[0], game.localPlayer.position));
+                .FindAll(t => Vector3.DistanceSquared(Vec3Avg(t), bodyCheckPos) < 500f)
+                .OrderBy(t => Vector3.DistanceSquared(Vec3Avg(t), bodyCheckPos));
+                
             closeEnoughC = closeEnough.Count();
 
             var flatFrontDir = game.localPlayer.frontDirection;
             flatFrontDir.Y = 0;
             flatFrontDir.Normalize();
+            
+            var flatBackDir = -flatFrontDir;
 
-            var avgDelta = 1f;
+            var flatRightDir = game.localPlayer.rightDirection;
+            flatRightDir.Y = 0;
+            flatRightDir.Normalize();
 
-            hitBuffer0.Clear();
-            hitBuffer1.Clear();
-            hitBuffer2.Clear();
-            hitBuffer3.Clear();
-            hitBuffer4.Clear();
+            var flatLeftDir = -flatRightDir;
+            
+            var avgDelta = .5f;
 
+            var cis = inputManager.clientInputState;
 
-            //Ray forwardRay = new Ray(game.localPlayer.position, -Vector3.Up);
-            foreach (var triangle in closeEnough)
+            Vector3[] dir = new Vector3[9];
+
+            dir[0] = cis.Forward? flatFrontDir: Vector3.Zero;
+            dir[0] += cis.Backward? -flatFrontDir : Vector3.Zero;
+            dir[0] += cis.Right ? flatRightDir: Vector3.Zero;
+            dir[0] += cis.Left? -flatRightDir : Vector3.Zero;
+
+            if (dir[0] == Vector3.Zero)
+                dir[0] = flatFrontDir;
+
+            var rightFromDir = Vector3.Cross(dir[0], Vector3.Up);
+            dir[1] = dir[0] * 3.5f + rightFromDir;
+            dir[2] = dir[0] * 3.5f - rightFromDir;
+            dir[3] = dir[0] * 2 + rightFromDir;
+            dir[4] = dir[0] * 2 - rightFromDir;
+            dir[5] = dir[0] * 2 + rightFromDir * 1.2f;
+            dir[6] = dir[0] * 2 - rightFromDir * 1.2f;
+            dir[7] = dir[0] + rightFromDir * 2;
+            dir[8] = dir[0] - rightFromDir * 2;
+            
+
+            foreach (var d in dir)
             {
-                
-
-                //bool hit = BoundingVolumesExtensions.IntersectRayTriangle(triangle.v[0], triangle.v[1], triangle.v[2], camRay);
-
-                Vector3? hitPos = BoundingVolumesExtensions.IntersectRayWithTriangle(
-                    game.localPlayer.position + new Vector3(0, 4, 0), -Vector3.Up, triangle.v[0], triangle.v[1], triangle.v[2]);
-                if (hitPos.HasValue)
-                {
-                    hitBuffer0.Add(hitPos.Value.Y);
-                    var pl = new PointLight(triangle.v[0], 20f, Color.White.ToVector3(), Color.White.ToVector3());
-                    pl.skipDraw = true;
-                    pl.hasLightGeo = true;
-                    miniLights.Add(pl);
-                }
-
-
-                hitPos = BoundingVolumesExtensions.IntersectRayWithTriangle(
-                    game.localPlayer.position + new Vector3(avgDelta, 4, avgDelta), -Vector3.Up, triangle.v[0], triangle.v[1], triangle.v[2]);
-                if (hitPos.HasValue)
-                {
-                    hitBuffer1.Add(hitPos.Value.Y);
-                    var pl = new PointLight(hitPos.Value, 20f, Color.White.ToVector3(), Color.White.ToVector3());
-                    pl.skipDraw = true;
-                    pl.hasLightGeo = true;
-                    miniLights.Add(pl);
-                }
-
-                hitPos = BoundingVolumesExtensions.IntersectRayWithTriangle(
-                    game.localPlayer.position + new Vector3(avgDelta, 4, -avgDelta), -Vector3.Up, triangle.v[0], triangle.v[1], triangle.v[2]);
-                if (hitPos.HasValue)
-                {
-                    hitBuffer2.Add(hitPos.Value.Y);
-                    var pl = new PointLight(hitPos.Value, 20f, Color.White.ToVector3(), Color.White.ToVector3());
-                    pl.skipDraw = true;
-                    pl.hasLightGeo = true;
-                    miniLights.Add(pl);
-                }
-
-                hitPos = BoundingVolumesExtensions.IntersectRayWithTriangle(
-                    game.localPlayer.position + new Vector3(-avgDelta, 4, avgDelta), -Vector3.Up, triangle.v[0], triangle.v[1], triangle.v[2]);
-                if (hitPos.HasValue)
-                {
-                    hitBuffer3.Add(hitPos.Value.Y);
-                    var pl = new PointLight(hitPos.Value, 20f, Color.White.ToVector3(), Color.White.ToVector3());
-                    pl.skipDraw = true;
-                    pl.hasLightGeo = true;
-                    miniLights.Add(pl);
-                }
-
-                hitPos = BoundingVolumesExtensions.IntersectRayWithTriangle(
-                    game.localPlayer.position + new Vector3(-avgDelta, 4, -avgDelta), -Vector3.Up, triangle.v[0], triangle.v[1], triangle.v[2]);
-                if (hitPos.HasValue)
-                {
-                    hitBuffer4.Add(hitPos.Value.Y);
-                    var pl = new PointLight(hitPos.Value, 20f, Color.White.ToVector3(), Color.White.ToVector3());
-                    pl.skipDraw = true;
-                    pl.hasLightGeo = true;
-                    miniLights.Add(pl);
-                }
-
+                d.Normalize();
             }
 
-            if (hitBuffer0.Count > 0 && hitBuffer1.Count > 0 && hitBuffer2.Count > 0 && hitBuffer3.Count > 0 && hitBuffer4.Count > 0)
-            {
-                var pH = hitBuffer0.OrderByDescending(h => h).ToList()[0];
-                float[] H = { 
-                    hitBuffer1.OrderByDescending(h => h).ToList()[0], 
-                    hitBuffer2.OrderByDescending(h => h).ToList()[0], 
-                    hitBuffer3.OrderByDescending(h => h).ToList()[0], 
-                    hitBuffer4.OrderByDescending(h => h).ToList()[0] };
-                
 
-                
-                if(inputManager.clientInputState.Ability1)
+            float[] hitDown = new float[5];
+
+            for(int i = 0; i < hitDown.Length; i++)
+            {
+                hitDown[i] = float.MinValue;
+            }
+
+            Vector2[] hitDir = new Vector2[7];
+            for (int i = 0; i < hitDir.Length; i++)
+            {
+                hitDir[i] = Vector2.Zero;
+            }
+            
+            foreach (var triangle in closeEnough)
+            {
+
+                var hitPos = BoundingVolumesExtensions.IntersectRayWithTriangle(
+                    game.localPlayer.position + new Vector3(0, 2, 0), -Vector3.Up, triangle.v[0], triangle.v[1], triangle.v[2]);
+
+                if(hitPos.HasValue)
                 {
-                    inputManager.clientInputState.Ability1 = inputManager.clientInputState.Ability1;
-                }
-                //foreach (var h in H)
-                //{
-                //    if(h < pH && Math.Abs(h-pH) > 2f)
-                //    {
-                //        onAir = true;
-                //    }
-                //}
-                var last = game.localPlayer.position.Y;
-                var newY = (pH + H[0] + H[1] + H[2] + H[3]) / 5;
-                if (last - newY >2f)
-                {
-                    onAir = true;
-                }
-                if(!onAir)
-                {
-                    game.localPlayer.position.Y = newY;
-                }
-                else
-                {
-                    if (game.localPlayer.position.Y - pH < 0.05f)
+                    if (hitPos.Value.Y > hitDown[0])
                     {
-                        airTime = 0;
-                        onAir = false;
+                        hitDown[0] = hitPos.Value.Y;
+
+                        var pl = new PointLight(hitPos.Value, 5, Color.Blue.ToVector3(), Color.Blue.ToVector3());
+                        pl.skipDraw = true;
+                        pl.hasLightGeo = true;
+                        miniLights.Add(pl);
+                    }
+                    
+                }
+                hitPos = BoundingVolumesExtensions.IntersectRayWithTriangle(
+                    game.localPlayer.position + new Vector3(avgDelta, 2, avgDelta), -Vector3.Up, triangle.v[0], triangle.v[1], triangle.v[2]);
+
+                if (hitPos.HasValue)
+                {
+                    if (hitPos.Value.Y > hitDown[1])
+                    {
+                        hitDown[1] = hitPos.Value.Y;
                     }
                 }
-                //var pl = new PointLight(hitPos.Value, 20f, Color.Green.ToVector3(), Color.Green.ToVector3());
-                //pl.hasLightGeo = true;
-                //pl.skipDraw = true;
+                hitPos = BoundingVolumesExtensions.IntersectRayWithTriangle(
+                    game.localPlayer.position + new Vector3(-avgDelta, 2, avgDelta), -Vector3.Up, triangle.v[0], triangle.v[1], triangle.v[2]);
+                if (hitPos.HasValue)
+                {
+                    if (hitPos.Value.Y > hitDown[2])
+                    {
+                        hitDown[2] = hitPos.Value.Y;
+                    }
+                }
+
+                hitPos = BoundingVolumesExtensions.IntersectRayWithTriangle(
+                    game.localPlayer.position + new Vector3(avgDelta, 2, -avgDelta), -Vector3.Up, triangle.v[0], triangle.v[1], triangle.v[2]);
+                if (hitPos.HasValue)
+                {
+                    if (hitPos.Value.Y > hitDown[3])
+                    {
+                        hitDown[3] = hitPos.Value.Y;
+                    }
+                }
+                hitPos = BoundingVolumesExtensions.IntersectRayWithTriangle(
+                    game.localPlayer.position + new Vector3(-avgDelta, 2, -avgDelta), -Vector3.Up, triangle.v[0], triangle.v[1], triangle.v[2]);
+
+                if (hitPos.HasValue)
+                {
+                    if (hitPos.Value.Y > hitDown[4])
+                    {
+                        hitDown[4] = hitPos.Value.Y;
+                    }
+                }
+
+
+                for (int i = 0; i < hitDir.Count(); i++)
+                {
+                    if (hitDir[i] == Vector2.Zero)
+                    {
+                        hitPos = BoundingVolumesExtensions.IntersectRayWithTriangle(
+                            bodyCheckPos, dir[i], triangle.v[0], triangle.v[1], triangle.v[2]);
+
+                        if(hitPos.HasValue)
+                        {
+                            hitDir[i] = new Vector2(hitPos.Value.X, hitPos.Value.Z); 
+                        }
+                    }
+                }
+
+
+
+            }
+            
+            var last = game.localPlayer.position.Y;
+
+            
+
+            //var hitCount = 0;
+            //var acc = 0f;    
+            //foreach(var h  in hitDown) 
+            //{
+            //    if (h == float.MinValue)
+            //        continue;
+            //    acc += h;
+            //    hitCount++;
+            //}
+
+            //var newY = acc/hitCount;
+            var newY = hitDown.Average();
+
+            if (last - hitDown[0] > .5f)
+            {
+                onAir = true;
+                
+            }
+            if (!onAir)
+            {
+                game.localPlayer.position.Y = newY;
+            }
+            else
+            {
+                if (game.localPlayer.position.Y - hitDown[0] < 0.05f)
+                {
+                    airTime = 0;
+                    onAir = false;
+                }
+            }
+            
+            var correction = 1.55f;
+            var playerNoY = new Vector2(game.localPlayer.position.X, game.localPlayer.position.Z);
+
+            
+            foreach(var hit in hitDir) 
+            {
+                if (hit == Vector2.Zero)
+                    continue;
+                var v2 = playerNoY - hit;
+
+                var pl = new PointLight(new Vector3(hit.X, game.localPlayer.position.Y + 1.8f, hit.Y), 20f, Color.Green.ToVector3(), Color.Green.ToVector3());
+                pl.hasLightGeo = true;
+                pl.skipDraw = true;
+                miniLights.Add(pl);
+
+                if (v2.LengthSquared() < correction * correction) 
+                {
+                    v2.Normalize();
+                    game.localPlayer.position.X = hit.X + v2.X * correction * 1.05f;
+                    game.localPlayer.position.Z = hit.Y + v2.Y * correction * 1.05f;
+                    pl.color = Color.Red.ToVector3();
+                }
             }
         }
 
-
+        Vector3 currentPosHit;
         void ShowPointingAt()
         {
-            var closeEnough = game.mapTriangles.FindAll(t => game.CheckTriangle(t)).OrderByDescending(t => Vector3.DistanceSquared(t.v[0], game.camera.position));
+            var closeEnough = game.mapTriangles
+                //.FindAll(t => Vector3.DistanceSquared(Vec3Avg(t), game.camera.position) < 500f)
+                .OrderBy(t => Vector3.DistanceSquared(Vec3Avg(t), game.camera.position));
 
             Ray camRay = new Ray(game.camera.position, game.camera.frontDirection);
             
+            var hitList = new List<Vector3>();
 
             foreach(var triangle in closeEnough)
             {
@@ -319,19 +397,28 @@ namespace nixfps.Components.States
                 Vector3? hitPos = BoundingVolumesExtensions.IntersectRayWithTriangle(game.camera.position, game.camera.frontDirection, triangle.v[0], triangle.v[1], triangle.v[2]);
                 if (hitPos.HasValue)
                 {
-                    var pl = new PointLight(hitPos.Value - game.camera.frontDirection * 1, 20f, Color.White.ToVector3(), Color.White.ToVector3());
-                    pl.hasLightGeo = true;
-                    //pl.skipDraw = true;
-                    miniLights.Add(pl);
-                    break;
+                    hitList.Add(hitPos.Value);
                 }
 
-
             }
-            
+            if(hitList.Count > 0)
+            {
+                currentPosHit = hitList.OrderBy(t => Vector3.DistanceSquared(t, game.camera.position)).ToList()[0];
+
+                var pl = new PointLight(currentPosHit - game.camera.frontDirection * 1, 20f, Color.White.ToVector3(), Color.White.ToVector3());
+                pl.hasLightGeo = true;
+                pl.skipDraw = false;
+                miniLights.Add(pl);
+            }
+
+
         }
+        String fpsStr = "";
+        
+        float dTime = 0;
         public override void Draw(GameTime gameTime)
         {
+            dTime += dDeltaTimeFloat;
             base.Draw(gameTime);
 
             game.basicModelEffect.SetView(game.camera.view);
@@ -398,18 +485,21 @@ namespace nixfps.Components.States
             game.GraphicsDevice.SetRenderTarget(null);
             //GUI.Draw(gt);
             game.GraphicsDevice.BlendState = BlendState.Opaque;
-            game.GraphicsDevice.DepthStencilState = DepthStencilState.Default;
+            game.GraphicsDevice.DepthStencilState = DepthStencilState.None;
             game.GraphicsDevice.RasterizerState = RasterizerState.CullCounterClockwise;
 
             game.deferredEffect.SetLightMap(game.lightTarget);
-            game.deferredEffect.SetScreenSize(new Vector2(game.screenWidth, game.screenHeight));
+
+
+            game.deferredEffect.SetScreenSize(new Vector2(game.lightTarget.Width, game.lightTarget.Height));
+            //game.deferredEffect.SetScreenSize(new Vector2(game.screenWidth, game.screenHeight));
             game.deferredEffect.SetTech("integrate");
             game.deferredEffect.SetBlurH(game.blurHTarget);
             game.deferredEffect.SetBlurV(game.blurVTarget);
 
             game.fullScreenQuad.Draw(game.deferredEffect.effect);
-
-            var rec = new Rectangle(0, 0, game.screenWidth, game.screenHeight);
+            game.GraphicsDevice.RasterizerState = RasterizerState.CullClockwise;
+            //var rec = new Rectangle(0, 0, game.screenWidth, game.screenHeight);
 
             /// In this example, by hitting key 0 you can see the targets in the corners of the screen
             //if (debugRTs)
@@ -450,19 +540,27 @@ namespace nixfps.Components.States
             ////fpsStr += "MP " + meshPartDrawCount;
             ////fpsStr += lightsManager.lights.Count + " " + lightsManager.lightsToDraw.Count;
             //fpsStr += "selected " + selectedVertexIndex;
-            var cam = game.camera.position;
-            var pos = NetworkManager.localPlayer.position;
-            var fpsStr = "FPS " + FPS + " RTT " + NetworkManager.Client.RTT + " ms";
-            //fpsStr += string.Format(" ({0:F2}, {1:F2}, {2:F2})", cam.X, cam.Y, cam.Z);
-            fpsStr += string.Format(" ({0:F2}, {1:F2}, {2:F2})", pos.X, pos.Y, pos.Z);
-            fpsStr += $" tri {closeEnoughC}";
-            fpsStr += $" air {onAir}";
+            if (dTime >= 0.1f)
+            {
+                dTime = 0;
+                var cam = game.camera.position;
+                var pos = NetworkManager.localPlayer.position;
+                fpsStr = "FPS " + FPS + " RTT " + NetworkManager.Client.RTT + " ms";
+                //fpsStr += string.Format(" ({0:F2}, {1:F2}, {2:F2})", cam.X, cam.Y, cam.Z);
+                //fpsStr += string.Format(" ({0:F2}, {1:F2}, {2:F2})", pos.X, pos.Y, pos.Z);
+                //fpsStr += string.Format(" ({0:F2}, {1:F2}, {2:F2})", dist.X, dist.Y, dist.Z);
+                //fpsStr += $" tri {closeEnoughC}";
+                fpsStr += $" mp {meshPartDrawCount}";
+
+            }
             game.spriteBatch.Begin();
-            game.spriteBatch.DrawString(game.font, fpsStr, Vector2.Zero, Color.White);
+            game.spriteBatch.DrawString(game.fontSmall, fpsStr, Vector2.Zero, Color.White);
             //spriteBatch.DrawString(font, str, new Vector2(screenWidth - font.MeasureString(str).X, 0), Color.White);
             game.spriteBatch.End();
-            //Gui.Draw(gameTime);
             game.hud.DrawRun(dDeltaTimeFloat);
+            
+            if(GameStateManager.paused)
+                gui.Draw(gameTime);
         }
         private void DrawPlane()
         {
@@ -517,6 +615,7 @@ namespace nixfps.Components.States
 
         void DrawDust2()
         {
+            meshPartDrawCount = 0;
             //game.basicModelEffect.SetTech("basic_color");
             //game.basicModelEffect.SetTech("number");
             game.basicModelEffect.SetTech("colorTex_lightEn");
@@ -533,6 +632,9 @@ namespace nixfps.Components.States
                 game.basicModelEffect.SetInverseTransposeWorld(Matrix.Invert(Matrix.Transpose(w)));
                 for (int partindex = 0; partindex < mesh.MeshParts.Count; partindex++)
                 {
+                    if (!game.boundingSpheresMP[partindex].Any(bs => game.camera.FrustumContains(bs)))
+                        continue;
+                    
                     game.basicModelEffect.SetColor(Color.White.ToVector3());
 
                     var part = mesh.MeshParts[partindex];
@@ -546,6 +648,7 @@ namespace nixfps.Components.States
                         game.GraphicsDevice.Indices = part.IndexBuffer;
                         game.GraphicsDevice.DrawIndexedPrimitives(PrimitiveType.TriangleList, part.VertexOffset, part.StartIndex, part.PrimitiveCount);
                     }
+                    meshPartDrawCount++;
                 }
 
             }

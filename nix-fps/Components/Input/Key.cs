@@ -31,6 +31,16 @@ namespace nixfps.Components.Input
                 default: return false;
             }
         }
+        public override string Name()
+        {
+            switch(button)
+            {
+                case MouseButton.Left: return "MB1";
+                case MouseButton.Right: return "MB2";
+                case MouseButton.Middle: return "MB3";
+            }
+            return "MB1";
+        }
     }
     public class KeyboardKey : Key
     {
@@ -43,8 +53,11 @@ namespace nixfps.Components.Input
         {
             return keyState.IsKeyDown(key);
         }
+        public override string Name()
+        {
+            return key.ToString();
+        }
     }
-
     public class ScrollWheel : Key
     {
         int lastValue;
@@ -67,6 +80,10 @@ namespace nixfps.Components.Input
 
             return retVal;
         }
+        public override string Name()
+        {
+            return isUp ? "MW UP" : "MW Down";
+        }
     }
     public abstract class Key
     {
@@ -79,5 +96,7 @@ namespace nixfps.Components.Input
             keyState = ks;
         }
         public abstract bool IsDown();
+
+        public abstract string Name();
     }
 }

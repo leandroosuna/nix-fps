@@ -8,9 +8,9 @@ using System.Threading.Tasks;
 
 namespace nixfps.Components.Input
 {
-    public class InputMainMenu : InputManager
+    public class InputOptions : InputManager
     {
-        public InputMainMenu() : base()
+        public InputOptions() : base()
         {
             mouseLocked = false;
         }
@@ -20,16 +20,7 @@ namespace nixfps.Components.Input
         }
         public override void ProcessInput(float deltaTime)
         {
-            //if (keyMappings.Escape.IsDown())
-            //{
-            //    if (!keysDown.Contains(keyMappings.Escape))
-            //        game.StopGame();
-            //}
-            //if (keyMappings.Enter.IsDown())
-            //{
-            //    keysDown.Add(keyMappings.Enter);
-            //    GameStateManager.SwitchTo(State.RUN);
-            //}
+            
         }
         public override void ApplyInput(ClientInputState state)
         {

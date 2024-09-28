@@ -18,6 +18,7 @@ namespace nixfps.Components.Lights
         public PointLight(Vector3 position, float radius, Vector3 color, Vector3 specularColor ) : base(position, color, Vector3.Zero, specularColor)
         {
             this.radius = radius;
+            this.position = position;
             collider = new BoundingSphere(position, radius);
             scale = 0.01f * radius;
             
