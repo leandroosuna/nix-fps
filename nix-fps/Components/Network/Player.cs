@@ -69,7 +69,6 @@ namespace nixfps
 
             var dir = Vector3.Zero;
                 
-            var sprint = false;
             switch (clipId)
             {
                 case (byte)PlayerAnimation.idle:break;

@@ -25,13 +25,14 @@ namespace nixfps.Components.Input
         {
             localPlayer = game.localPlayer;
             camera = game.camera;
-            
+
             if (keyMappings.Escape.IsDown())
             {
-                if(!keysDown.Contains(keyMappings.Escape))
+                if (!keysDown.Contains(keyMappings.Escape))
                 {
                     keysDown.Add(keyMappings.Escape);
-                    GameStateManager.SwitchTo(State.MAIN);
+
+                    GameStateManager.TogglePause();
                 }
             }
             clientInputState = keyMappings.GetClientState();

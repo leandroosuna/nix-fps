@@ -173,7 +173,7 @@ namespace nixfps.Components.GUI.ImGuiNET
             //};
             ///////////////////////////////////////////
             ///
-            ImFontPtr CustomFont = ImGui.GetIO().Fonts.AddFontFromFileTTF("C:/Windows/Fonts/Unispace bd.ttf", 30);
+            CustomFont = ImGui.GetIO().Fonts.AddFontFromFileTTF("C:/Windows/Fonts/Unispace bd.ttf", 20);
             
         }
 

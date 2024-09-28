@@ -1,18 +1,21 @@
 ﻿using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
-using nixfps.Components.Input;
 using nixfps.Components.GUI;
+using nixfps.Components.Input;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
 
 namespace nixfps.Components.States
 {
-    public class StateMainMenu : GameState
+    public class StateInputMap : GameState
     {
-        
-
-        public StateMainMenu() : base()
+        public StateInputMap() : base()
         {
-            inputManager = new InputMainMenu();
-            gui = new GuiMain();
+            inputManager = new InputOptions();
+            gui = new GuiInputMap(); 
         }
         public override void OnSwitch()
         {
@@ -23,17 +26,19 @@ namespace nixfps.Components.States
             base.Update(gameTime);
 
             game.camera.RotateBy(new Vector2(uDeltaTimeFloat, 0));
+
         }
         public override void Draw(GameTime gameTime)
         {
-            base.Draw(gameTime);
-
             game.GraphicsDevice.SetRenderTarget(null);
             game.GraphicsDevice.Clear(Color.Black);
             game.GraphicsDevice.RasterizerState = RasterizerState.CullClockwise;
             game.skybox.Draw();
             game.camera.RotateBy(new Vector2(dDeltaTimeFloat * 2, 0));
             gui.Draw(gameTime);
+
+            base.Draw(gameTime);
+
         }
 
     }

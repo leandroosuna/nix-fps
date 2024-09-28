@@ -33,6 +33,12 @@ public class ModifierController
         Modifiers.Add(new ButtonModifier(text, onPress, enabled));
     }
 
+    public void ReplaceButton(int index, string text, Action onPress, bool enabled = true)
+    {
+        Modifiers.Insert(index, new ButtonModifier(text, onPress, enabled));
+        Modifiers.RemoveAt(index + 1);
+    }
+
     /// <summary>
     ///     Adds a Color Modifier with a given name, action on change and a default Color.
     /// </summary>
@@ -54,6 +60,8 @@ public class ModifierController
     {
         Modifiers.Add(new ColorModifier(name, effectParameter, defaultColor));
     }
+
+    
 
     /// <summary>
     ///     Adds a Float Modifier with a given name, an action on change and a default value.
@@ -283,11 +291,30 @@ public class ModifierController
         ImGui.Spacing();
 
         var count = Modifiers.Count;
-        if (count > 0 && ImGui.CollapsingHeader("Modifiers", ImGuiTreeNodeFlags.DefaultOpen))
+        if (count > 0)
+        //&& ImGui.CollapsingHeader("Modifiers", ImGuiTreeNodeFlags.DefaultOpen))
         {
             for (var index = 0; index < count; index++)
             {
                 Modifiers[index].Draw();
+            }
+        }
+    }
+    public void Draw(int from, int to)
+    {
+        var count = Modifiers.Count;
+        if (from < 0 || from > count || to < 0 || to < from || to > count)
+            return;
+
+
+        ImGui.Spacing();
+
+        if (count > 0)
+        {
+            for (var index = from; index < to; index++)
+            {
+                Modifiers[index].Draw();
+                ImGui.Dummy(new System.Numerics.Vector2(1, 10));
             }
         }
     }

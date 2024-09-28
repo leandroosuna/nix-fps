@@ -13,7 +13,7 @@ namespace nixfps.Components.Skybox
     public class Skybox
     {
         Model model;
-        TextureCube texture;
+        //TextureCube texture;
         Texture2D texture2D;
         Effect effect;
         float size;

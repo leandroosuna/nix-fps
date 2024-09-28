@@ -38,7 +38,7 @@ namespace nixfps.Components.Cameras
             position = new Vector3(0, 5f, 0);
             nearPlaneDistance = .1f;
             farPlaneDistance = 1000;
-            yaw = 270;
+            yaw = 120;
             pitch = 0;
             
             UpdateCameraVectors();
@@ -49,10 +49,10 @@ namespace nixfps.Components.Cameras
             screenCenter = game.screenCenter + windowPos;
             center = new System.Drawing.Point(screenCenter.X, screenCenter.Y);
 
-            mouseLocked = game.CFG["MouseLocked"].Value<bool>();
+            mouseLocked = false;
         }
 
-        public void ChangeFOV(float deg)
+        public void ChangeFOV(int deg)
         {
             fieldOfView = MathHelper.ToRadians(deg);
             CalculateProjection();
@@ -142,7 +142,7 @@ namespace nixfps.Components.Cameras
             UpdateCameraVectors();
             CalculateView();
         }
-        void UpdateCameraVectors()
+        public void UpdateCameraVectors()
         {
             Vector3 tempFront;
 
