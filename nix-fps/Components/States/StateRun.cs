@@ -36,7 +36,10 @@ namespace nixfps.Components.States
             System.Windows.Forms.Cursor.Position = inputManager.center;
             game.IsMouseVisible = false;
         }
-        List<PointLight> miniLights = new List<PointLight>();
+        List<LightVolume> miniLights = new List<LightVolume>();
+
+        List<LightVolume> mapLights = new List<LightVolume>();
+
         float jumpForce = 10f * 2;
         float gravity = -9.81f * 4f;
         float verticalVelocity = 0f;
@@ -45,9 +48,14 @@ namespace nixfps.Components.States
         public int closeEnoughC;
         public bool onAir = false;
         public float airTime = 0f;
+
+        bool mb2down = false;
+        bool mb2click = false;
+
+        Vector3 currentPosHit = Vector3.Zero;
         public override void Update(GameTime gameTime)
         {
-            
+
             base.Update(gameTime);
 
             NetworkManager.InterpolatePlayers(game.mainStopwatch.ElapsedMilliseconds);
@@ -65,7 +73,7 @@ namespace nixfps.Components.States
 
             var keyState = Keyboard.GetState();
             var changed = false;
-            if(keyState.IsKeyDown(Keys.Up))
+            if (keyState.IsKeyDown(Keys.Up))
             {
                 game.camera.pitch += uDeltaTimeFloat * 70;
                 if (game.camera.pitch > 90f)
@@ -83,7 +91,7 @@ namespace nixfps.Components.States
             {
                 game.camera.yaw -= uDeltaTimeFloat * 70;
                 if (game.camera.yaw < 0)
-                    game.camera.yaw= 0;
+                    game.camera.yaw = 0;
                 changed = true;
             }
             if (keyState.IsKeyDown(Keys.Right))
@@ -93,10 +101,52 @@ namespace nixfps.Components.States
                     game.camera.yaw = 0;
                 changed = true;
             }
-            if(changed)
+            if (changed)
             {
                 game.camera.UpdateCameraVectors();
             }
+
+            NetworkManager.localPlayer.clipName = "idle";
+            if (keyState.IsKeyDown(Keys.L))
+            {
+                NetworkManager.localPlayer.clipName = "run right";
+            }
+            if (keyState.IsKeyDown(Keys.J))
+            {
+                NetworkManager.localPlayer.clipName = "run left";
+            }
+            if (keyState.IsKeyDown(Keys.I))
+            {
+                if (keyState.IsKeyDown(Keys.U))
+                {
+                    NetworkManager.localPlayer.clipName = "sprint forward";
+
+                    if (keyState.IsKeyDown(Keys.L))
+                        NetworkManager.localPlayer.clipName = "sprint forward right";
+                    if (keyState.IsKeyDown(Keys.J))
+                        NetworkManager.localPlayer.clipName = "sprint forward left";
+                }
+                else
+                {
+                    NetworkManager.localPlayer.clipName = "run forward";
+
+                    if (keyState.IsKeyDown(Keys.L))
+                        NetworkManager.localPlayer.clipName = "run forward right";
+                    if (keyState.IsKeyDown(Keys.J))
+                        NetworkManager.localPlayer.clipName = "run forward left";
+                }
+            }
+            if (keyState.IsKeyDown(Keys.K))
+            {
+                NetworkManager.localPlayer.clipName = "run backward";
+                
+                if (keyState.IsKeyDown(Keys.L))
+                    NetworkManager.localPlayer.clipName = "run backward right";
+                if (keyState.IsKeyDown(Keys.J))
+                    NetworkManager.localPlayer.clipName = "run backward left";
+
+            }
+            
 
             //oneSec += uDeltaTimeFloat;
             //if (oneSec >= 1)
@@ -114,7 +164,7 @@ namespace nixfps.Components.States
             if (!onAir && inputManager.clientInputState.Jump)
             {
                 verticalVelocity = jumpForce;
-                onAir = true;  
+                onAir = true;
             }
 
             if (onAir)
@@ -134,11 +184,35 @@ namespace nixfps.Components.States
             }
             //game.hud.crosshair.SetColor(onAir?Color.Blue:Color.White);
 
-            ShowPointingAt();
+            //ShowPointingAt();
+
+            
+            var ms = Mouse.GetState();
+            if (!mb2down)
+            {
+                if (ms.RightButton == ButtonState.Pressed)
+                {
+                    mb2down = true;
+                    ShowPointingAt();
+                    var pl = new PointLight(currentPosHit - game.camera.frontDirection * 5f, 20f, new Vector3(1, 1, .8f), new Vector3(1, 1, .8f));
+                    pl.skipDraw = false;
+                    pl.hasLightGeo = false;
+                    game.lightsManager.Register(pl);
+                }
+
+            }
+            else
+            {
+                if (ms.RightButton == ButtonState.Released)
+                {
+                    mb2down = false;
+                }
+            }
+
             MapCollision();
 
-            foreach (var l in miniLights)
-                game.lightsManager.Register(l);
+            //foreach (var l in miniLights)
+            //    game.lightsManager.Register(l);
         }
 
         
@@ -166,13 +240,20 @@ namespace nixfps.Components.States
            
             
         }
-       
+        Vector3 temp;
         Vector3 Vec3Avg(NixFPS.CollisionTriangle t)
         {
-            return new Vector3(
-                (t.v[0].X + t.v[1].X + t.v[2].X) / 3,
-                (t.v[0].Y + t.v[1].Y + t.v[2].Y) / 3,
-                (t.v[0].Z + t.v[1].Z + t.v[2].Z) / 3);
+            //return new Vector3(
+            //    (t.v[0].X + t.v[1].X + t.v[2].X) / 3,
+            //    (t.v[0].Y + t.v[1].Y + t.v[2].Y) / 3,
+            //    (t.v[0].Z + t.v[1].Z + t.v[2].Z) / 3);
+
+            temp.X = (t.v[0].X + t.v[1].X + t.v[2].X) / 3;
+            temp.Y = (t.v[0].Y + t.v[1].Y + t.v[2].Y) / 3;
+            temp.Z = (t.v[0].Z + t.v[1].Z + t.v[2].Z) / 3;
+
+            return temp;
+            
         }
 
         void MapCollision()
@@ -180,7 +261,7 @@ namespace nixfps.Components.States
             var bodyCheckPos = game.localPlayer.position + new Vector3(0, 1.8f, 0);
 
             var closeEnough = game.mapTriangles
-                .FindAll(t => Vector3.DistanceSquared(Vec3Avg(t), bodyCheckPos) < 500f)
+                .FindAll(t => Vector3.DistanceSquared(Vec3Avg(t), bodyCheckPos) < 250f)
                 .OrderBy(t => Vector3.DistanceSquared(Vec3Avg(t), bodyCheckPos));
                 
             closeEnoughC = closeEnough.Count();
@@ -379,38 +460,58 @@ namespace nixfps.Components.States
             }
         }
 
-        Vector3 currentPosHit;
+        int totalChecks = 0;
+        float triangleDistSqr = 400f;
+        float stepDist = 2 * MathF.Sqrt(400f);
+
         void ShowPointingAt()
         {
-            var closeEnough = game.mapTriangles
-                //.FindAll(t => Vector3.DistanceSquared(Vec3Avg(t), game.camera.position) < 500f)
-                .OrderBy(t => Vector3.DistanceSquared(Vec3Avg(t), game.camera.position));
+            totalChecks = 0;
+ 
+            IOrderedEnumerable<NixFPS.CollisionTriangle> closeEnough;
 
-            Ray camRay = new Ray(game.camera.position, game.camera.frontDirection);
-            
             var hitList = new List<Vector3>();
+            Vector3? hitPos;
+            Vector3 fromPos = game.camera.position;
+            var camFD = game.camera.frontDirection;
+            float posOffset = 0;
 
-            foreach(var triangle in closeEnough)
+            
+            while (hitList.Count == 0 && posOffset <= 212f)
             {
-                //bool hit = BoundingVolumesExtensions.IntersectRayTriangle(triangle.v[0], triangle.v[1], triangle.v[2], camRay);
+                closeEnough = game.mapTriangles
+                    .FindAll(t => Vector3.DistanceSquared(t.v[0], fromPos + camFD * posOffset) < triangleDistSqr)
+                    .OrderBy(t => Vector3.DistanceSquared(t.v[0], fromPos + camFD * posOffset));
 
-                Vector3? hitPos = BoundingVolumesExtensions.IntersectRayWithTriangle(game.camera.position, game.camera.frontDirection, triangle.v[0], triangle.v[1], triangle.v[2]);
-                if (hitPos.HasValue)
+                //foreach (var triangle in closeEnough)
+                //{
+
+                //    hitPos = BoundingVolumesExtensions.IntersectRayWithTriangle(game.camera.position, camFD, triangle.v[0], triangle.v[1], triangle.v[2]);
+                //    totalChecks++;
+                //    if (hitPos.HasValue)
+                //        hitList.Add(hitPos.Value);
+                //}
+                Parallel.ForEach(closeEnough, triangle =>
                 {
-                    hitList.Add(hitPos.Value);
-                }
+
+                    var hitPos = BoundingVolumesExtensions.IntersectRayWithTriangle(game.camera.position, camFD, triangle.v[0], triangle.v[1], triangle.v[2]);
+                    //totalChecks++;
+                    if (hitPos.HasValue)
+                        hitList.Add(hitPos.Value);
+                });
+                posOffset += stepDist; //2 * sqrt 500
 
             }
             if(hitList.Count > 0)
             {
                 currentPosHit = hitList.OrderBy(t => Vector3.DistanceSquared(t, game.camera.position)).ToList()[0];
-
-                var pl = new PointLight(currentPosHit - game.camera.frontDirection * 1, 20f, Color.White.ToVector3(), Color.White.ToVector3());
+                var pl = new PointLight(currentPosHit - game.camera.frontDirection * 4f, 10f, new Vector3(1, 0, 1), new Vector3(1, 0, 1));
+                //var pl = new CylinderLight(currentPosHit - game.camera.frontDirection * 1, 20f, 10f, Color.White.ToVector3(), Matrix.Identity, Color.White.ToVector3());
                 pl.hasLightGeo = true;
                 pl.skipDraw = false;
                 miniLights.Add(pl);
-            }
 
+            }
 
         }
         String fpsStr = "";
@@ -545,12 +646,12 @@ namespace nixfps.Components.States
                 dTime = 0;
                 var cam = game.camera.position;
                 var pos = NetworkManager.localPlayer.position;
-                fpsStr = "FPS " + FPS + " RTT " + NetworkManager.Client.RTT + " ms";
+                fpsStr = "FPS " + FPS + " RTT " + NetworkManager.Client.RTT + " ms ";
                 //fpsStr += string.Format(" ({0:F2}, {1:F2}, {2:F2})", cam.X, cam.Y, cam.Z);
                 //fpsStr += string.Format(" ({0:F2}, {1:F2}, {2:F2})", pos.X, pos.Y, pos.Z);
                 //fpsStr += string.Format(" ({0:F2}, {1:F2}, {2:F2})", dist.X, dist.Y, dist.Z);
                 //fpsStr += $" tri {closeEnoughC}";
-                fpsStr += $" mp {meshPartDrawCount}";
+                //fpsStr += $" mp {meshPartDrawCount}";
 
             }
             game.spriteBatch.Begin();

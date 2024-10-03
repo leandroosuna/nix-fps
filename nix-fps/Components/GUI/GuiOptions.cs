@@ -18,7 +18,7 @@ namespace nixfps.Components.GUI
 
         public override void AddControllers()
         {
-            string []resolutions = { "1280x720", "1366x768","1600x900","1920x1080"};
+            string []resolutions = { "1280x720", "1366x768","1600x900","1920x1080","2160x1440", "3840x2160"};
             string[] modes = { "Fullscreen", "Borderless" };
             string[] presets = { "Ultra", "Alto", "Medio", "Bajo" };
             controller.AddOptions("Resolucion", resolutions, GetResolution(), ResolutionChange);
@@ -36,7 +36,9 @@ namespace nixfps.Components.GUI
             r1280x720,
             r1366x768,
             r1600x900,
-            r1920x1080
+            r1920x1080,
+            r2560x1440,
+            r3840x2160
         }
         enum ScreenMode
         {
@@ -64,6 +66,9 @@ namespace nixfps.Components.GUI
                 case 1366: return Resolution.r1366x768;
                 case 1600: return Resolution.r1600x900;
                 case 1920: return Resolution.r1920x1080;
+                case 2560: return Resolution.r2560x1440;
+                case 3840: return Resolution.r3840x2160;
+
             }
             return Resolution.r1280x720;
         }
@@ -105,6 +110,9 @@ namespace nixfps.Components.GUI
                 case Resolution.r1366x768: screenWidth = 1366; screenHeight = 768; break;
                 case Resolution.r1600x900: screenWidth = 1600; screenHeight = 900; break;
                 case Resolution.r1920x1080: screenWidth = 1920; screenHeight = 1080; break;
+                case Resolution.r2560x1440: screenWidth = 2560; screenHeight = 1440; break;
+                case Resolution.r3840x2160: screenWidth = 3840; screenHeight = 2160; break;
+
             }
 
             newResWidth = screenWidth;
@@ -220,6 +228,7 @@ namespace nixfps.Components.GUI
                     anyChange = true;
                     game.Graphics.IsFullScreen = newFullscreen;
                     game.CFG["Fullscreen"] = newFullscreen;
+                    game.Window.IsBorderless = true;
                 }
                 if (game.graphicsPreset != newGraphics)
                 {

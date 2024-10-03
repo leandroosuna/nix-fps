@@ -54,10 +54,20 @@ namespace nixfps.Components.Lights
 
             game.fullScreenQuad.Draw(effect.effect);
 
-            effect.SetTech("point_light");
+            
             game.GraphicsDevice.RasterizerState = RasterizerState.CullClockwise; //remove front side of spheres to be drawn
 
-            lightsToDraw.ForEach(l => { if (!l.skipDraw) l.Draw(); });
+            lightsToDraw.ForEach(l => {
+                if (!l.skipDraw) 
+                { 
+                    if(l is PointLight)
+                        effect.SetTech("point_light");
+                    if (l is CylinderLight)
+                        effect.SetTech("cylinder_light");
+                    l.Draw(); 
+                } 
+                    
+            });
             
         }
         public void DrawLightGeo()

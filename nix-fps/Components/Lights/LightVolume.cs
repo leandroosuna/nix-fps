@@ -15,6 +15,7 @@ namespace nixfps.Components.Lights
         public static Model sphere;
         public static Model lightSphere;
         public static Model lightCone;
+        public static Model lightCylinder;
         public static Model cube;
         public static DeferredEffect deferredEffect;
         public static BasicModelEffect basicModelEffect;
@@ -48,7 +49,7 @@ namespace nixfps.Components.Lights
             cube = game.Content.Load<Model>(NixFPS.ContentFolder3D + "basic/cube");
             lightSphere = game.Content.Load<Model>(NixFPS.ContentFolder3D + "basic/lightSphere");
             lightCone = game.Content.Load<Model>(NixFPS.ContentFolder3D + "basic/cone");
-            
+            lightCylinder = game.Content.Load<Model>(NixFPS.ContentFolder3D + "basic/lightCylinder");
             deferredEffect = game.deferredEffect;
             basicModelEffect = game.basicModelEffect;
 
@@ -57,10 +58,11 @@ namespace nixfps.Components.Lights
 
             NixFPS.AssignEffectToModel(lightSphere, deferredEffect.effect);
             NixFPS.AssignEffectToModel(lightCone, deferredEffect.effect);
+            NixFPS.AssignEffectToModel(lightCylinder, deferredEffect.effect);
 
-            
+
         }
-        
+
         public abstract void Update();
         public abstract void Draw();
 
@@ -73,7 +75,7 @@ namespace nixfps.Components.Lights
             
                 foreach (var mesh in sphere.Meshes)
                 {
-                    var w = mesh.ParentBone.Transform * Matrix.CreateScale(0.001f) * Matrix.CreateTranslation(position);
+                    var w = mesh.ParentBone.Transform * Matrix.CreateScale(0.005f) * Matrix.CreateTranslation(position);
                     basicModelEffect.SetWorld(w);
                     basicModelEffect.SetInverseTransposeWorld(Matrix.Invert(Matrix.Transpose(w)));
                     mesh.Draw();

@@ -10,6 +10,7 @@ float4x4 projection;
 
 float2 screenSize;
 float radius;
+float length;
 
 struct PVSI
 {
@@ -223,6 +224,62 @@ float4 PointLightPS(PVSO input) : COLOR
     
     return float4(getPixelColorNoAmbient(worldPos, normal, KD, KS, shininess) * scaling, 1);
 }
+float attenuate_no_cusp_cylinder(float radialDistance, float projection, float radius, float lightLength, float max_intensity, float falloff)
+{
+    // Atenuación radial (similar a la luz puntual)
+    float sRadial = radialDistance / radius;
+    float radialAttenuation = max(0, 1 - sRadial * sRadial);
+
+    // Atenuación a lo largo del eje del cilindro
+    float sLength = clamp(projection / lightLength, 0, 1);
+    float lengthAttenuation = 1 - falloff * sLength;
+
+    return max_intensity * radialAttenuation * lengthAttenuation;
+}
+float4 CylinderLightPS(PVSO input) : COLOR
+{
+    float2 sceneCoord = input.Position.xy / screenSize;
+    
+    float4 colorRaw = tex2D(colorSampler, sceneCoord);
+    float3 color = colorRaw.rgb;
+    float KD = colorRaw.a;
+    
+    float4 normalRaw = tex2D(normalMapSampler, sceneCoord);
+    
+    if (KD == 0)
+    {
+        return float4(0, 0, 0, 1);
+    }
+    
+    float KS = normalRaw.a;
+    float4 worldRaw = tex2D(positionMapSampler, sceneCoord);
+    float shininess = worldRaw.a * 60;
+   
+    
+    float3 normal = normalize((normalRaw.rgb * 2.0) - 1);
+    float3 worldPos = worldRaw.rgb;
+    
+    float3 lightStart = lightPosition - length / 2;
+    float3 lightEnd = lightPosition + length / 2;
+    
+    float3 lightAxis = lightEnd - lightStart;
+    float3 toPoint = worldPos - lightStart;
+
+    // Proyección de la posición en el eje del cilindro
+    float proj = dot(toPoint, normalize(lightAxis));
+    float3 projectedPoint = lightStart + proj * normalize(lightAxis);
+
+    // Distancia radial (del punto proyectado al punto de la escena)
+    float radialDistance = distance(worldPos, projectedPoint);
+
+    // Atenuación cilíndrica avanzada
+    float scaling = attenuate_no_cusp(radialDistance, radius, 3, 6);
+    
+    // Devuelve el color final
+    return float4(getPixelColorNoAmbient(worldPos, normal, KD, KS, shininess) * scaling, 1);
+}
+
+
 PSO PointLightBPS(PVSO input)
 {
     float4 prev = PointLightPS(input);
@@ -261,6 +318,14 @@ technique point_light
     {
         VertexShader = compile VS_SHADERMODEL PointLightVS();
         PixelShader = compile PS_SHADERMODEL PointLightPS();
+    }
+}
+technique cylinder_light
+{
+    pass P0
+    {
+        VertexShader = compile VS_SHADERMODEL PointLightVS();
+        PixelShader = compile PS_SHADERMODEL CylinderLightPS();
     }
 }
 technique ambient_light

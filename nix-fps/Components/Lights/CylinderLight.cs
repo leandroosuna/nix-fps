@@ -10,19 +10,21 @@ using nixfps.Components.Effects;
 
 namespace nixfps.Components.Lights
 {
-    public class PointLight : LightVolume
+    public class CylinderLight : LightVolume
     {
         float radius;
-        float scale;
+        float length;
         public Matrix world;
-        public PointLight(Vector3 position, float radius, Vector3 color, Vector3 specularColor ) : base(position, color, Vector3.Zero, specularColor)
+        Matrix rotation;
+        public CylinderLight(Vector3 position, float radius, float length, Vector3 color, Matrix rot, Vector3 specularColor ) : base(position, color, Vector3.Zero, specularColor)
         {
             this.radius = radius;
+            this.length = length;
             this.position = position;
             collider = new BoundingSphere(position, radius);
-            scale = 0.0075f * radius;
-            
-            world = Matrix.CreateScale(scale) * Matrix.CreateTranslation(position);
+            rotation = rot;
+
+            world = Matrix.CreateScale(0.001f * radius, 0.001f * length, 0.001f * radius) * rotation * Matrix.CreateTranslation(position);
 
         }
         
@@ -33,13 +35,11 @@ namespace nixfps.Components.Lights
             deferredEffect.SetLightSpecularColor(specularColor);
             deferredEffect.SetLightPosition(position);
             deferredEffect.SetRadius(radius);
-            
+            deferredEffect.SetLength(length);
 
-            foreach (var mesh in lightSphere.Meshes)
+            foreach (var mesh in lightCylinder.Meshes)
             {
                 deferredEffect.SetWorld(mesh.ParentBone.Transform * world);
-
-                //effect.Parameters["world"].SetValue(mesh.ParentBone.Transform * world);
 
                 mesh.Draw();
             }
@@ -50,8 +50,8 @@ namespace nixfps.Components.Lights
         {
             collider.Center = position;
 
-            world = Matrix.CreateScale(scale) * Matrix.CreateTranslation(position);
-            
+            world = Matrix.CreateScale(0.01f * radius, 0.01f * length, 0.01f * radius) * rotation * Matrix.CreateTranslation(position);
+
         }
     }
 }
