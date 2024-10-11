@@ -103,7 +103,7 @@ public class AnimatedModel
         foreach (var mesh in _model.Meshes)
         {
             var worldBone = boneTransforms[mesh.ParentBone.Index] * player.GetWorld();
-        
+            
             effect.SetWorld(worldBone);
             effect.SetView(camera.view);
             effect.SetProjection(camera.projection);
@@ -123,31 +123,6 @@ public class AnimatedModel
                 game.GraphicsDevice.Indices = part.IndexBuffer;
                 game.GraphicsDevice.DrawIndexedPrimitives(PrimitiveType.TriangleList, part.VertexOffset, part.StartIndex, part.PrimitiveCount);
             }
-
-            //Matrix parentBoneTransform = game.CreateTransform(mesh.ParentBone);
-            //VertexDeclaration declaration = part.VertexBuffer.VertexDeclaration;
-            //VertexElement[] vertexElements = declaration.GetVertexElements();
-            //VertexElement vertexPosition = vertexElements[0];
-
-            //Vector3[] allVertex = new Vector3[part.NumVertices];
-            //part.VertexBuffer.GetData(
-            //                part.VertexOffset * declaration.VertexStride + vertexPosition.Offset,
-            //                allVertex,
-            //                0,
-            //                part.NumVertices,
-            //                declaration.VertexStride);
-
-            //short[] indices = new short[part.PrimitiveCount * 3];
-            //part.IndexBuffer.GetData(part.StartIndex * 2, indices, 0, part.PrimitiveCount * 3);
-
-            //for (int i = 0; i != allVertex.Length; ++i)
-            //{
-            //    Vector3.Transform(ref allVertex[i], ref parentBoneTransform, out allVertex[i]);
-            //}
-            ////14648
-
-            //game.gizmos.DrawSphere(allVertex[game.selectedVertexIndex], new Vector3(.5F, .5F, .5F), Color.Magenta);
-
 
             part = mesh.MeshParts[1];
             effect.SetTeamColor(player.teamColor);

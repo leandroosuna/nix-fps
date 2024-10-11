@@ -1,9 +1,16 @@
 ﻿using Microsoft.Xna.Framework;
 using nixfps.Components.Animations.DataTypes;
 using nixfps.Components.Effects;
+using nixfps.Components.Lights;
+using nixfps.Components.Network;
+using System;
 using System.Collections.Generic;
+using System.ComponentModel.Design;
+using System.Diagnostics;
+using System.Drawing;
 using System.Linq;
 using System.Threading;
+using System.Windows.Forms;
 
 namespace nixfps.Components.Animations.Models;
 
@@ -24,6 +31,7 @@ public class Clip
     {
         position += deltaTime;
         if (position >= clip.Duration)
+        //if (position >= .5)
             position = 0;
     }
 }
@@ -31,7 +39,9 @@ public class Clip
 public class AnimationPlayer
 {
     Clip[] clips;
-
+    Clip activeClip, targetClip;
+    float blendTime = 0.5f; // Time to blend between animations
+    float blendProgress = 0f;
     public AnimationPlayer(AnimatedModel model, Dictionary<string, AnimationClip> clps )
     {
         
@@ -59,30 +69,144 @@ public class AnimationPlayer
         {
             clips[i].Update(deltaTime);
         }
+        if(blending)
+        {
+            //blendFactor += deltaTime * 4; //.25s transition
+            blendFactor += deltaTime * 2f;
+            if (blendFactor >= 1f )
+            {
+                blendFactor = 0;
+                blending = false;
+                NetworkManager.localPlayer.clipName = NetworkManager.localPlayer.clipNextName;
+                NetworkManager.localPlayer.clipNextName = "";
+                for (int i = 0; i < 400; i++)
+                {
+                    kf1[i] = 0;
+                    kf2[i] = 0;
+                }
+            }
+        }
+        
     }
+    public float blendFactor = 0f;
+    public bool blendStart = false;
+    public bool blending = false;
+    int[] kf1 = new int[400];
+    int[] kf2 = new int[400];
+
 
     public void SetActiveClip(Player player)
     {
-        Clip clip = null;
-        float pos;
+        Clip clip = FindClip(player.clipName);
+        if (clip == null)
+        {
+            return;
+        }
+        Clip clipNext = FindClip(player.clipNextName);
+
+
+
+        //apply an offset for different models, random at their creation
+        float pos = clip.position;
+        //+ player.timeOffset;
+
+
+        int len = 0;
+
+        if (blendStart) //sync keyframes and pos
+        {
+
+
+            for (int i = 0; i < 400; i++)
+            {
+                kf1[i] = 0;
+                kf2[i] = 0;
+            }
+            blendStart = false;
+            blending = true;
+            clip.position = 0;
+            blendFactor = 0;
+            pos = 0;
+            if (clipNext == null)
+            {
+                blending = false;
+            }
+        }
+        //len = clip.boneInfo.Length;
+        //if (clipNext != null)
+        //{
+        //    len = blending ? Math.Min(clip.boneInfo.Length, clipNext.boneInfo.Length) : clip.boneInfo.Length;
+        //}
+        len = 80;
+
+
+        if (blending)
+            pos %= 0.5f;
+        else
+            pos %= (float)clip.clip.Duration;
+
+        //string str;
+        //for (int i = 0; i < 328; i++)
+        //{
+        //    str = ""+i+" "+clips[8].clip.Bones[i].Name;
+
+        //    if(i <= 302)
+        //        str += " | " + i + " " + clips[9].clip.Bones[i].Name;
+
+        //    Debug.WriteLine(str);
+        //}
+
+        for (int i = 0; i < len; i++)
+        {
+            var bone1 = clip.boneInfo[i];
+            if (bone1.ClipAnimationBone.Keyframes.Count < 2)
+            {
+                continue;
+            }
+            (Quaternion r, Vector3 t, int kf) rp = bone1.CalculateRotPos(pos,0);
+            kf1[i] = rp.kf;
+            if (blending)
+            {
+                var bone2 = clipNext.boneInfo[i];
+                (Quaternion r, Vector3 t, int kf) rp2 = bone2.CalculateRotPos(pos, 0);
+                kf2[i] = rp2.kf;
+
+                rp.r = Quaternion.Slerp(rp.r, rp2.r, blendFactor);
+                rp.t = Vector3.Lerp(rp.t, rp2.t, blendFactor);
+            }
+
+            bone1.SetRotPos(rp.r, rp.t);
+            //var game = NixFPS.GameInstance();
+            //if (i == (int)game.boneIndex)
+            //{
+            //    var ppos = NetworkManager.localPlayer.position;
+            //    var pl = new PointLight(ppos + bone1._assignedBone.GetAbsoluteTransform().Translation * 0.025f, 5f, Vector3.One, Vector3.One);
+            //    pl.skipDraw = true;
+            //    pl.hasLightGeo = true;
+            //    game.testLights.Add(pl);
+            //    game.testLights.ForEach(l => game.lightsManager.Register(l));
+            //}
+        }
+
+        //foreach (var bone in clip.boneInfo)
+        //{
+        //    if (bone.ClipAnimationBone.Keyframes.Count > 1)
+        //    {
+        //        bone.SetPosition(pos);
+        //    }
+        //}
+    }
+
+    Clip FindClip(string name)
+    {
         for (int i = 0; i < clips.Length; i++)
         {
-            if (clips[i].name == player.clipName) { 
-                clip = clips[i];
-                break;
-            }
-        }
-        if (clip != null)
-        {
-            //apply an offset for different models, random at their creation
-            pos = clip.position;
-            pos += player.timeOffset;
-            pos %= (float) clip.clip.Duration;
-
-            foreach (var bone in clip.boneInfo)
+            if (clips[i].name == name)
             {
-                bone.SetPosition(pos);
+                return clips[i];
             }
         }
+        return null;
     }
+    
 }

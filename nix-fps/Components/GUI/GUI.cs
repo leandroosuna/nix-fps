@@ -22,7 +22,7 @@ namespace nixfps.Components.GUI
         public static NixFPS game;
         public static ImGuiRenderer renderer;
         public ModifierController controller;
-
+        public GameState linkedGameState;
         public static void Init()
         {
             game = NixFPS.GameInstance();
@@ -30,11 +30,12 @@ namespace nixfps.Components.GUI
             //controller = new ModifierController();
             renderer.RebuildFontAtlas();
         }
-        public Gui() 
+        public Gui(GameState gs) 
         {
             controller = new ModifierController();
             AddControllers();
             controller.Bind(renderer);
+            linkedGameState = gs;
         }
 
         public abstract void AddControllers();

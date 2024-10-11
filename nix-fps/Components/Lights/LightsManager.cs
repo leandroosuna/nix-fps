@@ -47,7 +47,11 @@ namespace nixfps.Components.Lights
             effect.SetProjection(game.camera.projection);
 
             effect.SetAmbientLight(ambientLight);
-            
+            effect.SetKA(.25f);
+            effect.SetKD(.5f);
+            effect.SetKS(.2f);
+            effect.SetShininess(5f);
+
             effect.SetTech("ambient_light");
 
             game.GraphicsDevice.RasterizerState = RasterizerState.CullCounterClockwise; 

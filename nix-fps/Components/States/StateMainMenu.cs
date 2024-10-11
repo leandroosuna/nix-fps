@@ -12,7 +12,7 @@ namespace nixfps.Components.States
         public StateMainMenu() : base()
         {
             inputManager = new InputMainMenu();
-            gui = new GuiMain();
+            gui = new GuiMain(this);
         }
         public override void OnSwitch()
         {

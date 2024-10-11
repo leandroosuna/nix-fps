@@ -15,7 +15,7 @@ namespace nixfps.Components.States
         public StateInputMap() : base()
         {
             inputManager = new InputOptions();
-            gui = new GuiInputMap(); 
+            gui = new GuiInputMap(this); 
         }
         public override void OnSwitch()
         {

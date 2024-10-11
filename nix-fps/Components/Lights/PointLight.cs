@@ -20,7 +20,7 @@ namespace nixfps.Components.Lights
             this.radius = radius;
             this.position = position;
             collider = new BoundingSphere(position, radius);
-            scale = 0.0075f * radius;
+            scale = 0.008f * radius;
             
             world = Matrix.CreateScale(scale) * Matrix.CreateTranslation(position);
 

@@ -28,7 +28,7 @@ namespace nixfps.Components.States
         public StateRun() : base()
         {
             inputManager = new InputGameRun();
-            gui = new GuiPause();
+            gui = new GuiPause(this);
         }
         public override void OnSwitch()
         {
@@ -44,6 +44,8 @@ namespace nixfps.Components.States
         float gravity = -9.81f * 4f;
         float verticalVelocity = 0f;
 
+        public float blendFactor = 0f;
+        //public bool blendStart = false;
 
         public int closeEnoughC;
         public bool onAir = false;
@@ -55,6 +57,9 @@ namespace nixfps.Components.States
         Vector3 currentPosHit = Vector3.Zero;
         public override void Update(GameTime gameTime)
         {
+            //game.animationManager.animationPlayer.blendFactor = blendFactor;
+            //game.animationManager.animationPlayer.blendStart = blendStart;
+
 
             base.Update(gameTime);
 
@@ -62,11 +67,11 @@ namespace nixfps.Components.States
 
             game.gizmos.UpdateViewProjection(game.camera.view, game.camera.projection);
 
-            game.animationManager.Update(gameTime);
+            game.animationManager.Update(uDeltaTimeFloat);
             game.UpdatePointLights(uDeltaTimeFloat);
 
             game.lightsManager.Update(uDeltaTimeFloat);
-            game.gunManager.Update(gameTime);
+            //game.gunManager.Update(gameTime);
             game.hud.Update(uDeltaTimeFloat);
 
             game.camera.Update(inputManager);
@@ -105,46 +110,57 @@ namespace nixfps.Components.States
             {
                 game.camera.UpdateCameraVectors();
             }
+            var lp = NetworkManager.localPlayer;
+            string nextClip = "idle";
+            //if(lp.clipName )
 
-            NetworkManager.localPlayer.clipName = "idle";
+                //NetworkManager.localPlayer.clipName = "run right";
+                //NetworkManager.localPlayer.clipName = "idle";
+                
             if (keyState.IsKeyDown(Keys.L))
             {
-                NetworkManager.localPlayer.clipName = "run right";
+                nextClip = "run right";
             }
             if (keyState.IsKeyDown(Keys.J))
             {
-                NetworkManager.localPlayer.clipName = "run left";
+                nextClip = "run left";
             }
             if (keyState.IsKeyDown(Keys.I))
             {
                 if (keyState.IsKeyDown(Keys.U))
                 {
-                    NetworkManager.localPlayer.clipName = "sprint forward";
+                    nextClip = "sprint forward";
 
                     if (keyState.IsKeyDown(Keys.L))
-                        NetworkManager.localPlayer.clipName = "sprint forward right";
+                        nextClip = "sprint forward right";
                     if (keyState.IsKeyDown(Keys.J))
-                        NetworkManager.localPlayer.clipName = "sprint forward left";
+                        nextClip = "sprint forward left";
                 }
                 else
                 {
-                    NetworkManager.localPlayer.clipName = "run forward";
+                    nextClip = "run forward";
 
                     if (keyState.IsKeyDown(Keys.L))
-                        NetworkManager.localPlayer.clipName = "run forward right";
+                        nextClip = "run forward right";
                     if (keyState.IsKeyDown(Keys.J))
-                        NetworkManager.localPlayer.clipName = "run forward left";
+                        nextClip = "run forward left";
                 }
             }
             if (keyState.IsKeyDown(Keys.K))
             {
-                NetworkManager.localPlayer.clipName = "run backward";
-                
-                if (keyState.IsKeyDown(Keys.L))
-                    NetworkManager.localPlayer.clipName = "run backward right";
-                if (keyState.IsKeyDown(Keys.J))
-                    NetworkManager.localPlayer.clipName = "run backward left";
+                nextClip = "run backward";
 
+                if (keyState.IsKeyDown(Keys.L))
+                    nextClip = "run backward right";
+                if (keyState.IsKeyDown(Keys.J))
+                    nextClip = "run backward left";
+
+            }
+            if(nextClip != lp.clipName)
+            {
+                lp.clipNextName = nextClip;
+                if(!game.animationManager.animationPlayer.blending)
+                    game.animationManager.animationPlayer.blendStart = true;
             }
             
 
@@ -180,6 +196,7 @@ namespace nixfps.Components.States
                     onAir = false;
 
                     game.localPlayer.position = GetSafeLocation();
+                    game.camera.pitch = 0f;
                 }
             }
             //game.hud.crosshair.SetColor(onAir?Color.Blue:Color.White);
@@ -224,22 +241,67 @@ namespace nixfps.Components.States
 
             return Vector2.DistanceSquared(v21, v22);
         }
+        //Vector3 GetSafeLocation()
+        //{
+        //    var safe = game.mapTriangles
+        //              .FindAll(t => DistanceSqrNoY(t.v[0], game.localPlayer.position) < 100f);
+
+        //    if(safe.Count == 0)
+        //        return new Vector3(97, 8, -205);
+
+        //    var ordered = 
+        //              safe.OrderByDescending(t => DistanceSqrNoY(t.v[0], game.localPlayer.position)).ToList();
+
+        //    return ordered[0].v[0];
+
+
+
+        //}
+        Vector3[] spawnPos =
+        {
+            new Vector3(76, 13.5f, -203.5f),
+            new Vector3(20.7f, 11.4f, -181),
+            new Vector3(30.4f, 5, -116),
+            new Vector3(25, 5, -96),
+            new Vector3(31, 11, -128),
+            new Vector3(-45, 5, -26),
+            new Vector3(-31.6f, 5, 16),
+            new Vector3(48.5f, 5, 20.7f),
+            new Vector3(22, 5, -26.7f),
+            new Vector3(-40, -2.5f, -89),
+            new Vector3(-77.7f, -2.5f, -90),
+            new Vector3(-93.4f, 7, -82.7f),
+            new Vector3(-141, 7, -81),
+            new Vector3(-137, 7, -204),
+            new Vector3(-96, 5, -185),
+            new Vector3(-111, 5, -111),
+            new Vector3(-82, 5, -142),
+            new Vector3(-20.4f, -2.3f, -164.5f),
+            new Vector3(-19, -3.6f, -115.5f),
+            new Vector3(-3.8f, -3.6f, -151),
+            new Vector3(31, -3.6f, -166),
+            new Vector3(8, -3.6f, -166),
+            new Vector3(52, 1.5f, -159),
+            new Vector3(117.4f, 9.3f, -61),
+            new Vector3(116, 9.3f, -31.5f),
+            new Vector3(94.8f, -7.86f, -16),
+            new Vector3(78, 5, -22.6f),
+            new Vector3(44, 5, -76),
+            new Vector3(47, 5, -35.5f),
+            new Vector3(47, 5, -12.5f),
+            new Vector3(29.5f, 5, 56),
+            new Vector3(-46, 13.6f, 52),
+            new Vector3(-69, 14.7f, 22.5f),
+            new Vector3(-142.6f, 13.5f, 43),
+            new Vector3(-103.7f, 5, -7.3f),
+            new Vector3(-126, 7.2f, -38)
+        }; 
         Vector3 GetSafeLocation()
         {
-            var safe = game.mapTriangles
-                      .FindAll(t => DistanceSqrNoY(t.v[0], game.localPlayer.position) < 100f);
-
-            if(safe.Count == 0)
-                return new Vector3(97, 8, -205);
-
-            var ordered = 
-                      safe.OrderByDescending(t => DistanceSqrNoY(t.v[0], game.localPlayer.position)).ToList();
-
-            return ordered[0].v[0];
-
-           
-            
+            Random r = new Random();
+            return spawnPos[r.NextInt64(0, spawnPos.Length)];
         }
+
         Vector3 temp;
         Vector3 Vec3Avg(NixFPS.CollisionTriangle t)
         {
@@ -615,43 +677,21 @@ namespace nixfps.Components.States
             //    spriteBatch.End();
             //}
 
-            //string ft = (frameTime * 1000).ToString("0,####");
-            //string fpsStr = "FPS " + fps + "|" + updatefps;
-            //var pc = " PC " + NetworkManager.players.Count;
-            //var p = NetworkManager.localPlayer;
-            //var camStr = string.Format("({0:F2}, {1:F2}, {2:F2})", p.position.X, p.position.Y, p.position.Z);
-            //var pos = " camlocal " + camStr;
-            //var pNetStr = "";
-            //var pos2 = "";
-            //if (NetworkManager.players.Count > 0)
-            //{
-            //    var player2 = NetworkManager.players[0];
-            //    var pNet = player2.position;
-
-            //    //pNetStr += string.Format("({0:F2}, {1:F2}, {2:F2})", pNet.X, pNet.Y, pNet.Z);
-
-            //    //pos2 = " player2 " + pNetStr;
-            //    pos2 = " player2Cache " + player2.netDataCache.Count + " ";
-            //}
-
-            //fpsStr += pos + pos2 + NetworkManager.Client.RTT + " ms, in " + packetsIn;
-            //fpsStr += " out " + packetsOut;
-
-            //fpsStr += " diff " + string.Format("({0:F2}, {1:F2}, {2:F2})", NetworkManager.posDiff.X, NetworkManager.posDiff.Y, NetworkManager.posDiff.Z);
-            ////fpsStr += "MP " + meshPartDrawCount;
-            ////fpsStr += lightsManager.lights.Count + " " + lightsManager.lightsToDraw.Count;
-            //fpsStr += "selected " + selectedVertexIndex;
+          
             if (dTime >= 0.1f)
             {
                 dTime = 0;
                 var cam = game.camera.position;
-                var pos = NetworkManager.localPlayer.position;
-                fpsStr = "FPS " + FPS + " RTT " + NetworkManager.Client.RTT + " ms ";
+                var lp = NetworkManager.localPlayer;
+                var pos = lp.position;
+                fpsStr = "FPS " + FPS 
+                    //+ " RTT " + NetworkManager.Client.RTT +"ms"+ 
+                    +" sb "+ game.animationManager.animationPlayer.blendStart
+                    + " b "+game.animationManager.animationPlayer.blending
+                    +" BF " + game.animationManager.animationPlayer.blendFactor
+                +" c " + lp.clipName + " cn " + lp.clipNextName;
                 //fpsStr += string.Format(" ({0:F2}, {1:F2}, {2:F2})", cam.X, cam.Y, cam.Z);
-                //fpsStr += string.Format(" ({0:F2}, {1:F2}, {2:F2})", pos.X, pos.Y, pos.Z);
-                //fpsStr += string.Format(" ({0:F2}, {1:F2}, {2:F2})", dist.X, dist.Y, dist.Z);
-                //fpsStr += $" tri {closeEnoughC}";
-                //fpsStr += $" mp {meshPartDrawCount}";
+
 
             }
             game.spriteBatch.Begin();
@@ -717,9 +757,9 @@ namespace nixfps.Components.States
         void DrawDust2()
         {
             meshPartDrawCount = 0;
-            //game.basicModelEffect.SetTech("basic_color");
-            //game.basicModelEffect.SetTech("number");
-            game.basicModelEffect.SetTech("colorTex_lightEn");
+            
+            game.basicModelEffect.SetTech("colorTexNormal_lightEn");
+            //game.basicModelEffect.SetTech("colorTex_lightEn");
             game.basicModelEffect.SetTiling(new Vector2(1f));
             game.basicModelEffect.SetKA(.3f);
             game.basicModelEffect.SetKD(.8f);
@@ -741,6 +781,7 @@ namespace nixfps.Components.States
                     var part = mesh.MeshParts[partindex];
                     //game.basicModelEffect.SetColorTexture(game.numTex[partindex]);
                     game.basicModelEffect.SetColorTexture(game.dust2Tex[partindex]);
+                    game.basicModelEffect.SetNormalTexture(game.dust2NormalTex[partindex]);
 
                     foreach (var pass in game.basicModelEffect.effect.CurrentTechnique.Passes)
                     {

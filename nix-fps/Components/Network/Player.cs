@@ -29,6 +29,8 @@ namespace nixfps
         public Matrix world;
         public string clipName;
         public byte clipId;
+        public string clipNextName;
+        public byte clipNextId;
         public float timeOffset;
         public List<PlayerCache> netDataCache = new List<PlayerCache>();
         public Vector3 teamColor;
@@ -47,6 +49,8 @@ namespace nixfps
             timeOffset = (float)new Random().NextDouble() * 5;
             clipName = "idle";
             clipId = 0;
+            clipNextName = "";
+            clipNextId = 1;
             world = scale;
             game = NixFPS.GameInstance();
             zoneCollider = new BoundingSphere(Vector3.Zero, 2.5f);
@@ -167,7 +171,8 @@ namespace nixfps
         }
         public Matrix GetWorld()
         {
-            world = scale * Matrix.CreateRotationX(MathF.PI / 2) *
+            world = scale * 
+                //Matrix.CreateRotationX(MathF.PI / 2) *
                 Matrix.CreateFromYawPitchRoll(-MathHelper.ToRadians(yaw) + MathHelper.PiOver2, 0, 0) *
                 Matrix.CreateTranslation(position);
 
