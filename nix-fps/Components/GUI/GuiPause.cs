@@ -15,14 +15,29 @@ namespace nixfps.Components.GUI
 {
     public class GuiPause : Gui
     {
-        public GuiPause() : base()
-        { }
+        StateRun sr; 
+        public GuiPause(GameState gs) : base(gs)
+        {
+            sr = (StateRun)linkedGameState;
+        }
 
         public override void AddControllers()
         {
-            
+            //controller.AddFloat("blendFactor", BlendFactorChange, 0f, 0f, 1f);
+            //controller.AddFloat("boneIndex", BoneIndexChange, 0f, 0f, 302f);
+            //controller.AddToggle("start blend", BlendStart, false);
         }
-
+        
+        void BlendFactorChange(float bf)
+        {
+            if(sr != null)
+            sr.blendFactor = bf;
+        }
+        void BoneIndexChange(float bi)
+        {
+            if (game != null)
+                game.boneIndex = (int)bi;
+        }
         public override void DrawLayout(GameTime gameTime)
         {
             ImGui.SetNextWindowPos(new System.Numerics.Vector2(0, 0));
@@ -68,6 +83,17 @@ namespace nixfps.Components.GUI
                 GameStateManager.TogglePause();
                 GameStateManager.SwitchTo(State.MAIN);
             }
+            ImGui.Dummy(new System.Numerics.Vector2(1, 60));
+            if (ImGui.Button("start blend test"))
+            {
+
+                if (sr != null)
+                {
+                    game.animationManager.animationPlayer.blendStart = true;
+                }
+
+            }
+            //controller.Draw(0, 1);
         }
     }
 }

@@ -115,6 +115,22 @@ public class Bone
             AbsoluteTransform = transform;
         }
     }
+    public Matrix GetAbsoluteTransform()
+    {
+        var transform = Matrix.CreateScale(_scale * _bindScale) * Matrix.CreateFromQuaternion(_rotation) *
+                        Matrix.CreateTranslation(_translation) * _bindTransform;
+
+        if (_parent != null)
+        // This bone has a Parent bone.
+        {
+            return transform * _parent.AbsoluteTransform;
+        }
+        else
+        // The root bone.
+        {
+            return transform;
+        }
+    }
 
     /// <summary>
     ///     This sets the Rotation and Translation such that the Rotation times the Translation times the bind after set equals

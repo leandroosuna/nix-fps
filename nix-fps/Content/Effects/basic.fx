@@ -42,6 +42,19 @@ sampler2D colorSampler = sampler_state
     MinFilter = LINEAR;
     Mipfilter = LINEAR;
 };
+
+texture normalMap;
+sampler2D normalSampler = sampler_state
+{
+    Texture = (normalMap);
+    AddressU = WRAP;
+    AddressV = WRAP;
+    MagFilter = LINEAR;
+    MinFilter = LINEAR;
+    Mipfilter = LINEAR;
+};
+
+
 float2 tiling;
 
 VertexShaderOutput ColorVS(in VertexShaderInput input)
@@ -75,7 +88,7 @@ PSO NumPS(VertexShaderOutput input)
     float3 n = normalize(input.Normal.xyz);
   
     float3 normal = (n + 1.0) * 0.5;
-
+    
     float3 texColor = tex2D(colorSampler, input.TexCoord).rgb;
     texColor += color * .25f;
     
@@ -115,6 +128,56 @@ PSO TexPS(VertexShaderOutput input)
     output.normal = float4(normal, KS);
     output.position = float4(input.WorldPos.xyz, shininess);
     output.bloomFilter = float4(0,0,0, 1);
+    return output;
+}
+float3 getNormalFromMap(float2 textureCoordinates, float3 worldPosition, float3 worldNormal)
+{
+    float3 tangentNormal = tex2D(normalSampler, textureCoordinates).xyz * 2.0 - 1.0;
+
+    float3 Q1 = ddx(worldPosition);
+    float3 Q2 = ddy(worldPosition);
+    float2 st1 = ddx(textureCoordinates);
+    float2 st2 = ddy(textureCoordinates);
+
+    worldNormal = normalize(worldNormal.xyz);
+    float3 T = normalize(Q1 * st2.y - Q2 * st1.y);
+    float3 B = -normalize(cross(worldNormal, T));
+    float3x3 TBN = float3x3(T, B, worldNormal);
+
+    return normalize(mul(tangentNormal, TBN));
+}
+
+PSO TexNormalPS(VertexShaderOutput input)
+{
+    PSO output;
+    //float3 n = normalize(input.Normal.xyz);
+    float3 n = getNormalFromMap(input.TexCoord, input.WorldPos.xyz, normalize(input.Normal.xyz));
+    float3 normal = (n + 1.0) * 0.5;
+
+    float2 dx = ddx(input.TexCoord.xy);
+    float2 dy = ddy(input.TexCoord.xy);
+    // rotated grid uv offsets
+    float2 uvOffsets = float2(0.125, 0.375);
+    float4 offsetUV = float4(0.0, 0.0, 0.0, -1);
+    // supersampled using 2x2 rotated grid
+    half4 col = 0;
+    offsetUV.xy = input.TexCoord.xy + uvOffsets.x * dx + uvOffsets.y * dy;
+    col += tex2Dbias(colorSampler, offsetUV);
+    offsetUV.xy = input.TexCoord.xy - uvOffsets.x * dx - uvOffsets.y * dy;
+    col += tex2Dbias(colorSampler, offsetUV);
+    offsetUV.xy = input.TexCoord.xy + uvOffsets.y * dx - uvOffsets.x * dy;
+    col += tex2Dbias(colorSampler, offsetUV);
+    offsetUV.xy = input.TexCoord.xy - uvOffsets.y * dx + uvOffsets.x * dy;
+    col += tex2Dbias(colorSampler, offsetUV);
+    col *= 0.25;
+    float3 texColor = col.rgb;
+    
+    //float3 texColor = tex2D(colorSampler, input.TexCoord).rgb;
+    
+    output.color = float4(texColor, KD);
+    output.normal = float4(normal, KS);
+    output.position = float4(input.WorldPos.xyz, shininess);
+    output.bloomFilter = float4(0, 0, 0, 1);
     return output;
 }
 
@@ -158,5 +221,15 @@ technique colorTex_lightEn
         AlphaBlendEnable = FALSE;
         VertexShader = compile VS_SHADERMODEL ColorVS();
         PixelShader = compile PS_SHADERMODEL TexPS();
+    }
+};
+
+technique colorTexNormal_lightEn
+{
+    pass P0
+    {
+        AlphaBlendEnable = FALSE;
+        VertexShader = compile VS_SHADERMODEL ColorVS();
+        PixelShader = compile PS_SHADERMODEL TexNormalPS();
     }
 };

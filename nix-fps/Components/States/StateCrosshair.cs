@@ -15,7 +15,7 @@ namespace nixfps.Components.States
         public StateCrosshair() : base()
         {
             inputManager = new InputOptions();
-            gui = new GuiCrosshair(); 
+            gui = new GuiCrosshair(this); 
         }
         public override void OnSwitch()
         {

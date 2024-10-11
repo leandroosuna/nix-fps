@@ -15,7 +15,7 @@ namespace nixfps.Components.GUI
 {
     public class GuiCrosshair : Gui
     {
-        public GuiCrosshair() : base()
+        public GuiCrosshair(GameState gs) : base(gs)
         { }
 
         public override void AddControllers()

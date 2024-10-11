@@ -15,7 +15,7 @@ namespace nixfps.Components.GUI
 {
     public class GuiMain : Gui
     {
-        public GuiMain() : base()
+        public GuiMain(GameState gs) : base(gs)
         { }
 
         public override void AddControllers()

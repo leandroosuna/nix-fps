@@ -33,8 +33,7 @@ namespace nixfps.Components.Effects
         
         public string soldierPath = NixFPS.ContentFolder3D + "soldier/";
 
-        List<PlayerDrawData> playerDrawData = new List<PlayerDrawData>();
-
+        
         public enum PlayerAnimation{
             idle,
             runForward,
@@ -145,31 +144,15 @@ namespace nixfps.Components.Effects
         {
             p.clipName = animationNames[(byte)anim];
         }
-        public void Update(GameTime gameTime)
+        public void Update(float deltaTime)
         {
-            animationPlayer.Update((float)gameTime.ElapsedGameTime.TotalSeconds);
-            effect.SetTime((float)gameTime.TotalGameTime.TotalSeconds);
+            animationPlayer.Update(deltaTime);
+            effect.SetTime(deltaTime);
         }
 
         
     }
-    public class PlayerDrawData
-    {
-        public uint id;
-        public Matrix SRT;
-        public string clipName;
-        public float timeOffset;
-
-
-        public PlayerDrawData(uint id)
-        { 
-            this.id = id;
-            timeOffset = (float)new Random().NextDouble() * 5;
-            clipName = "idle";
-            SRT = Matrix.CreateScale(0.025f) * Matrix.CreateRotationX(MathF.PI / 2) * Matrix.CreateTranslation(Vector3.Zero);
-
-        }
-    }
+    
     public enum PlayerAnimation
     {
         idle,

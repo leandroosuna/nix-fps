@@ -56,6 +56,7 @@ namespace nixfps
         public Texture2D[] aztecTex;
         public Texture2D[] numTex;
         public Texture2D[] dust2Tex;
+        public Texture2D[] dust2NormalTex;
 
 
         public Texture2D floorTex;
@@ -82,7 +83,8 @@ namespace nixfps
         public Hud hud;
         public Gizmos gizmos;
         public int selectedVertexIndex = 3000;
-
+        public float boneIndex = 0f;
+        public List<LightVolume> testLights = new List<LightVolume>();
         //public GUI GUI;
         public NixFPS()
         {
@@ -199,10 +201,13 @@ namespace nixfps
                 numTex[i] = Content.Load<Texture2D>(ContentFolder3D + "basic/tex/num/" + i);
             }
             dust2Tex = new Texture2D[34];
-            for (int i = 0; i < 33; i++)
-            {
-                dust2Tex[i] = Content.Load<Texture2D>(ContentFolder3D + "dust2/de_dust2_material_" + i);
-            }
+            dust2NormalTex = new Texture2D[34];
+
+            LoadDust2Tex();
+            //for (int i = 0; i < 34; i++)
+            //{
+            //    dust2Tex[i] = Content.Load<Texture2D>(ContentFolder3D + "dust2/de_dust2_material_" + i);
+            //}
 
             LightVolume.Init();
 
@@ -212,7 +217,7 @@ namespace nixfps
 
 
             lightsManager = new LightsManager();
-            lightsManager.ambientLight = new AmbientLight(new Vector3(20, 50, 20), new Vector3(1f, 1f, 1f), Vector3.One, Vector3.One);
+            lightsManager.ambientLight = new AmbientLight(new Vector3(-50, 50, 50), new Vector3(1f, 1f, 1f), Vector3.One, Vector3.One);
             animationManager = new AnimationManager();
             
             BuildMapCollider();
@@ -233,6 +238,59 @@ namespace nixfps
             
         }
 
+        private void LoadDust2Tex()
+        {
+            for (int i = 0; i < 34; i++)
+            {
+                if (i == 0)
+                {
+                    dust2Tex[i] = Content.Load<Texture2D>(ContentFolder3D + "dust2/hdtex/brick-wall-detail");
+                    dust2NormalTex[i] = Content.Load<Texture2D>(ContentFolder3D + "dust2/hdtex/brick-wall-detail-normal");
+                }
+                else if (i == 1 || i == 8 || i == 13 || i == 14 || i == 16 || i == 4)
+                {
+                    dust2Tex[i] = Content.Load<Texture2D>(ContentFolder3D + "dust2/hdtex/brick-wall");
+                    dust2NormalTex[i] = Content.Load<Texture2D>(ContentFolder3D + "dust2/hdtex/brick-wall-normal");
+                }
+                else if (i == 7 || i == 26 || i == 28 || i == 29 || i == 30)
+                {
+                    dust2Tex[i] = Content.Load<Texture2D>(ContentFolder3D + "dust2/hdtex/dd");
+                    dust2NormalTex[i] = Content.Load<Texture2D>(ContentFolder3D + "dust2/hdtex/dd-normal");
+                }
+                else if (i == 2 || i == 9 || i == 17 || i == 17 || i == 17 || i == 17 || i == 21 )
+                {
+                    dust2Tex[i] = Content.Load<Texture2D>(ContentFolder3D + "dust2/hdtex/wood-box");
+                    dust2NormalTex[i] = Content.Load<Texture2D>(ContentFolder3D + "dust2/hdtex/wood-box-normal");
+                }
+                else if( i == 12 || i == 20 || i == 31)
+                {
+                    dust2Tex[i] = Content.Load<Texture2D>(ContentFolder3D + "dust2/hdtex/wood-box-side");
+                    dust2NormalTex[i] = Content.Load<Texture2D>(ContentFolder3D + "dust2/hdtex/wood-box-side-normal");
+                }
+                else if (i == 5 || i == 6 || i == 22)
+                {
+                    dust2Tex[i] = Content.Load<Texture2D>(ContentFolder3D + "dust2/hdtex/ground-sand");
+                    dust2NormalTex[i] = Content.Load<Texture2D>(ContentFolder3D + "dust2/hdtex/ground-sand-normal");
+                }
+                else if (i == 10 || i == 15 || i == 25)
+                {
+                    dust2Tex[i] = Content.Load<Texture2D>(ContentFolder3D + "dust2/hdtex/tile-floor");
+                    dust2NormalTex[i] = Content.Load<Texture2D>(ContentFolder3D + "dust2/hdtex/tile-floor-normal");
+                }
+                else if(i == 11)
+                {
+                    dust2Tex[i] = Content.Load<Texture2D>(ContentFolder3D + "dust2/hdtex/rock-wall");
+                    dust2NormalTex[i] = Content.Load<Texture2D>(ContentFolder3D + "dust2/hdtex/rock-wall-normal");
+                }
+                else
+                {
+                    dust2NormalTex[i] = Content.Load<Texture2D>(ContentFolder3D + "dust2/hdtex/default-normal");
+                    dust2Tex[i] = Content.Load<Texture2D>(ContentFolder3D + "dust2/de_dust2_material_" + i);
+
+                }
+            }
+        }
+
         public void StopGame()
         {
             Exit();
@@ -244,16 +302,21 @@ namespace nixfps
         bool firstUpdate = true;
         protected override void Update(GameTime gameTime)
         {
+            
+            
             gameState.Update(gameTime);
 
+            
             base.Update(gameTime);
         }
-
+        
 
         protected override void Draw(GameTime gameTime)
         {
+            testLights.ForEach(l => lightsManager.Destroy(l));
+            testLights.Clear();
             gameState.Draw(gameTime);
-
+            
             base.Draw(gameTime);
         }
                
