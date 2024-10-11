@@ -24,6 +24,7 @@ namespace nixfps.Components.Effects
 
         EffectParameter screenSize;
         EffectParameter radius;
+        EffectParameter length;
         EffectParameter inverseTransposeWorld;
         EffectParameter lightAmbientColor;
         EffectParameter lightDiffuseColor;
@@ -62,6 +63,7 @@ namespace nixfps.Components.Effects
 
             lightPosition = effect.Parameters["lightPosition"];
             radius = effect.Parameters["radius"];
+            length = effect.Parameters["length"];
             lightAmbientColor = effect.Parameters["lightAmbientColor"];
             lightDiffuseColor = effect.Parameters["lightDiffuseColor"];
             lightSpecularColor = effect.Parameters["lightSpecularColor"];
@@ -120,6 +122,10 @@ namespace nixfps.Components.Effects
         public void SetRadius(float radius)
         {
             this.radius.SetValue(radius);
+        }
+        public void SetLength(float length)
+        {
+            this.length.SetValue(length);
         }
         public void SetTech(string tech)
         {

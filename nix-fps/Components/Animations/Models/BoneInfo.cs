@@ -12,7 +12,7 @@ public class BoneInfo
     /// <summary>
     ///     Bone in a model that this keyframe bone is assigned to.
     /// </summary>
-    private Bone _assignedBone;
+    public Bone _assignedBone;
 
     /// <summary>
     ///     The current keyframe. Our position is a time such that the we are greater than or equal to this keyframe's time and
@@ -61,6 +61,72 @@ public class BoneInfo
     ///     The bone in the actual animation clip.
     /// </summary>
     public AnimationBone ClipAnimationBone { get; }
+
+    (Quaternion r, Vector3 t, int) emptyResponse = (Quaternion.Identity, Vector3.Zero, 0);
+    (Keyframe from, Keyframe to) emptyKF = (new Keyframe(), new Keyframe());
+    public (Quaternion,Vector3,int) CalculateRotPos(float position, int keyFrame)
+    {
+        (Quaternion r, Vector3 t, int kf) res;
+
+        var keyframes = ClipAnimationBone.Keyframes;
+        if (keyframes.Count == 0)
+        {
+            return emptyResponse;
+        }
+        if (_assignedBone == null)
+        {
+            return emptyResponse;
+        }
+        (Keyframe from, Keyframe to) kf = GetKeyframes(keyFrame);
+        // If our current position is less that the first keyframe we move the position backward until we get to the right keyframe.
+        while (position < kf.from.Time && keyFrame > 0)
+        {
+            // We need to move backwards in time.
+            keyFrame--;
+            kf = GetKeyframes(keyFrame);
+        }
+
+        // If our current position is greater than the second keyframe we move the position forward until we get to the right keyframe.
+        while (position >= kf.to.Time && keyFrame < ClipAnimationBone.Keyframes.Count - 2)
+        {
+            // We need to move forwards in time.
+            keyFrame++;
+            kf = GetKeyframes(keyFrame);
+        }
+
+        if (kf.from == kf.to)
+        {
+            // Keyframes are equal.
+            res.r = kf.from.Rotation;
+            res.t = kf.from.Translation;
+            res.kf = keyFrame;
+
+        }
+        else
+        {
+            // Interpolate between keyframes.
+            var t = (float)((position - kf.from.Time) / (kf.to.Time - kf.from.Time));
+            res.r = Quaternion.Slerp(kf.from.Rotation, kf.to.Rotation, t);
+            res.t = Vector3.Lerp(kf.from.Translation, kf.to.Translation, t);
+            res.kf = keyFrame;
+        }
+
+        Valid = true;
+        
+        return res;
+
+    }
+    public void SetRotPos(Quaternion r, Vector3 t)
+    {
+        if(_assignedBone == null) { return; }
+
+        _rotation = r;
+        Translation = t;
+
+        var m = Matrix.CreateFromQuaternion(_rotation);
+        m.Translation = Translation;
+        _assignedBone.SetCompleteTransform(m);
+    }
 
     /// <summary>
     ///     Set the bone based on the supplied position value.
@@ -136,6 +202,28 @@ public class BoneInfo
         }
     }
 
+    (Keyframe, Keyframe) GetKeyframes(int current)
+    {
+        var kf = ClipAnimationBone.Keyframes;
+        var kfCount = ClipAnimationBone.Keyframes.Count;
+        //var corrected = current % kfCount;
+        var corrected = current;
+
+        if (kfCount > 0)
+        {
+            
+
+            return (ClipAnimationBone.Keyframes[corrected],
+            corrected == ClipAnimationBone.Keyframes.Count - 1  
+            ? KeyframeFrom
+            : ClipAnimationBone.Keyframes[corrected + 1]);
+        }
+        else
+        {
+            // If there are no keyframes, set both to null.
+            return (null, null);
+        }
+    }
     /// <summary>
     ///     Assign this bone to the correct bone in the model.
     /// </summary>

@@ -8,8 +8,8 @@
     "ProcessorName": "Animation Processor",
     "rebuild-animations": false,
 
-    "ScreenWidth": 1280,
-    "ScreenHeight": 720,
+    "ScreenWidth": 1600,
+    "ScreenHeight": 900,
     "Fullscreen": false,
     "GraphicsPreset": "ultra",
     "VSync": false,

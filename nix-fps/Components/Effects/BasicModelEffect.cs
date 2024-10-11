@@ -16,6 +16,7 @@ namespace nixfps.Components.Effects
 
         EffectParameter color;
         EffectParameter colorTexture;
+        EffectParameter normalMap;
         EffectParameter inverseTransposeWorld;
         EffectParameter lightAmbientColor;
         EffectParameter lightDiffuseColor;
@@ -42,6 +43,7 @@ namespace nixfps.Components.Effects
             view = effect.Parameters["view"];
             projection = effect.Parameters["projection"];
             colorTexture = effect.Parameters["colorTexture"];
+            normalMap = effect.Parameters["normalMap"];
             color = effect.Parameters["color"];
             inverseTransposeWorld = effect.Parameters["inverseTransposeWorld"];
             cameraPosition = effect.Parameters["cameraPosition"];
@@ -131,6 +133,11 @@ namespace nixfps.Components.Effects
         public void SetTiling(Vector2 tiling)
         {
             this.tiling.SetValue(tiling);
+        }
+
+        public void SetNormalTexture(Texture2D tex)
+        {
+            this.normalMap.SetValue(tex);
         }
     }
 }
