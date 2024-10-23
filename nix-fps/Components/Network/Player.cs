@@ -30,6 +30,9 @@ namespace nixfps
         public string clipName;
         public byte clipId;
         public string clipNextName;
+        public string clipNamePrev;
+        public string clipNextNamePrev;
+
         public byte clipNextId;
         public float timeOffset;
         public List<PlayerCache> netDataCache = new List<PlayerCache>();
@@ -48,8 +51,10 @@ namespace nixfps
 
             timeOffset = (float)new Random().NextDouble() * 5;
             clipName = "idle";
+            clipNamePrev = "idle";
             clipId = 0;
             clipNextName = "";
+            clipNextNamePrev = "";
             clipNextId = 1;
             world = scale;
             game = NixFPS.GameInstance();

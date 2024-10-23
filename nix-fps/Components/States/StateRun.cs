@@ -78,6 +78,10 @@ namespace nixfps.Components.States
 
             var keyState = Keyboard.GetState();
             var changed = false;
+            if(keyState.IsKeyDown(Keys.E))
+            {
+                game.Exit();
+            }
             if (keyState.IsKeyDown(Keys.Up))
             {
                 game.camera.pitch += uDeltaTimeFloat * 70;
@@ -129,12 +133,12 @@ namespace nixfps.Components.States
             {
                 if (keyState.IsKeyDown(Keys.U))
                 {
-                    nextClip = "sprint forward";
+                    //nextClip = "sprint forward";
 
-                    if (keyState.IsKeyDown(Keys.L))
-                        nextClip = "sprint forward right";
-                    if (keyState.IsKeyDown(Keys.J))
-                        nextClip = "sprint forward left";
+                    //if (keyState.IsKeyDown(Keys.L))
+                    //    nextClip = "sprint forward right";
+                    //if (keyState.IsKeyDown(Keys.J))
+                    //    nextClip = "sprint forward left";
                 }
                 else
                 {
@@ -156,12 +160,7 @@ namespace nixfps.Components.States
                     nextClip = "run backward left";
 
             }
-            if(nextClip != lp.clipName)
-            {
-                lp.clipNextName = nextClip;
-                if(!game.animationManager.animationPlayer.blending)
-                    game.animationManager.animationPlayer.blendStart = true;
-            }
+            lp.clipNextName = nextClip;
             
 
             //oneSec += uDeltaTimeFloat;
@@ -228,8 +227,8 @@ namespace nixfps.Components.States
 
             MapCollision();
 
-            //foreach (var l in miniLights)
-            //    game.lightsManager.Register(l);
+            foreach (var l in miniLights)
+                game.lightsManager.Register(l);
         }
 
         
@@ -318,12 +317,14 @@ namespace nixfps.Components.States
             
         }
 
+        Vector3[] dir = new Vector3[720];
+        Vector2[] hitDir = new Vector2[720];
         void MapCollision()
         {
             var bodyCheckPos = game.localPlayer.position + new Vector3(0, 1.8f, 0);
 
             var closeEnough = game.mapTriangles
-                .FindAll(t => Vector3.DistanceSquared(Vec3Avg(t), bodyCheckPos) < 250f)
+                .FindAll(t => Vector3.DistanceSquared(Vec3Avg(t), bodyCheckPos) < 150f)
                 .OrderBy(t => Vector3.DistanceSquared(Vec3Avg(t), bodyCheckPos));
                 
             closeEnoughC = closeEnough.Count();
@@ -344,26 +345,68 @@ namespace nixfps.Components.States
 
             var cis = inputManager.clientInputState;
 
-            Vector3[] dir = new Vector3[9];
 
-            dir[0] = cis.Forward? flatFrontDir: Vector3.Zero;
-            dir[0] += cis.Backward? -flatFrontDir : Vector3.Zero;
-            dir[0] += cis.Right ? flatRightDir: Vector3.Zero;
-            dir[0] += cis.Left? -flatRightDir : Vector3.Zero;
+            dir[0] = cis.Forward ? flatFrontDir : Vector3.Zero;
+            dir[0] += cis.Backward ? -flatFrontDir : Vector3.Zero;
+            dir[0] += cis.Right ? flatRightDir : Vector3.Zero;
+            dir[0] += cis.Left ? -flatRightDir : Vector3.Zero;
 
             if (dir[0] == Vector3.Zero)
                 dir[0] = flatFrontDir;
 
-            var rightFromDir = Vector3.Cross(dir[0], Vector3.Up);
-            dir[1] = dir[0] * 3.5f + rightFromDir;
-            dir[2] = dir[0] * 3.5f - rightFromDir;
-            dir[3] = dir[0] * 2 + rightFromDir;
-            dir[4] = dir[0] * 2 - rightFromDir;
-            dir[5] = dir[0] * 2 + rightFromDir * 1.2f;
-            dir[6] = dir[0] * 2 - rightFromDir * 1.2f;
-            dir[7] = dir[0] + rightFromDir * 2;
-            dir[8] = dir[0] - rightFromDir * 2;
+            //var rightFromDir = Vector3.Cross(dir[0], Vector3.Up);
+            //var leftFromDir = -rightFromDir;
+
+            //dir[1] = rightFromDir;
+            //dir[2] = leftFromDir;
+            //dir[3] = -dir[0];
+
+            //for (int i = 0; i < 5; i++)
+            //{
+            //    dir[i + 1] = Vector3.Lerp(dir[0], , (i + 1) * 0.025f);
+            //}
+            //for (int i = 0; i < 5; i++)
+            //{
+            //    dir[i + 6] = Vector3.Lerp(dir[0], leftFromDir, (i + 1) * 0.025f);
+            //}
+            //for (int i = 0; i < 5; i++)
+            //{
+            //    dir[i + 11] = Vector3.Lerp(dir[0], rightFromDir, (i + 1) * 25f);
+            //}
+            //for (int i = 0; i < 5; i++)
+            //{
+            //    dir[i + 16] = Vector3.Lerp(dir[0], leftFromDir, (i + 1) * .25f);
+            //}
+
+            var frontDirYaw = -MathHelper.ToDegrees(MathF.Atan2(dir[0].X, dir[0].Z));
+            for (int i = 0; i < 719; i++)
+            {
+                Vector3 tempFront;
+                //var yaw = (game.camera.yaw + (i * 0.5f)) % 360;
+                var yaw = (frontDirYaw + (i * 0.5f)) % 360;
+                var pitch = 0;
+
+                if (Math.Abs(frontDirYaw - yaw) > 180)
+                    continue;
+
+                tempFront.X = MathF.Cos(MathHelper.ToRadians(yaw)) * MathF.Cos(MathHelper.ToRadians(pitch));
+                tempFront.Y = MathF.Sin(MathHelper.ToRadians(pitch));
+                tempFront.Z = MathF.Sin(MathHelper.ToRadians(yaw)) * MathF.Cos(MathHelper.ToRadians(pitch));
+
+                dir[i] = Vector3.Normalize(tempFront);
+            }
             
+            
+
+            //dir[1] = dir[0] * 3.5f + rightFromDir;
+            //dir[2] = dir[0] * 3.5f - rightFromDir;
+            //dir[3] = dir[0] * 2 + rightFromDir;
+            //dir[4] = dir[0] * 2 - rightFromDir;
+            //dir[5] = dir[0] * 2 + rightFromDir * 1.2f;
+            //dir[6] = dir[0] * 2 - rightFromDir * 1.2f;
+            //dir[7] = dir[0] + rightFromDir * 2;
+            //dir[8] = dir[0] - rightFromDir * 2;
+
 
             foreach (var d in dir)
             {
@@ -378,7 +421,7 @@ namespace nixfps.Components.States
                 hitDown[i] = float.MinValue;
             }
 
-            Vector2[] hitDir = new Vector2[7];
+            
             for (int i = 0; i < hitDir.Length; i++)
             {
                 hitDir[i] = Vector2.Zero;
@@ -464,20 +507,20 @@ namespace nixfps.Components.States
             
             var last = game.localPlayer.position.Y;
 
-            
 
-            //var hitCount = 0;
-            //var acc = 0f;    
-            //foreach(var h  in hitDown) 
-            //{
-            //    if (h == float.MinValue)
-            //        continue;
-            //    acc += h;
-            //    hitCount++;
-            //}
 
-            //var newY = acc/hitCount;
-            var newY = hitDown.Average();
+            var hitCount = 0;
+            var acc = 0f;
+            foreach (var h in hitDown)
+            {
+                if (h == float.MinValue)
+                    continue;
+                acc += h;
+                hitCount++;
+            }
+
+            var newY = acc/hitCount;
+            //var newY = hitDown.Average();
 
             if (last - hitDown[0] > .5f)
             {
@@ -500,26 +543,42 @@ namespace nixfps.Components.States
             var correction = 1.55f;
             var playerNoY = new Vector2(game.localPlayer.position.X, game.localPlayer.position.Z);
 
-            
+            var newPos = game.localPlayer.position;
+            var hitDirCount = 0;
+            var delta = Vector3.Zero;
             foreach(var hit in hitDir) 
             {
                 if (hit == Vector2.Zero)
                     continue;
                 var v2 = playerNoY - hit;
 
-                var pl = new PointLight(new Vector3(hit.X, game.localPlayer.position.Y + 1.8f, hit.Y), 20f, Color.Green.ToVector3(), Color.Green.ToVector3());
+                var pl = new PointLight(new Vector3(hit.X, game.localPlayer.position.Y + 1.8f, hit.Y), 5f, Color.Green.ToVector3(), Color.Green.ToVector3());
                 pl.hasLightGeo = true;
                 pl.skipDraw = true;
                 miniLights.Add(pl);
 
-                if (v2.LengthSquared() < correction * correction) 
+                if (v2.LengthSquared() < correction  * correction ) 
                 {
                     v2.Normalize();
-                    game.localPlayer.position.X = hit.X + v2.X * correction * 1.05f;
-                    game.localPlayer.position.Z = hit.Y + v2.Y * correction * 1.05f;
+
+                    hitDirCount++;
+
+                    delta.X = ((hit.X + v2.X * correction * 1.25f - game.localPlayer.position.X) + delta.X) / 2;
+                    delta.Z = ((hit.Y + v2.Y * correction * 1.25f - game.localPlayer.position.Z) + delta.Z) / 2;
+
+                    //game.localPlayer.position.X = hit.X + v2.X * correction * 1.05f;
+                    //game.localPlayer.position.Z = hit.Y + v2.Y * correction * 1.05f;
+                    //game.localPlayer.position.X = hit.X + v2.X * correction ;
+                    //game.localPlayer.position.Z = hit.Y + v2.Y * correction;
                     pl.color = Color.Red.ToVector3();
                 }
             }
+            if(hitDirCount > 0)
+            {
+                newPos += delta;
+            }
+
+            game.localPlayer.position = newPos;
         }
 
         int totalChecks = 0;
@@ -577,7 +636,9 @@ namespace nixfps.Components.States
 
         }
         String fpsStr = "";
-        
+        string str2 = "";
+        string str3 = "";
+        string str4 = "";
         float dTime = 0;
         public override void Draw(GameTime gameTime)
         {
@@ -677,25 +738,41 @@ namespace nixfps.Components.States
             //    spriteBatch.End();
             //}
 
-          
+            
+
             if (dTime >= 0.1f)
             {
                 dTime = 0;
                 var cam = game.camera.position;
                 var lp = NetworkManager.localPlayer;
+                var ap = game.animationManager.animationPlayer;
                 var pos = lp.position;
-                fpsStr = "FPS " + FPS 
+                fpsStr = "FPS " + FPS
                     //+ " RTT " + NetworkManager.Client.RTT +"ms"+ 
-                    +" sb "+ game.animationManager.animationPlayer.blendStart
-                    + " b "+game.animationManager.animationPlayer.blending
-                    +" BF " + game.animationManager.animationPlayer.blendFactor
-                +" c " + lp.clipName + " cn " + lp.clipNextName;
+                    //+" sb "+ game.animationManager.animationPlayer.blendStart
+                    //+ " b "+game.animationManager.animationPlayer.blending
+                    + " BF " + ap.blendFactor;
+                //+" c " + lp.clipName + " cn " + lp.clipNextName;
                 //fpsStr += string.Format(" ({0:F2}, {1:F2}, {2:F2})", cam.X, cam.Y, cam.Z);
-
+                if(ap.sclip != null)
+                {
+                    str2 = "" + ap.rp.kf+ " "+ap.sclip.name;
+                }
+                if(ap.sclipnext != null)
+                {
+                    str3 = "" + ap.rp2.kf + " " + ap.sclipnext.name;
+                }
+                str4 = "pos " + ap.pos;
 
             }
             game.spriteBatch.Begin();
             game.spriteBatch.DrawString(game.fontSmall, fpsStr, Vector2.Zero, Color.White);
+
+            game.spriteBatch.DrawString(game.fontSmall, str2, new Vector2(0, 20), Color.White);
+            game.spriteBatch.DrawString(game.fontSmall, str3, new Vector2(0, 40), Color.White);
+            game.spriteBatch.DrawString(game.fontSmall, str4, new Vector2(0, 60), Color.White);
+
+
             //spriteBatch.DrawString(font, str, new Vector2(screenWidth - font.MeasureString(str).X, 0), Color.White);
             game.spriteBatch.End();
             game.hud.DrawRun(dDeltaTimeFloat);
