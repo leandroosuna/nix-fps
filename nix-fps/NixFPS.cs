@@ -205,10 +205,8 @@ namespace nixfps
             dust2NormalTex = new Texture2D[34];
 
             LoadDust2Tex();
-            //for (int i = 0; i < 34; i++)
-            //{
-            //    dust2Tex[i] = Content.Load<Texture2D>(ContentFolder3D + "dust2/de_dust2_material_" + i);
-            //}
+            
+            GameStateManager.stateRun.InitDust2Values();
 
             LightVolume.Init();
 
@@ -241,55 +239,26 @@ namespace nixfps
 
         private void LoadDust2Tex()
         {
-            for (int i = 0; i < 34; i++)
-            {
-                if (i == 0)
-                {
-                    dust2Tex[i] = Content.Load<Texture2D>(ContentFolder3D + "dust2/hdtex/brick-wall-detail");
-                    dust2NormalTex[i] = Content.Load<Texture2D>(ContentFolder3D + "dust2/hdtex/brick-wall-detail-normal");
-                }
-                else if (i == 1 || i == 8 || i == 13 || i == 14 || i == 16 || i == 4)
-                {
-                    dust2Tex[i] = Content.Load<Texture2D>(ContentFolder3D + "dust2/hdtex/brick-wall");
-                    dust2NormalTex[i] = Content.Load<Texture2D>(ContentFolder3D + "dust2/hdtex/brick-wall-normal");
-                }
-                else if (i == 7 || i == 26 || i == 28 || i == 29 || i == 30)
-                {
-                    dust2Tex[i] = Content.Load<Texture2D>(ContentFolder3D + "dust2/hdtex/dd");
-                    dust2NormalTex[i] = Content.Load<Texture2D>(ContentFolder3D + "dust2/hdtex/dd-normal");
-                }
-                else if (i == 2 || i == 9 || i == 17 || i == 17 || i == 17 || i == 17 || i == 21 )
-                {
-                    dust2Tex[i] = Content.Load<Texture2D>(ContentFolder3D + "dust2/hdtex/wood-box");
-                    dust2NormalTex[i] = Content.Load<Texture2D>(ContentFolder3D + "dust2/hdtex/wood-box-normal");
-                }
-                else if( i == 12 || i == 20 || i == 31)
-                {
-                    dust2Tex[i] = Content.Load<Texture2D>(ContentFolder3D + "dust2/hdtex/wood-box-side");
-                    dust2NormalTex[i] = Content.Load<Texture2D>(ContentFolder3D + "dust2/hdtex/wood-box-side-normal");
-                }
-                else if (i == 5 || i == 6 || i == 22)
-                {
-                    dust2Tex[i] = Content.Load<Texture2D>(ContentFolder3D + "dust2/hdtex/ground-sand");
-                    dust2NormalTex[i] = Content.Load<Texture2D>(ContentFolder3D + "dust2/hdtex/ground-sand-normal");
-                }
-                else if (i == 10 || i == 15 || i == 25)
-                {
-                    dust2Tex[i] = Content.Load<Texture2D>(ContentFolder3D + "dust2/hdtex/tile-floor");
-                    dust2NormalTex[i] = Content.Load<Texture2D>(ContentFolder3D + "dust2/hdtex/tile-floor-normal");
-                }
-                else if(i == 11)
-                {
-                    dust2Tex[i] = Content.Load<Texture2D>(ContentFolder3D + "dust2/hdtex/rock-wall");
-                    dust2NormalTex[i] = Content.Load<Texture2D>(ContentFolder3D + "dust2/hdtex/rock-wall-normal");
-                }
-                else
-                {
-                    dust2NormalTex[i] = Content.Load<Texture2D>(ContentFolder3D + "dust2/hdtex/default-normal");
-                    dust2Tex[i] = Content.Load<Texture2D>(ContentFolder3D + "dust2/de_dust2_material_" + i);
-
-                }
-            }
+            dust2Tex = new Texture2D[]{
+                Content.Load<Texture2D>(ContentFolder3D + "dust2/hdtex/brick-wall-detail"),
+                Content.Load<Texture2D>(ContentFolder3D + "dust2/hdtex/brick-wall"),
+                Content.Load<Texture2D>(ContentFolder3D + "dust2/hdtex/dd"),
+                Content.Load<Texture2D>(ContentFolder3D + "dust2/hdtex/wood-box"),
+                Content.Load<Texture2D>(ContentFolder3D + "dust2/hdtex/wood-box-side"),
+                Content.Load<Texture2D>(ContentFolder3D + "dust2/hdtex/ground-sand"),
+                Content.Load<Texture2D>(ContentFolder3D + "dust2/hdtex/tile-floor"),
+                Content.Load<Texture2D>(ContentFolder3D + "dust2/hdtex/rock-wall")
+            };
+            dust2NormalTex = new Texture2D[]{
+                Content.Load<Texture2D>(ContentFolder3D + "dust2/hdtex/brick-wall-detail-normal"),
+                Content.Load<Texture2D>(ContentFolder3D + "dust2/hdtex/brick-wall-normal"),
+                Content.Load<Texture2D>(ContentFolder3D + "dust2/hdtex/dd-normal"),
+                Content.Load<Texture2D>(ContentFolder3D + "dust2/hdtex/wood-box-normal"),
+                Content.Load<Texture2D>(ContentFolder3D + "dust2/hdtex/wood-box-side-normal"),
+                Content.Load<Texture2D>(ContentFolder3D + "dust2/hdtex/ground-sand-normal"),
+                Content.Load<Texture2D>(ContentFolder3D + "dust2/hdtex/tile-floor-normal"),
+                Content.Load<Texture2D>(ContentFolder3D + "dust2/hdtex/rock-wall-normal")
+            };
         }
 
         public void StopGame()

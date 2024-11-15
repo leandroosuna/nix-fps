@@ -589,17 +589,20 @@ namespace nixfps.Components.States
 
             //game.localPlayer.boxCollider.Min
             //game.gizmos.DrawCube(lp.position + new Vector3(0, 2.5f, 0), new Vector3(lp.boxWidth, lp.boxHeight, lp.boxWidth), corrections>0? Color.Red : Color.Green);
-            game.gizmos.Draw();
+            //game.gizmos.Draw();
             
 
-            game.gunManager.DrawGun(dDeltaTimeFloat);
 
 
             game.animationManager.DrawPlayers();
-            //game.gizmos.Draw();
+            game.lightsManager.DrawLightGeo();
+
+            game.gunManager.DrawGun(dDeltaTimeFloat);
+            
+            
+            game.gizmos.Draw();
 
             // Draw the geometry of the lights in the scene, so that we can see where the generators are
-            game.lightsManager.DrawLightGeo();
 
             /// Now we calculate the lights. first we start by sending the targets from before as textures
             /// First, we use a fullscreen quad to calculate the ambient light, as a baseline (optional)
@@ -663,11 +666,11 @@ namespace nixfps.Components.States
                 var cam = game.camera.position;
                 var ap = game.animationManager.animationPlayer;
                 var pos = lp.position;
-                fpsStr = "FPS " + FPS
+                fpsStr = "FPS " + FPS;
                     //+ " RTT " + NetworkManager.Client.RTT +"ms"+ 
                     //+" sb "+ game.animationManager.animationPlayer.blendStart
                     //+ " b "+game.animationManager.animationPlayer.blending
-                    + " BF " + ap.blendFactor;
+                    //+ " BF " + ap.blendFactor;
                 //+" c " + lp.clipName + " cn " + lp.clipNextName;
                 //fpsStr += string.Format(" ({0:F2}, {1:F2}, {2:F2})", cam.X, cam.Y, cam.Z);
                 //if(ap.sclip != null)
@@ -680,8 +683,8 @@ namespace nixfps.Components.States
                 //}
                 //str4 = "pos " + ap.pos;
 
-                str2 = "tri " + closeEnoughC;
-                str3 = "corr " + corrections;
+                //str2 = "tri " + closeEnoughC;
+                //str3 = "corr " + corrections;
             }
             game.spriteBatch.Begin();
             game.spriteBatch.DrawString(game.fontSmall, fpsStr, Vector2.Zero, Color.White);
@@ -782,8 +785,14 @@ namespace nixfps.Components.States
 
                     var part = mesh.MeshParts[partindex];
                     //game.basicModelEffect.SetColorTexture(game.numTex[partindex]);
-                    game.basicModelEffect.SetColorTexture(game.dust2Tex[partindex]);
-                    game.basicModelEffect.SetNormalTexture(game.dust2NormalTex[partindex]);
+                    var values = Dust2Values(partindex);
+
+                    game.basicModelEffect.SetColorTexture(values.tex);
+                    game.basicModelEffect.SetNormalTexture(values.normal);
+                    game.basicModelEffect.SetKA(values.ka);
+                    game.basicModelEffect.SetKD(values.kd);
+                    game.basicModelEffect.SetKS(values.ks);
+                    game.basicModelEffect.SetShininess(values.sh);
 
                     foreach (var pass in game.basicModelEffect.effect.CurrentTechnique.Passes)
                     {
@@ -908,6 +917,68 @@ namespace nixfps.Components.States
 
                 default:
                     return (false, game.numTex[index % 100]);
+            }
+        }
+
+        (Texture2D tex, Texture2D normal, float ka, float kd, float ks, float sh) brick_detail;
+        (Texture2D tex, Texture2D normal, float ka, float kd, float ks, float sh) brick_wall;
+        (Texture2D tex, Texture2D normal, float ka, float kd, float ks, float sh) dd;
+        (Texture2D tex, Texture2D normal, float ka, float kd, float ks, float sh) box;
+        (Texture2D tex, Texture2D normal, float ka, float kd, float ks, float sh) box_side;
+        (Texture2D tex, Texture2D normal, float ka, float kd, float ks, float sh) sand;
+        (Texture2D tex, Texture2D normal, float ka, float kd, float ks, float sh) tile;
+        (Texture2D tex, Texture2D normal, float ka, float kd, float ks, float sh) rock;
+        
+        public void InitDust2Values()
+        {
+            brick_detail = (game.dust2Tex[0], game.dust2NormalTex[0], .3f, .6f, .1f, 2);
+            brick_wall = (game.dust2Tex[1], game.dust2NormalTex[1], .3f, .6f, .1f, 2);
+            dd = (game.dust2Tex[2], game.dust2NormalTex[2], .3f, .6f, .1f, 2);
+            box = (game.dust2Tex[3], game.dust2NormalTex[3], .3f, .6f, .1f, 2);
+            box_side = (game.dust2Tex[4], game.dust2NormalTex[4], .3f, .6f, .1f, 2);
+            sand = (game.dust2Tex[5], game.dust2NormalTex[5], .3f, .6f, .1f, 2);
+            tile = (game.dust2Tex[6], game.dust2NormalTex[6], .3f, .8f, .8f, 10);
+            rock = (game.dust2Tex[7], game.dust2NormalTex[7], .3f, .8f, .8f, 10);
+        }
+
+        public (Texture2D tex, Texture2D normal, float ka, float kd, float ks, float sh) Dust2Values(int index)
+        {
+            
+            switch (index)
+            {
+                case 0: return brick_detail;
+                case 1: return brick_wall;
+                case 2: return box;
+                //3 white
+                case 4: return brick_wall;
+                case 5: return sand;
+                case 6: return sand;
+                case 7: return dd;
+                case 8: return brick_wall;
+                case 9: return box;
+                case 10: return tile;
+                case 11: return rock;
+                case 12: return box_side;
+                case 13: return brick_wall;
+                case 14: return brick_wall;
+                case 15: return tile;
+                case 16: return brick_wall;
+                case 17: return box_side;
+
+                case 20: return box_side;
+                case 21: return box;
+                case 22: return sand;
+                case 23: return dd;
+
+                case 25: return tile;
+                case 26: return dd;
+                case 27: return brick_wall;
+                case 28: return dd;
+                case 29: return dd;
+                case 30: return dd;
+                case 31: return box_side;
+
+                default: return brick_detail;
             }
         }
     }
