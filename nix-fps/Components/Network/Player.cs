@@ -22,6 +22,7 @@ namespace nixfps
         public Vector3 positionPrev = Vector3.Zero;
         public Vector3 frontDirection = Vector3.Zero;
         public Vector3 rightDirection = Vector3.Zero;
+        public bool onAir = false;
         public float yaw;
         public float pitch = 0f;
         
@@ -42,7 +43,9 @@ namespace nixfps
         public BoundingSphere zoneCollider;
         public BoundingCylinder headCollider;
         public BoundingCylinder bodyCollider;
-        
+        public BoundingBox boxCollider;
+        public float boxWidth = 2;
+        public float boxHeight = 4;
         public Player(uint id)
         {
             this.id = id;
@@ -62,6 +65,15 @@ namespace nixfps
             headCollider = new BoundingCylinder(Vector3.Zero, .25f, .34f);
             bodyCollider = new BoundingCylinder(Vector3.Zero, .5f, .75f);
 
+
+            boxCollider = new BoundingBox(
+                position + new Vector3(-boxWidth / 2, 2 - boxHeight / 2, -boxWidth / 2), 
+                position + new Vector3(boxWidth / 2, 2 + boxHeight / 2, boxWidth / 2));
+        }
+        public void UpdateBoxCollider()
+        {
+            boxCollider.Min = position + new Vector3(-boxWidth / 2, 3.5f - boxHeight / 2, -boxWidth / 2);
+            boxCollider.Max = position + new Vector3(boxWidth / 2, 3.5f + boxHeight / 2, boxWidth / 2);
         }
         public void UpdateColliders() 
         {
@@ -69,6 +81,8 @@ namespace nixfps
             
             headCollider.Center = position + new Vector3(0, 4.3f, 0);
             bodyCollider.Center = position + new Vector3(0, 3.15f, 0);
+            boxCollider.Min = position + new Vector3(-boxWidth / 2, 2.5f - boxHeight / 2, -boxWidth / 2);
+            boxCollider.Max = position + new Vector3(boxWidth / 2, 2.5f + boxHeight / 2, boxWidth / 2);
 
             Matrix headRotation = Matrix.Identity;
             Matrix bodyRotation = Matrix.Identity;

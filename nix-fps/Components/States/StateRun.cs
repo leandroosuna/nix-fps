@@ -48,21 +48,25 @@ namespace nixfps.Components.States
         //public bool blendStart = false;
 
         public int closeEnoughC;
-        public bool onAir = false;
+        //public bool onAir = false;
         public float airTime = 0f;
 
         bool mb2down = false;
         bool mb2click = false;
 
         Vector3 currentPosHit = Vector3.Zero;
+        Player lp;
         public override void Update(GameTime gameTime)
         {
+            if(lp == null)
+                lp = game.localPlayer;
+            
             //game.animationManager.animationPlayer.blendFactor = blendFactor;
             //game.animationManager.animationPlayer.blendStart = blendStart;
-
+            
 
             base.Update(gameTime);
-
+            lp.UpdateColliders();
             NetworkManager.InterpolatePlayers(game.mainStopwatch.ElapsedMilliseconds);
 
             game.gizmos.UpdateViewProjection(game.camera.view, game.camera.projection);
@@ -78,7 +82,7 @@ namespace nixfps.Components.States
 
             var keyState = Keyboard.GetState();
             var changed = false;
-            if(keyState.IsKeyDown(Keys.E))
+            if(keyState.IsKeyDown(Keys.Q))
             {
                 game.Exit();
             }
@@ -114,7 +118,7 @@ namespace nixfps.Components.States
             {
                 game.camera.UpdateCameraVectors();
             }
-            var lp = NetworkManager.localPlayer;
+            
             string nextClip = "idle";
             //if(lp.clipName )
 
@@ -176,57 +180,59 @@ namespace nixfps.Components.States
                 game.lightsManager.Destroy(l);
             miniLights.Clear();
 
-            if (!onAir && inputManager.clientInputState.Jump)
+            if (!lp.onAir && inputManager.clientInputState.Jump)
             {
                 verticalVelocity = jumpForce;
-                onAir = true;
+                lp.onAir = true;
             }
 
-            if (onAir)
+            if (lp.onAir)
             {
                 verticalVelocity += gravity * uDeltaTimeFloat;
 
-                game.localPlayer.position.Y += verticalVelocity * uDeltaTimeFloat;
+                lp.position.Y += verticalVelocity * uDeltaTimeFloat;
 
                 airTime += uDeltaTimeFloat;
                 if (airTime > 2.5f)
                 {
                     airTime = 0;
-                    onAir = false;
+                    lp.onAir = false;
 
-                    game.localPlayer.position = GetSafeLocation();
+                    lp.position = GetSafeLocation();
                     game.camera.pitch = 0f;
                 }
             }
             //game.hud.crosshair.SetColor(onAir?Color.Blue:Color.White);
 
-            //ShowPointingAt();
+            //ShowPointingAtVertex();
 
-            
-            var ms = Mouse.GetState();
-            if (!mb2down)
-            {
-                if (ms.RightButton == ButtonState.Pressed)
-                {
-                    mb2down = true;
-                    ShowPointingAt();
-                    var pl = new PointLight(currentPosHit - game.camera.frontDirection * 5f, 20f, new Vector3(1, 1, .8f), new Vector3(1, 1, .8f));
-                    pl.skipDraw = false;
-                    pl.hasLightGeo = false;
-                    game.lightsManager.Register(pl);
-                }
 
-            }
-            else
-            {
-                if (ms.RightButton == ButtonState.Released)
-                {
-                    mb2down = false;
-                }
-            }
+            //var ms = Mouse.GetState();
+            //if (!mb2down)
+            //{
+            //    if (ms.RightButton == ButtonState.Pressed)
+            //    {
+            //        mb2down = true;
+            //        ShowPointingAt();
+            //        var pl = new PointLight(currentPosHit - game.camera.frontDirection * 5f, 20f, new Vector3(1, 1, .8f), new Vector3(1, 1, .8f));
+            //        pl.skipDraw = false;
+            //        pl.hasLightGeo = false;
+            //        game.lightsManager.Register(pl);
+            //    }
 
-            MapCollision();
+            //}
+            //else
+            //{
+            //    if (ms.RightButton == ButtonState.Released)
+            //    {
+            //        mb2down = false;
+            //    }
+            //}
 
+            //MapCollision();
+            MapCollisionInit();
+            MapCollisionFloor();
+            MapCollisionBox();
             foreach (var l in miniLights)
                 game.lightsManager.Register(l);
         }
@@ -319,267 +325,103 @@ namespace nixfps.Components.States
 
         Vector3[] dir = new Vector3[720];
         Vector2[] hitDir = new Vector2[720];
-        void MapCollision()
+        IOrderedEnumerable<NixFPS.CollisionTriangle> closeEnough;
+        void MapCollisionInit()
         {
-            var bodyCheckPos = game.localPlayer.position + new Vector3(0, 1.8f, 0);
-
-            var closeEnough = game.mapTriangles
+            var bodyCheckPos = lp.position + new Vector3(0, 1.8f, 0);
+            closeEnough = game.mapTriangles
                 .FindAll(t => Vector3.DistanceSquared(Vec3Avg(t), bodyCheckPos) < 150f)
                 .OrderBy(t => Vector3.DistanceSquared(Vec3Avg(t), bodyCheckPos));
-                
-            closeEnoughC = closeEnough.Count();
-
-            var flatFrontDir = game.localPlayer.frontDirection;
-            flatFrontDir.Y = 0;
-            flatFrontDir.Normalize();
-            
-            var flatBackDir = -flatFrontDir;
-
-            var flatRightDir = game.localPlayer.rightDirection;
-            flatRightDir.Y = 0;
-            flatRightDir.Normalize();
-
-            var flatLeftDir = -flatRightDir;
-            
-            var avgDelta = .5f;
-
-            var cis = inputManager.clientInputState;
-
-
-            dir[0] = cis.Forward ? flatFrontDir : Vector3.Zero;
-            dir[0] += cis.Backward ? -flatFrontDir : Vector3.Zero;
-            dir[0] += cis.Right ? flatRightDir : Vector3.Zero;
-            dir[0] += cis.Left ? -flatRightDir : Vector3.Zero;
-
-            if (dir[0] == Vector3.Zero)
-                dir[0] = flatFrontDir;
-
-            //var rightFromDir = Vector3.Cross(dir[0], Vector3.Up);
-            //var leftFromDir = -rightFromDir;
-
-            //dir[1] = rightFromDir;
-            //dir[2] = leftFromDir;
-            //dir[3] = -dir[0];
-
-            //for (int i = 0; i < 5; i++)
-            //{
-            //    dir[i + 1] = Vector3.Lerp(dir[0], , (i + 1) * 0.025f);
-            //}
-            //for (int i = 0; i < 5; i++)
-            //{
-            //    dir[i + 6] = Vector3.Lerp(dir[0], leftFromDir, (i + 1) * 0.025f);
-            //}
-            //for (int i = 0; i < 5; i++)
-            //{
-            //    dir[i + 11] = Vector3.Lerp(dir[0], rightFromDir, (i + 1) * 25f);
-            //}
-            //for (int i = 0; i < 5; i++)
-            //{
-            //    dir[i + 16] = Vector3.Lerp(dir[0], leftFromDir, (i + 1) * .25f);
-            //}
-
-            var frontDirYaw = -MathHelper.ToDegrees(MathF.Atan2(dir[0].X, dir[0].Z));
-            for (int i = 0; i < 719; i++)
-            {
-                Vector3 tempFront;
-                //var yaw = (game.camera.yaw + (i * 0.5f)) % 360;
-                var yaw = (frontDirYaw + (i * 0.5f)) % 360;
-                var pitch = 0;
-
-                if (Math.Abs(frontDirYaw - yaw) > 180)
-                    continue;
-
-                tempFront.X = MathF.Cos(MathHelper.ToRadians(yaw)) * MathF.Cos(MathHelper.ToRadians(pitch));
-                tempFront.Y = MathF.Sin(MathHelper.ToRadians(pitch));
-                tempFront.Z = MathF.Sin(MathHelper.ToRadians(yaw)) * MathF.Cos(MathHelper.ToRadians(pitch));
-
-                dir[i] = Vector3.Normalize(tempFront);
-            }
-            
-            
-
-            //dir[1] = dir[0] * 3.5f + rightFromDir;
-            //dir[2] = dir[0] * 3.5f - rightFromDir;
-            //dir[3] = dir[0] * 2 + rightFromDir;
-            //dir[4] = dir[0] * 2 - rightFromDir;
-            //dir[5] = dir[0] * 2 + rightFromDir * 1.2f;
-            //dir[6] = dir[0] * 2 - rightFromDir * 1.2f;
-            //dir[7] = dir[0] + rightFromDir * 2;
-            //dir[8] = dir[0] - rightFromDir * 2;
-
-
-            foreach (var d in dir)
-            {
-                d.Normalize();
-            }
-
-
-            float[] hitDown = new float[5];
-
-            for(int i = 0; i < hitDown.Length; i++)
-            {
-                hitDown[i] = float.MinValue;
-            }
-
-            
-            for (int i = 0; i < hitDir.Length; i++)
-            {
-                hitDir[i] = Vector2.Zero;
-            }
+        }
+        float hitDown;
+        float avgDelta = .5f;
+        void MapCollisionFloor()
+        {
+            hitDown = float.MinValue;
             
             foreach (var triangle in closeEnough)
             {
 
                 var hitPos = BoundingVolumesExtensions.IntersectRayWithTriangle(
-                    game.localPlayer.position + new Vector3(0, 2, 0), -Vector3.Up, triangle.v[0], triangle.v[1], triangle.v[2]);
-
-                if(hitPos.HasValue)
-                {
-                    if (hitPos.Value.Y > hitDown[0])
-                    {
-                        hitDown[0] = hitPos.Value.Y;
-
-                        var pl = new PointLight(hitPos.Value, 5, Color.Blue.ToVector3(), Color.Blue.ToVector3());
-                        pl.skipDraw = true;
-                        pl.hasLightGeo = true;
-                        miniLights.Add(pl);
-                    }
-                    
-                }
-                hitPos = BoundingVolumesExtensions.IntersectRayWithTriangle(
-                    game.localPlayer.position + new Vector3(avgDelta, 2, avgDelta), -Vector3.Up, triangle.v[0], triangle.v[1], triangle.v[2]);
+                    lp.position + new Vector3(0, 2, 0), -Vector3.Up, triangle.v[0], triangle.v[1], triangle.v[2]);
 
                 if (hitPos.HasValue)
                 {
-                    if (hitPos.Value.Y > hitDown[1])
+                    if(hitPos.Value.Y > hitDown)
                     {
-                        hitDown[1] = hitPos.Value.Y;
+                        hitDown = hitPos.Value.Y;
                     }
                 }
-                hitPos = BoundingVolumesExtensions.IntersectRayWithTriangle(
-                    game.localPlayer.position + new Vector3(-avgDelta, 2, avgDelta), -Vector3.Up, triangle.v[0], triangle.v[1], triangle.v[2]);
-                if (hitPos.HasValue)
-                {
-                    if (hitPos.Value.Y > hitDown[2])
-                    {
-                        hitDown[2] = hitPos.Value.Y;
-                    }
-                }
-
-                hitPos = BoundingVolumesExtensions.IntersectRayWithTriangle(
-                    game.localPlayer.position + new Vector3(avgDelta, 2, -avgDelta), -Vector3.Up, triangle.v[0], triangle.v[1], triangle.v[2]);
-                if (hitPos.HasValue)
-                {
-                    if (hitPos.Value.Y > hitDown[3])
-                    {
-                        hitDown[3] = hitPos.Value.Y;
-                    }
-                }
-                hitPos = BoundingVolumesExtensions.IntersectRayWithTriangle(
-                    game.localPlayer.position + new Vector3(-avgDelta, 2, -avgDelta), -Vector3.Up, triangle.v[0], triangle.v[1], triangle.v[2]);
-
-                if (hitPos.HasValue)
-                {
-                    if (hitPos.Value.Y > hitDown[4])
-                    {
-                        hitDown[4] = hitPos.Value.Y;
-                    }
-                }
-
-
-                for (int i = 0; i < hitDir.Count(); i++)
-                {
-                    if (hitDir[i] == Vector2.Zero)
-                    {
-                        hitPos = BoundingVolumesExtensions.IntersectRayWithTriangle(
-                            bodyCheckPos, dir[i], triangle.v[0], triangle.v[1], triangle.v[2]);
-
-                        if(hitPos.HasValue)
-                        {
-                            hitDir[i] = new Vector2(hitPos.Value.X, hitPos.Value.Z); 
-                        }
-                    }
-                }
-
-
-
+               
             }
             
-            var last = game.localPlayer.position.Y;
+            var last = lp.position.Y;
 
-
-
-            var hitCount = 0;
-            var acc = 0f;
-            foreach (var h in hitDown)
+            if (last - hitDown > .25f)
             {
-                if (h == float.MinValue)
-                    continue;
-                acc += h;
-                hitCount++;
+                lp.onAir = true;
             }
-
-            var newY = acc/hitCount;
-            //var newY = hitDown.Average();
-
-            if (last - hitDown[0] > .5f)
+            if (!lp.onAir)
             {
-                onAir = true;
-                
-            }
-            if (!onAir)
-            {
-                game.localPlayer.position.Y = newY;
+                lp.position.Y = hitDown;
             }
             else
             {
-                if (game.localPlayer.position.Y - hitDown[0] < 0.05f)
+                if (lp.position.Y - hitDown < 0.05f)
                 {
                     airTime = 0;
-                    onAir = false;
+                    lp.onAir = false;
                 }
             }
-            
-            var correction = 1.55f;
-            var playerNoY = new Vector2(game.localPlayer.position.X, game.localPlayer.position.Z);
 
-            var newPos = game.localPlayer.position;
-            var hitDirCount = 0;
-            var delta = Vector3.Zero;
-            foreach(var hit in hitDir) 
-            {
-                if (hit == Vector2.Zero)
-                    continue;
-                var v2 = playerNoY - hit;
-
-                var pl = new PointLight(new Vector3(hit.X, game.localPlayer.position.Y + 1.8f, hit.Y), 5f, Color.Green.ToVector3(), Color.Green.ToVector3());
-                pl.hasLightGeo = true;
-                pl.skipDraw = true;
-                miniLights.Add(pl);
-
-                if (v2.LengthSquared() < correction  * correction ) 
-                {
-                    v2.Normalize();
-
-                    hitDirCount++;
-
-                    delta.X = ((hit.X + v2.X * correction * 1.25f - game.localPlayer.position.X) + delta.X) / 2;
-                    delta.Z = ((hit.Y + v2.Y * correction * 1.25f - game.localPlayer.position.Z) + delta.Z) / 2;
-
-                    //game.localPlayer.position.X = hit.X + v2.X * correction * 1.05f;
-                    //game.localPlayer.position.Z = hit.Y + v2.Y * correction * 1.05f;
-                    //game.localPlayer.position.X = hit.X + v2.X * correction ;
-                    //game.localPlayer.position.Z = hit.Y + v2.Y * correction;
-                    pl.color = Color.Red.ToVector3();
-                }
-            }
-            if(hitDirCount > 0)
-            {
-                newPos += delta;
-            }
-
-            game.localPlayer.position = newPos;
         }
+        int corrections = 0;
+        void MapCollisionBox()
+        {
+            //var lp = game.localPlayer;
+
+            totalChecks = 0;
+
+
+            bool[] triangleHit = new bool[closeEnough.Count()];
+
+            var closeEnoughArr = closeEnough.Where(c=>Vector3.Dot(c.GetNormal(), Vector3.Up) <= .1f) .ToArray();
+
+            corrections = 0;
+          
+            do
+            {
+                //find hits
+                for (int i = 0; i < closeEnoughArr.Count(); i++)
+                {
+                    triangleHit[i] = CollisionHelper.IsTriangleIntersectingAABB(closeEnoughArr[i], lp.boxCollider);
+                }
+                //attempt to correct one by one, (first correction might correct others)
+                for (int i = 0; i < closeEnoughArr.Count(); i++)
+                {
+                    var t = closeEnoughArr[i];
+                    if(triangleHit[i])
+                    {
+                        Vector3 normal = closeEnoughArr[i].GetNormal();
+                        normal.Normalize();
+                        corrections = 0;
+                        do
+                        {
+                            lp.position += -normal * uDeltaTimeFloat;
+
+                            lp.UpdateBoxCollider();
+
+                            corrections++;
+                        } while (CollisionHelper.IsTriangleIntersectingAABB(closeEnoughArr[i], lp.boxCollider));
+
+                        break;
+                    }
+                }
+            }
+            while (triangleHit.Any(h => h)); 
+
+        }
+
 
         int totalChecks = 0;
         float triangleDistSqr = 400f;
@@ -635,6 +477,75 @@ namespace nixfps.Components.States
             }
 
         }
+
+        void ShowPointingAtVertex()
+        {
+            totalChecks = 0;
+
+            IOrderedEnumerable<NixFPS.CollisionTriangle> closeEnough;
+
+            var hitList = new List<Vector3>();
+            var vertexHitList = new List<Vector3>();
+
+            Vector3 fromPos = game.camera.position;
+            var camFD = game.camera.frontDirection;
+            float posOffset = 0;
+
+            Vector3 []tempArr= new Vector3[3];
+
+            while (hitList.Count == 0 && posOffset <= 212f)
+            {
+                closeEnough = game.mapTriangles
+                    .FindAll(t => Vector3.DistanceSquared(t.v[0], fromPos + camFD * posOffset) < triangleDistSqr)
+                    .OrderBy(t => Vector3.DistanceSquared(t.v[0], fromPos + camFD * posOffset));
+
+                //foreach (var triangle in closeEnough)
+                //{
+
+                //    hitPos = BoundingVolumesExtensions.IntersectRayWithTriangle(game.camera.position, camFD, triangle.v[0], triangle.v[1], triangle.v[2]);
+                //    totalChecks++;
+                //    if (hitPos.HasValue)
+                //        hitList.Add(hitPos.Value);
+                //}
+                Parallel.ForEach(closeEnough, triangle =>
+                {
+
+                    var hitPos = BoundingVolumesExtensions.IntersectRayWithTriangle(game.camera.position, camFD, triangle.v[0], triangle.v[1], triangle.v[2]);
+                    //totalChecks++;
+                    if (hitPos.HasValue)
+                    {
+                        hitList.Add(hitPos.Value);
+
+                        tempArr[0] = triangle.v[1];
+                        tempArr[1] = triangle.v[2];
+                        tempArr[2] = triangle.v[2];
+                        var closest = tempArr.OrderBy(v => Vector3.DistanceSquared(v, hitPos.Value)).ToList()[0];
+                        vertexHitList.Add(closest);
+                    }
+                });
+                posOffset += stepDist; //2 * sqrt 500
+
+            }
+            //if (hitList.Count > 0)
+            //{
+            //    currentPosHit = hitList.OrderBy(t => Vector3.DistanceSquared(t, game.camera.position)).ToList()[0];
+            //    var pl = new PointLight(currentPosHit - game.camera.frontDirection * 4f, 10f, new Vector3(1, 0, 1), new Vector3(1, 0, 1));
+            //    //var pl = new CylinderLight(currentPosHit - game.camera.frontDirection * 1, 20f, 10f, Color.White.ToVector3(), Matrix.Identity, Color.White.ToVector3());
+            //    pl.hasLightGeo = true;
+            //    pl.skipDraw = false;
+            //    miniLights.Add(pl);
+            //}
+
+            if (vertexHitList.Count > 0)
+            {
+                var cph = vertexHitList.OrderBy(t => Vector3.DistanceSquared(t, game.camera.position)).ToList()[0];
+                var pl = new PointLight(cph, 10f, new Vector3(1, 1, 1), new Vector3(1, 1, 1));
+                pl.hasLightGeo = true;
+                pl.skipDraw = true;
+                miniLights.Add(pl);
+            }
+
+        }
         String fpsStr = "";
         string str2 = "";
         string str3 = "";
@@ -667,19 +578,25 @@ namespace nixfps.Components.States
             //DrawAztec();
             //DrawBox();
             DrawDust2();
-            game.localPlayer.UpdateColliders();
+            
 
             //gizmos.DrawSphere(localPlayer.zoneCollider.Center, new Vector3(localPlayer.zoneCollider.Radius), Color.White);
             //gizmos.DrawCylinder(localPlayer.headCollider.Center, localPlayer.headCollider.Rotation, 
             //    new Vector3(localPlayer.headCollider.Radius, localPlayer.headCollider.HalfHeight, localPlayer.headCollider.Radius), Color.Red);
-            //gizmos.DrawCylinder(localPlayer.bodyCollider.Center, localPlayer.bodyCollider.Rotation, 
-            //    new Vector3(localPlayer.bodyCollider.Radius, localPlayer.bodyCollider.HalfHeight, localPlayer.bodyCollider.Radius), Color.Green);
-            //gizmos.Draw();
+
+            //game.gizmos.DrawCylinder(NetworkManager.localPlayer.bodyCollider.Center, NetworkManager.localPlayer.bodyCollider.Rotation,
+            //    new Vector3(NetworkManager.localPlayer.bodyCollider.Radius, NetworkManager.localPlayer.bodyCollider.HalfHeight, NetworkManager.localPlayer.bodyCollider.Radius), Color.Green);
+
+            //game.localPlayer.boxCollider.Min
+            //game.gizmos.DrawCube(lp.position + new Vector3(0, 2.5f, 0), new Vector3(lp.boxWidth, lp.boxHeight, lp.boxWidth), corrections>0? Color.Red : Color.Green);
+            game.gizmos.Draw();
+            
+
             game.gunManager.DrawGun(dDeltaTimeFloat);
 
 
             game.animationManager.DrawPlayers();
-            game.gizmos.Draw();
+            //game.gizmos.Draw();
 
             // Draw the geometry of the lights in the scene, so that we can see where the generators are
             game.lightsManager.DrawLightGeo();
@@ -744,7 +661,6 @@ namespace nixfps.Components.States
             {
                 dTime = 0;
                 var cam = game.camera.position;
-                var lp = NetworkManager.localPlayer;
                 var ap = game.animationManager.animationPlayer;
                 var pos = lp.position;
                 fpsStr = "FPS " + FPS
@@ -754,16 +670,18 @@ namespace nixfps.Components.States
                     + " BF " + ap.blendFactor;
                 //+" c " + lp.clipName + " cn " + lp.clipNextName;
                 //fpsStr += string.Format(" ({0:F2}, {1:F2}, {2:F2})", cam.X, cam.Y, cam.Z);
-                if(ap.sclip != null)
-                {
-                    str2 = "" + ap.rp.kf+ " "+ap.sclip.name;
-                }
-                if(ap.sclipnext != null)
-                {
-                    str3 = "" + ap.rp2.kf + " " + ap.sclipnext.name;
-                }
-                str4 = "pos " + ap.pos;
+                //if(ap.sclip != null)
+                //{
+                //    str2 = "" + ap.rp.kf+ " "+ap.sclip.name;
+                //}
+                //if(ap.sclipnext != null)
+                //{
+                //    str3 = "" + ap.rp2.kf + " " + ap.sclipnext.name;
+                //}
+                //str4 = "pos " + ap.pos;
 
+                str2 = "tri " + closeEnoughC;
+                str3 = "corr " + corrections;
             }
             game.spriteBatch.Begin();
             game.spriteBatch.DrawString(game.fontSmall, fpsStr, Vector2.Zero, Color.White);
@@ -836,12 +754,19 @@ namespace nixfps.Components.States
             meshPartDrawCount = 0;
             
             game.basicModelEffect.SetTech("colorTexNormal_lightEn");
-            //game.basicModelEffect.SetTech("colorTex_lightEn");
             game.basicModelEffect.SetTiling(new Vector2(1f));
+
+            //ceramic
             game.basicModelEffect.SetKA(.3f);
             game.basicModelEffect.SetKD(.8f);
             game.basicModelEffect.SetKS(.8f);
             game.basicModelEffect.SetShininess(10f);
+
+            //game.basicModelEffect.SetKA(.3f);
+            //game.basicModelEffect.SetKD(.6f);
+            //game.basicModelEffect.SetKS(.1f);
+            //game.basicModelEffect.SetShininess(2f);
+
 
             foreach (var mesh in game.dust2.Meshes)
             {
