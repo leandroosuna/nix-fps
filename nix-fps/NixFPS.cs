@@ -156,7 +156,8 @@ namespace nixfps
 
             Gui.Init();
             GameStateManager.Init();
-            GameStateManager.SwitchTo(State.MAIN);
+            //GameStateManager.SwitchTo(State.MAIN);
+            GameStateManager.SwitchTo(State.RUN);
 
             NetworkManager.Connect();
             localPlayer = NetworkManager.localPlayer;
@@ -398,6 +399,12 @@ namespace nixfps
             public CollisionTriangle()
             {
                 v = new Vector3[3];
+            }
+            public Vector3 GetNormal()
+            {
+                Vector3 edge1 = v[1] - v[0];
+                Vector3 edge2 = v[2] - v[0];
+                return Vector3.Cross(edge1, edge2);
             }
         }
         public bool CheckTriangle(CollisionTriangle t)

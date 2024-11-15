@@ -38,6 +38,8 @@ namespace nixfps.Components.States
             dDeltaTimeDouble = gameTime.ElapsedGameTime.TotalSeconds;
             dDeltaTimeFloat = (float)uDeltaTimeDouble;
             FPS = (int)(1 / dDeltaTimeDouble);
+
+            game.gizmos.UpdateViewProjection(game.camera.view, game.camera.projection);
         }
 
     }

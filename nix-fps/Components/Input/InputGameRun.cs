@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using static MonoGame.Framework.Content.Pipeline.Builder.PipelineBuildEvent;
 
 namespace nixfps.Components.Input
 {
@@ -144,12 +145,19 @@ namespace nixfps.Components.Input
             //}
         }
 
+        
+        private float groundAcceleration = 10f; // acceleration rate on ground
+        private float airAcceleration = 4f; // acceleration rate in air
+        private float maxSpeed = 18f; // regular speed
+        private float sprintSpeed = 25f; // sprint speed
+        private Vector3 velocity = Vector3.Zero; // stores current player velocity
+
         public override void ApplyInput(ClientInputState state)
         {
             var frontFlat = Vector3.Normalize(new Vector3(localPlayer.frontDirection.X, 0, localPlayer.frontDirection.Z));
             var rightFlat = Vector3.Cross(Vector3.Up, frontFlat);
 
-            Vector3 dir = Vector3.Zero;
+            Vector3 targetDirection = Vector3.Zero;
             int dz = 0;
             int dx = 0;
 
@@ -162,17 +170,28 @@ namespace nixfps.Components.Input
             if (state.Right)
                 dx--;
 
-            dir += (dz * frontFlat + dx * rightFlat);
-            speed = 18;
+            targetDirection += (dz * frontFlat + dx * rightFlat);
+
+            // Determine target speed
+            float targetSpeed = maxSpeed;
             if (dz > 0 && state.Sprint)
-                speed = 25;
+                targetSpeed = sprintSpeed;
 
-            if (dir != Vector3.Zero)
-                dir = Vector3.Normalize(dir);
+            // Choose acceleration based on whether the player is in the air
+            float acceleration = localPlayer.onAir ? airAcceleration : groundAcceleration;
 
-            localPlayer.position += dir * speed * state.deltaTime;
+            if (targetDirection != Vector3.Zero)
+                targetDirection = Vector3.Normalize(targetDirection);
+            else
+                acceleration *= 1.25f; //Slow down faster
+
+            // Calculate desired velocity with acceleration
+            Vector3 desiredVelocity = targetDirection * targetSpeed;
+            
+            velocity = Vector3.Lerp(velocity, desiredVelocity, acceleration * game.gameState.uDeltaTimeFloat);
+
+            localPlayer.position += velocity * game.gameState.uDeltaTimeFloat;
             camera.position = localPlayer.position + new Vector3(0, 4, 0);
-
         }
     }
 }
