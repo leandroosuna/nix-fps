@@ -91,7 +91,7 @@ namespace nixfps.Components.Gun
                         + camera.frontDirection * 1.6f;
 
             var dir = camera.frontDirection;
-            tracers.Add(new Tracer(new Vector3((float)240.0 / 255, (float)111.0 / 255, (float)12.0 / 255), pos, dir));
+            tracers.Add(new Tracer(Color.Green.ToVector3(), pos, dir));
             Ray ray = new Ray(camera.position, camera.frontDirection);
             
             //check environment 
@@ -106,14 +106,29 @@ namespace nixfps.Components.Gun
             List<Player> hit = new List<Player>();
             if(game.localPlayer.Hit(ray))
                 hit.Add(game.localPlayer);
+            
             hit.AddRange(NetworkManager.players.FindAll(p => p.Hit(ray)));
 
             foreach (var p in hit)
             {
-                if (p.lastHit == 1)
-                    Debug.WriteLine("hit " + p.name + " headshot");
-                else if(p.lastHit == 2)
-                    Debug.WriteLine("hit " + p.name + " bodyshot");
+                String s = "";
+                switch(p.lastHit)
+                {
+                    case 0: s = " head"; break;
+                    case 1: s = " body"; break;
+                    case 2: s = " arm L"; break;
+                    case 3: s = " arm R"; break;
+                    case 4: s = " leg L"; break;
+                    case 5: s = " leg R"; break;
+                    case 6: s = " leg L"; break;
+                    case 7: s = " leg R"; break;
+
+                    default: continue;
+                        
+                }
+
+                Debug.WriteLine("hit " + p.name + s);
+ 
             }
             //dir = hitPos - camera.position;
 

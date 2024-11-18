@@ -4,6 +4,7 @@ using nixfps.Components.Collisions;
 using nixfps.Components.Effects;
 using nixfps.Components.Input;
 using Riptide;
+using SharpDX.Direct3D9;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -41,8 +42,8 @@ namespace nixfps
         NixFPS game;
 
         public BoundingSphere zoneCollider;
-        public BoundingCylinder headCollider;
-        public BoundingCylinder bodyCollider;
+        public BoundingCylinder[] bodyCollider;
+
         public BoundingBox boxCollider;
         public float boxWidth = 2;
         public float boxHeight = 4;
@@ -62,128 +63,94 @@ namespace nixfps
             world = scale;
             game = NixFPS.GameInstance();
             zoneCollider = new BoundingSphere(Vector3.Zero, 2.5f);
-            headCollider = new BoundingCylinder(Vector3.Zero, .25f, .34f);
-            bodyCollider = new BoundingCylinder(Vector3.Zero, .5f, .75f);
+            
+            bodyCollider = new BoundingCylinder[]{
+                new BoundingCylinder(Vector3.Zero, .3f, .3f),
+                new BoundingCylinder(Vector3.Zero, .5f, .9f),
+                new BoundingCylinder(Vector3.Zero, .2f, .45f),
+                new BoundingCylinder(Vector3.Zero, .2f, .45f),
+                new BoundingCylinder(Vector3.Zero, .2f, .75f),
+                new BoundingCylinder(Vector3.Zero, .2f, .45f),
+                new BoundingCylinder(Vector3.Zero, .2f, .45f),
+                new BoundingCylinder(Vector3.Zero, .2f, .75f),
+            };
 
 
             boxCollider = new BoundingBox(
                 position + new Vector3(-boxWidth / 2, 2 - boxHeight / 2, -boxWidth / 2), 
                 position + new Vector3(boxWidth / 2, 2 + boxHeight / 2, boxWidth / 2));
         }
+        public void UpdateZoneCollider()
+        {
+            zoneCollider.Center = position;
+        }
         public void UpdateBoxCollider()
         {
             boxCollider.Min = position + new Vector3(-boxWidth / 2, 3.5f - boxHeight / 2, -boxWidth / 2);
             boxCollider.Max = position + new Vector3(boxWidth / 2, 3.5f + boxHeight / 2, boxWidth / 2);
         }
-        public void UpdateColliders() 
+        public void UpdateBodyColliders(Matrix[] col)
         {
-            zoneCollider.Center = position + new Vector3(0, 2.4f, 0); 
-            
-            headCollider.Center = position + new Vector3(0, 4.3f, 0);
-            bodyCollider.Center = position + new Vector3(0, 3.15f, 0);
-            boxCollider.Min = position + new Vector3(-boxWidth / 2, 2.5f - boxHeight / 2, -boxWidth / 2);
-            boxCollider.Max = position + new Vector3(boxWidth / 2, 2.5f + boxHeight / 2, boxWidth / 2);
+            Vector3 scale;
+            Quaternion quat;
+            Vector3 translation;
+            Matrix rot;
 
-            Matrix headRotation = Matrix.Identity;
-            Matrix bodyRotation = Matrix.Identity;
-            
-            var correctedYaw = -MathHelper.ToRadians(yaw) + MathHelper.PiOver2;
-            var colliderPitch = 0f;
-
-            var dir = Vector3.Zero;
-                
-            switch (clipId)
+            for (int i = 0; i < col.Length; i++)
             {
-                case (byte)PlayerAnimation.idle:break;
-                case (byte)PlayerAnimation.runForward: 
-                    colliderPitch -= 20;
-                    dir = Vector3.Normalize(frontDirection + rightDirection * 0.2f);
-                    headCollider.Center += dir * 0.6f + new Vector3(0, -.45f, 0);
-                    bodyCollider.Center += dir * 0.25f + new Vector3(0, -.15f, 0);
-                    break;
+                col[i].Decompose(out scale, out quat, out translation);
+                rot = Matrix.CreateFromQuaternion(quat);
+
+
+
                 
-                case (byte)PlayerAnimation.runRight: 
-                    correctedYaw -= (MathHelper.PiOver4 + .001f);  colliderPitch -= 20;
-                    dir = Vector3.Normalize(frontDirection * 0.8f + rightDirection);
-                    headCollider.Center += dir * 0.6f + new Vector3(0, -.45f, 0);
-                    bodyCollider.Center += dir * 0.25f + new Vector3(0, -.15f, 0);
-                    break;
-
-                case (byte)PlayerAnimation.runLeft:
-                    correctedYaw -= (MathHelper.PiOver4 + .001f); colliderPitch -= 20;
-                    dir = Vector3.Normalize(frontDirection * 0.8f + rightDirection);
-                    headCollider.Center += dir * 0.6f + new Vector3(0, -.45f, 0);
-                    bodyCollider.Center += dir * 0.25f + new Vector3(0, -.15f, 0);
-
-                    break;
-                case (byte)PlayerAnimation.runForwardRight: 
-                    correctedYaw -= MathHelper.PiOver4; colliderPitch -= 20;
-                    dir = Vector3.Normalize(frontDirection + rightDirection);
-                    headCollider.Center += dir * 0.6f + new Vector3(0, -.45f, 0);
-                    bodyCollider.Center += dir * 0.25f + new Vector3(0, -.15f, 0);
-                    break;
-                case (byte)PlayerAnimation.runForwardLeft:
-                    correctedYaw += MathHelper.PiOver4;
-                    colliderPitch -= 7;
-                    dir = Vector3.Normalize(frontDirection - rightDirection * 0.15f);
-                    headCollider.Center += dir * 0.4f + new Vector3(0, -.3f, 0);
-                    bodyCollider.Center += dir * 0.20f + new Vector3(0, -.15f, 0);
-                    break;
-                case (byte)PlayerAnimation.sprintForward:
-                    colliderPitch -= 20;
-                    dir = frontDirection;
-                    headCollider.Center += dir * 0.9f + new Vector3(0, -.45f, 0);
-                    bodyCollider.Center += dir * 0.25f + new Vector3(0, -.15f, 0);
-                    
-                    break;
-                case (byte)PlayerAnimation.sprintForwardRight:
-                    correctedYaw -= MathHelper.PiOver4; colliderPitch -= 20;
-                    dir = Vector3.Normalize(frontDirection + rightDirection * .35f);
-                    headCollider.Center += dir * 0.9f + new Vector3(0, -.45f, 0);
-                    bodyCollider.Center += dir * 0.25f + new Vector3(0, -.15f, 0);
-                    break;
-                case (byte)PlayerAnimation.sprintForwardLeft:
-                    correctedYaw += MathHelper.PiOver4; colliderPitch -= 20;
-                    dir = Vector3.Normalize(frontDirection - rightDirection * .35f);
-                    headCollider.Center += dir * 0.9f + new Vector3(0, -.45f, 0);
-                    bodyCollider.Center += dir * 0.25f + new Vector3(0, -.15f, 0);
-                    break;
-                case (byte)PlayerAnimation.runBackward:
-                    dir = Vector3.Normalize(frontDirection + rightDirection * 0.9f);
-                    headCollider.Center += dir * .3f +new Vector3(0, -.15f, 0);
-                    correctedYaw -= MathHelper.PiOver4; colliderPitch -= 15;
-                    break;
-                case (byte)PlayerAnimation.runBackwardLeft:
-                    headCollider.Center += new Vector3(0, -.10f, 0);
-                    correctedYaw -= MathHelper.PiOver4; colliderPitch -= 15;
-                    break;
-                case (byte)PlayerAnimation.runBackwardRight:
-                    headCollider.Center += new Vector3(0, -.1f, 0);
-                    correctedYaw -= MathHelper.PiOver4; colliderPitch -= 15;
-                    break;
+                //bodyCollider[i].
+                var color = Color.White;
+                switch(i)
+                {
+                    case 0: 
+                        translation += rot.Up * .25f; 
+                        color = Color.White; break;
+                    case 1:
+                        translation += rot.Up * .25f;
+                        color = Color.Yellow; break;
+                    case 2:
+                        translation += rot.Up * .25f; 
+                        color = Color.Green; break;
+                    case 3:
+                        translation += rot.Up * .25f; 
+                        color = Color.Blue; break;
+                    case 4:
+                        translation += rot.Up * .6f;
+                        color = Color.Cyan; break;
+                    case 5:
+                        translation += rot.Up * .6f;
+                        color = Color.Magenta; break;
+                    case 6:
+                        translation += rot.Up * .6f; 
+                        color = Color.Cyan; break;
+                    case 7:
+                        translation += rot.Up * .6f; 
+                        color = Color.Magenta; break;
+                }
+                if (lastHit == i)
+                    color = Color.Red;
+                
+                bodyCollider[i].MoveRot(translation, rot);
+                game.gizmos.DrawCylinder(translation, rot, new Vector3(bodyCollider[i].Radius, bodyCollider[i].HalfHeight, bodyCollider[i].Radius), color);
             }
-            
-
-            colliderPitch = -MathHelper.ToRadians(colliderPitch);
-            headRotation = Matrix.CreateFromYawPitchRoll(correctedYaw, colliderPitch, 0);
-            bodyRotation = Matrix.CreateFromYawPitchRoll(correctedYaw, colliderPitch, 0);
-
-            headCollider.Rotation = headRotation;
-            bodyCollider.Rotation = bodyRotation;
-
         }
+        
         public int lastHit = -1;
         public bool Hit(Ray ray)
         {
-            if(headCollider.Intersects(ray))
+            for(int i = 0; i < bodyCollider.Length; i++)
             {
-                lastHit = 1;
-                return true;
-            }
-            if(bodyCollider.Intersects(ray))
-            {
-                lastHit = 2;
-                return true;
+                if (bodyCollider[i].Intersects(ray))
+                {
+                    lastHit = i;
+                    return true;
+                }
             }
             lastHit = -1;
             return false;

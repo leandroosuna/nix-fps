@@ -66,7 +66,7 @@ namespace nixfps.Components.States
             
 
             base.Update(gameTime);
-            lp.UpdateColliders();
+            lp.UpdateZoneCollider();
             NetworkManager.InterpolatePlayers(game.mainStopwatch.ElapsedMilliseconds);
 
             game.gizmos.UpdateViewProjection(game.camera.view, game.camera.projection);
@@ -75,7 +75,7 @@ namespace nixfps.Components.States
             game.UpdatePointLights(uDeltaTimeFloat);
 
             game.lightsManager.Update(uDeltaTimeFloat);
-            //game.gunManager.Update(gameTime);
+            game.gunManager.Update(gameTime);
             game.hud.Update(uDeltaTimeFloat);
 
             game.camera.Update(inputManager);

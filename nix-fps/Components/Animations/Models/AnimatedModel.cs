@@ -58,9 +58,10 @@ public class AnimatedModel
         var animManager = game.animationManager;
         var effect = animManager.effect;
         var camera = game.camera;
+        var lp = NetworkManager.localPlayer;
 
         // Skip third person model for localplayer if camera is locked, draw gun
-        if (!camera.isFree && player.id == NetworkManager.localPlayer.id)
+        if (!camera.isFree && player.id == lp.id)
         {
             return;
         }
@@ -70,8 +71,8 @@ public class AnimatedModel
         animManager.animationPlayer.SetActiveClip(player);
 
         //animManager.animationPlayer.SetBonesClipTransitionFor(player);
-
-
+        
+        
         // Compute all of the bone absolute transforms.
         var boneTransforms = new Matrix[_bones.Count];
 
@@ -81,8 +82,27 @@ public class AnimatedModel
             bone.ComputeAbsoluteTransform();
 
             boneTransforms[i] = bone.AbsoluteTransform;
-           // boneTransforms[i].Decompose(out var scale, out var rot, out var translation);
-            
+            // boneTransforms[i].Decompose(out var scale, out var rot, out var translation);
+
+        }
+
+        var playerWorld = player.GetWorld();
+
+        if (player.id == lp.id)
+        {
+            //game.gizmos.DrawSphere(lp.position, Vector3.One * 4f, Color.White);
+
+            lp.UpdateBodyColliders(new Matrix[] {
+                _bones[8].AbsoluteTransform * playerWorld,
+                _bones[4].AbsoluteTransform * playerWorld,
+                _bones[12].AbsoluteTransform * playerWorld,
+                _bones[41].AbsoluteTransform * playerWorld,
+                _bones[69].AbsoluteTransform * playerWorld,
+                _bones[75].AbsoluteTransform * playerWorld,
+                _bones[70].AbsoluteTransform * playerWorld,
+                _bones[76].AbsoluteTransform * playerWorld
+            });
+
         }
 
         // Determine the skin transforms from the skeleton.
@@ -102,7 +122,7 @@ public class AnimatedModel
 
         foreach (var mesh in _model.Meshes)
         {
-            var worldBone = boneTransforms[mesh.ParentBone.Index] * player.GetWorld();
+            var worldBone = boneTransforms[mesh.ParentBone.Index] * playerWorld;
             
             effect.SetWorld(worldBone);
             effect.SetView(camera.view);
