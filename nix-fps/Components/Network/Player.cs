@@ -65,7 +65,7 @@ namespace nixfps
             zoneCollider = new BoundingSphere(Vector3.Zero, 2.5f);
             
             bodyCollider = new BoundingCylinder[]{
-                new BoundingCylinder(Vector3.Zero, .3f, .3f),
+                new BoundingCylinder(Vector3.Zero, .25f, .3f),
                 new BoundingCylinder(Vector3.Zero, .5f, .9f),
                 new BoundingCylinder(Vector3.Zero, .2f, .45f),
                 new BoundingCylinder(Vector3.Zero, .2f, .45f),
@@ -83,6 +83,7 @@ namespace nixfps
         public void UpdateZoneCollider()
         {
             zoneCollider.Center = position;
+            UpdateBoxCollider();
         }
         public void UpdateBoxCollider()
         {
@@ -109,10 +110,10 @@ namespace nixfps
                 switch(i)
                 {
                     case 0: 
-                        translation += rot.Up * .25f; 
+                        translation += rot.Up * .25f - rot.Forward * 0.1f; 
                         color = Color.White; break;
                     case 1:
-                        translation += rot.Up * .25f;
+                        translation += rot.Up * .25f - rot.Forward * 0.15f;
                         color = Color.Yellow; break;
                     case 2:
                         translation += rot.Up * .25f; 
