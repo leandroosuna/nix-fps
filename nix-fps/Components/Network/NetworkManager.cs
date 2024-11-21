@@ -23,10 +23,11 @@ namespace nixfps.Components.Network
         public static Player localPlayer;
         
         static NixFPS game;
-        static Thread netThread;
+        public static Thread netThread;
         static bool netThreadEnabled = true;
         public static int ConnectionAttempts = 1;
         static String serverIP;
+        public static int tick;
         public static void Connect()
         {
             game = NixFPS.GameInstance();
@@ -55,29 +56,41 @@ namespace nixfps.Components.Network
             long ms;
             netThread = new Thread(() =>
             {
-                var stopwatch = new Stopwatch();
-                stopwatch.Start();
-
-                while (netThreadEnabled)
+                try
                 {
-                    ms = stopwatch.ElapsedMilliseconds;
-                    currentTargetMs = msTarget + syncErrorMs;
-                    if (ms >= currentTargetMs)
-                    {
-                        syncErrorMs = (ms - currentTargetMs);
 
-                        Client.Update();
-                        if(Client.IsConnected)
+
+                    var stopwatch = new Stopwatch();
+                    stopwatch.Start();
+
+                    while (netThreadEnabled)
+                    {
+                        ms = stopwatch.ElapsedMilliseconds;
+                        currentTargetMs = msTarget - syncErrorMs;
+                        if (ms >= currentTargetMs)
                         {
-                            SendData();
+                            syncErrorMs = (ms - currentTargetMs);
+                            tick++;
+                            Client.Update();
+                            if (Client.IsConnected)
+                            {
+                                SendData();
+                            }
+                            else
+                            {
+                                tick = -500;
+                            }
+                            stopwatch.Restart();
                         }
-                        stopwatch.Restart();
+                        Thread.Sleep(1);
                     }
-                    Thread.Sleep(1);
+                }
+                catch (Exception ex) 
+                {
+                    Console.WriteLine($"Exception in netThread: {ex.Message}\n{ex.StackTrace}");
                 }
             });
-
-            //thread.IsBackground = true;
+            
             netThread.Start();
 
         }
@@ -162,87 +175,67 @@ namespace nixfps.Components.Network
             for (int i = 0; i < playerCount; i++)
             {
                 var id = message.GetUInt();
-                var lastProcessedMessage = message.GetUInt();
-                var lastMovementValid = message.GetBool();
-                var netPos = message.GetVector3();
-                var netYaw = message.GetFloat();
-                var netPitch = message.GetFloat();
-                var netClip = message.GetByte();
-
+                var connected = message.GetBool();
+                
+                var p = NetworkManager.localPlayer;
                 if (id != localPlayer.id)
                 {
-                    var p = GetPlayerFromId(id);
-                    if (p.id != uint.MaxValue)
+                    p = GetPlayerFromId(id, true);
+                    p.connected = connected;
+                }
+                if (connected)
+                {
+                    var lastProcessedMessage = message.GetUInt();
+                    var lastMovementValid = message.GetBool();
+                    var netPos = message.GetVector3();
+                    var netYaw = message.GetFloat();
+                    var netPitch = message.GetFloat();
+                    var netClip = message.GetByte();
+
+                    if (id != localPlayer.id)
                     {
-                        var cache = new PlayerCache(netPos, netYaw, netPitch, netClip, game.mainStopwatch.ElapsedMilliseconds);
-                        game.playerCacheMutex.WaitOne();
-                        p.netDataCache.Add(cache);
-                        game.playerCacheMutex.ReleaseMutex();
+                        if (p.id != uint.MaxValue)
+                        {
+                            var cache = new PlayerCache(netPos, netYaw, netPitch, netClip, game.mainStopwatch.ElapsedMilliseconds);
+                            game.playerCacheMutex.WaitOne();
+                            p.netDataCache.Add(cache);
+                            game.playerCacheMutex.ReleaseMutex();
+                        }
+                        else
+                        {
+                            //Debug.WriteLine("player not found");
+                        }
                     }
                     else
                     {
-                        //Debug.WriteLine("player not found");
-                    }
-                }
-                else
-                {
-                    //server reconciliation
-                    //auth position from server
-                    var prevPos = localPlayer.position;
+                        //server reconciliation
+                        //auth position from server
+                        var prevPos = localPlayer.position;
 
-                    //localPlayer.position = netPos;
-                    var inputMan = game.gameState.inputManager;
-                    var cache = inputMan.InputStateCache;
+                        //localPlayer.position = netPos;
+                        var inputMan = game.gameState.inputManager;
+                        var cache = inputMan.InputStateCache;
 
-                    //we remove all processed messages from the cache
-                    cache.RemoveAll(c => c.messageId <= lastProcessedMessage);
+                        //we remove all processed messages from the cache
+                        cache.RemoveAll(c => c.messageId <= lastProcessedMessage);
 
-                    for(int j = 0; j < cache.Count; j++)
-                    {
-                        //inputMan.ApplyInput(cache[j]);
-                        if(InputManager.keyMappings.TAB.IsDown())
+                        for(int j = 0; j < cache.Count; j++)
                         {
-                            var a = 0;
+                            //inputMan.ApplyInput(cache[j]);
+                            if(InputManager.keyMappings.TAB.IsDown())
+                            {
+                                var a = 0;
+                            }
                         }
+                        posDiff = localPlayer.position - prevPos;
+
+
                     }
-                    posDiff = localPlayer.position - prevPos;
-
-
                 }
+
             }
         }
-        [MessageHandler((ushort)ServerToClient.PlayerConnected)]
-        private static void HandlePlayerConnected(Message message)
-        {
-            var id = message.GetUInt();
-            var name = message.GetString();
-            if (id == localPlayer.id)
-                return;
-            Debug.WriteLine(name + " (" + id + ") connected");
-
-            var p = GetPlayerFromId(id, true);
-            p.name = name;
-            p.connected = true;
-
-        }
-
-        [MessageHandler((ushort)ServerToClient.PlayerDisconnected)]
-        private static void HandlePlayerDisconnected(Message message)
-        {
-            var id = message.GetUInt();
-            var name = message.GetString();
-
-            Debug.WriteLine(name + " (" + id + ") disconnected");
-
-            var p = GetPlayerFromId(id);
-            if (p.id != uint.MaxValue)
-            {
-                p.name = name;
-                p.connected = false;
-                return;
-            }
-            Debug.WriteLine("player not found");
-        }
+        
         public static Player GetPlayerFromId(uint id, bool createIfNull = false)
         {
             foreach (var player in players)
@@ -266,6 +259,13 @@ namespace nixfps.Components.Network
         {
             foreach (var player in players)
                 player.Interpolate(now);
+        }
+
+        internal static void UpdatePlayers()
+        {
+            localPlayer.UpdateZoneCollider();
+            foreach (var player in players)
+                player.UpdateZoneCollider();
         }
     }
 }

@@ -66,7 +66,9 @@ namespace nixfps.Components.States
             
 
             base.Update(gameTime);
-            lp.UpdateZoneCollider();
+            
+            NetworkManager.UpdatePlayers();
+
             NetworkManager.InterpolatePlayers(game.mainStopwatch.ElapsedMilliseconds);
 
             game.gizmos.UpdateViewProjection(game.camera.view, game.camera.projection);
@@ -667,10 +669,10 @@ namespace nixfps.Components.States
                 var ap = game.animationManager.animationPlayer;
                 var pos = lp.position;
                 fpsStr = "FPS " + FPS;
-                    //+ " RTT " + NetworkManager.Client.RTT +"ms"+ 
-                    //+" sb "+ game.animationManager.animationPlayer.blendStart
-                    //+ " b "+game.animationManager.animationPlayer.blending
-                    //+ " BF " + ap.blendFactor;
+                //+ " RTT " + NetworkManager.Client.RTT +"ms"+ 
+                //+" sb "+ game.animationManager.animationPlayer.blendStart
+                //+ " b "+game.animationManager.animationPlayer.blending
+                //+ " BF " + ap.blendFactor;
                 //+" c " + lp.clipName + " cn " + lp.clipNextName;
                 //fpsStr += string.Format(" ({0:F2}, {1:F2}, {2:F2})", cam.X, cam.Y, cam.Z);
                 //if(ap.sclip != null)
@@ -682,9 +684,24 @@ namespace nixfps.Components.States
                 //    str3 = "" + ap.rp2.kf + " " + ap.sclipnext.name;
                 //}
                 //str4 = "pos " + ap.pos;
-
+                str2 = "RTT " + NetworkManager.Client.RTT + "ms " + "TCK " + NetworkManager.tick; ;
                 //str2 = "tri " + closeEnoughC;
-                //str3 = "corr " + corrections;
+
+                
+
+                if(NetworkManager.players.Count > 0)
+                {
+                    var p2 = NetworkManager.players[0];
+                    str3 = "prev " + p2.clipPrevName;
+                    str4 = "clip " + p2.clipName;
+                    if(p2.animBlending)
+                    {
+                        str4 += " BL " + p2.animBlendFactor;
+                    }
+                }
+
+                //str4 = "NET T " + NetworkManager.netThread.ThreadState.ToString();
+
             }
             game.spriteBatch.Begin();
             game.spriteBatch.DrawString(game.fontSmall, fpsStr, Vector2.Zero, Color.White);

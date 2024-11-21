@@ -131,6 +131,8 @@ namespace nixfps.Components.Effects
         }
         public void SetClipName(Player p, byte clipId)
         {
+
+
             if (clipId < 0 || clipId > animationNames.Count - 1)
             {
                 p.clipName = "idle";
@@ -139,6 +141,14 @@ namespace nixfps.Components.Effects
             }
             p.clipName = animationNames[clipId];
             p.clipId = clipId;
+        }
+        public (byte id, String name) GetClip(byte clipId)
+        {
+            if (clipId < 0 || clipId > animationNames.Count - 1)
+            {
+                return (0, "idle");
+            }
+            return (clipId, animationNames[clipId]);
         }
         public void SetClipName(Player p, PlayerAnimation anim)
         {

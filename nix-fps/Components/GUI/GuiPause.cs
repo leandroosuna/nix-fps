@@ -84,15 +84,7 @@ namespace nixfps.Components.GUI
                 GameStateManager.SwitchTo(State.MAIN);
             }
             ImGui.Dummy(new System.Numerics.Vector2(1, 60));
-            if (ImGui.Button("start blend test"))
-            {
-
-                if (sr != null)
-                {
-                    game.animationManager.animationPlayer.blendStart = true;
-                }
-
-            }
+            
             //controller.Draw(0, 1);
         }
     }

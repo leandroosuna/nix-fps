@@ -60,6 +60,8 @@ public class AnimatedModel
         var camera = game.camera;
         var lp = NetworkManager.localPlayer;
 
+        if (!player.connected)
+            return;
         // Skip third person model for localplayer if camera is locked, draw gun
         if (!camera.isFree && player.id == lp.id)
         {

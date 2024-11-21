@@ -156,8 +156,8 @@ namespace nixfps
 
             Gui.Init();
             GameStateManager.Init();
-            //GameStateManager.SwitchTo(State.MAIN);
-            GameStateManager.SwitchTo(State.RUN);
+            GameStateManager.SwitchTo(State.MAIN);
+            //GameStateManager.SwitchTo(State.RUN);
 
             NetworkManager.Connect();
             localPlayer = NetworkManager.localPlayer;
@@ -175,43 +175,41 @@ namespace nixfps
             hud.spriteBatch = spriteBatch;
             hud.crosshair.spriteBatch = spriteBatch;
             fullScreenQuad = new FullScreenQuad(GraphicsDevice);
-            plane = Content.Load<Model>(ContentFolder3D + "basic/plane");
-            cube = Content.Load<Model>(ContentFolder3D + "basic/cube");
-            floorTex = Content.Load<Texture2D>(ContentFolder3D + "basic/tex/metalfloor");
+            //plane = Content.Load<Model>(ContentFolder3D + "basic/plane");
+            //cube = Content.Load<Model>(ContentFolder3D + "basic/cube");
+            //floorTex = Content.Load<Texture2D>(ContentFolder3D + "basic/tex/metalfloor");
 
             fontSmall = Content.Load<SpriteFont>(ContentFolderFonts + "unispace/15");
             fontMedium = Content.Load<SpriteFont>(ContentFolderFonts + "unispace/20");
             fontLarge = Content.Load<SpriteFont>(ContentFolderFonts + "unispace/25");
 
 
-            boxTex = Content.Load<Texture2D>(ContentFolder3D + "basic/tex/wood");
+            //boxTex = Content.Load<Texture2D>(ContentFolder3D + "basic/tex/wood");
 
-            aztec = Content.Load<Model>(ContentFolder3D + "aztec/de_aztec");
+            //aztec = Content.Load<Model>(ContentFolder3D + "aztec/de_aztec");
             dust2 = Content.Load<Model>(ContentFolder3D + "dust2/dust2");
             
             //Content.Load<Texture2D>(ContentFolder3D + "aztec/de_aztec_texture_0"),
             
-            aztecTex = new Texture2D[61];
-            for(int i = 0; i < 61; i++)
-            {
-                aztecTex[i] = Content.Load<Texture2D>(ContentFolder3D + "aztec/de_aztec_texture_" + i);
-            }
-            numTex = new Texture2D[101];
-            for (int i = 0; i < 101; i++)
-            {
-                numTex[i] = Content.Load<Texture2D>(ContentFolder3D + "basic/tex/num/" + i);
-            }
-            dust2Tex = new Texture2D[34];
-            dust2NormalTex = new Texture2D[34];
-
+            //aztecTex = new Texture2D[61];
+            //for(int i = 0; i < 61; i++)
+            //{
+            //    aztecTex[i] = Content.Load<Texture2D>(ContentFolder3D + "aztec/de_aztec_texture_" + i);
+            //}
+            //numTex = new Texture2D[101];
+            //for (int i = 0; i < 101; i++)
+            //{
+            //    numTex[i] = Content.Load<Texture2D>(ContentFolder3D + "basic/tex/num/" + i);
+            //}
+            
             LoadDust2Tex();
             
             GameStateManager.stateRun.InitDust2Values();
 
             LightVolume.Init();
 
-            AssignEffectToModel(plane, basicModelEffect.effect);
-            AssignEffectToModel(aztec, basicModelEffect.effect);
+            //AssignEffectToModel(plane, basicModelEffect.effect);
+            //AssignEffectToModel(aztec, basicModelEffect.effect);
             AssignEffectToModel(dust2, basicModelEffect.effect);
 
 

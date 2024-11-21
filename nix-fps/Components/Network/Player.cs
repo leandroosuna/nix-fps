@@ -3,12 +3,15 @@ using nixfps.Components.Animations.Models;
 using nixfps.Components.Collisions;
 using nixfps.Components.Effects;
 using nixfps.Components.Input;
+using nixfps.Components.Network;
 using Riptide;
 using SharpDX.Direct3D9;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading;
+using System.Windows.Forms;
 
 
 namespace nixfps
@@ -31,6 +34,10 @@ namespace nixfps
         public Matrix world;
         public string clipName;
         public byte clipId;
+        
+        public string clipPrevName = "idle";
+        public byte clipPrevId = 0;
+
         public string clipNextName;
         public string clipNamePrev;
         public string clipNextNamePrev;
@@ -47,6 +54,12 @@ namespace nixfps
         public BoundingBox boxCollider;
         public float boxWidth = 2;
         public float boxHeight = 4;
+
+        public bool animBlending;
+        public bool animBlendStart;
+        public float animBlendFactor;
+        public float animBlendTime = .25f;
+
         public Player(uint id)
         {
             this.id = id;
@@ -101,11 +114,7 @@ namespace nixfps
             {
                 col[i].Decompose(out scale, out quat, out translation);
                 rot = Matrix.CreateFromQuaternion(quat);
-
-
-
                 
-                //bodyCollider[i].
                 var color = Color.White;
                 switch(i)
                 {
@@ -177,16 +186,21 @@ namespace nixfps
             return frontDirection;
         }
 
+        
+
         public void Interpolate(long now)
         {
             game.playerCacheMutex.WaitOne();
             if (netDataCache.Count < 2)
+            {
+                game.playerCacheMutex.ReleaseMutex();
                 return;
+            } 
             
             netDataCache = netDataCache.OrderBy(pc => pc.timeStamp).ToList();
 
             //rendering one server tick behind, 5ms
-            long renderTimeStamp = now - 50;
+            long renderTimeStamp = now - 100;
 
             ////rendering 20ms behind
             //long renderTimeStamp = now - 100;
@@ -225,8 +239,9 @@ namespace nixfps
                 }
             }
 
-            game.animationManager.SetClipName(this, netDataCache[indexFound].clipId);
-            
+            //game.animationManager.SetClipName(this, netDataCache[indexFound].clipId);
+            SetClip(netDataCache[indexFound].clipId);
+
             //we delete elements that are old
             if (netDataCache.Count > 2)
             {
@@ -234,8 +249,55 @@ namespace nixfps
             }
             game.playerCacheMutex.ReleaseMutex();
         }
-    }
+        public void UpdateBlend(float deltaTime)
+        {
+            if (animBlending)
+            {
+                animBlendFactor += deltaTime / animBlendTime;
+                if (animBlendFactor >= 1.0f)
+                {
+                    animBlendFactor = 0;
+                    animBlending = false;
 
+
+                    clipNamePrev = clipName;
+                    clipPrevId = clipId;
+
+                }
+            }
+        }
+        void SetClip(byte newClipId)
+        {
+            (byte id, String name) = game.animationManager.GetClip(newClipId);
+
+            if (id != clipId) //change detected
+            {
+                if(!animBlending) //not blending yet
+                {
+                    animBlending = true;
+                    animBlendFactor = 0;
+                }
+                else //already blending
+                {
+                    if (id == clipPrevId) //returning to last
+                    {
+                        animBlendFactor = 1 - animBlendFactor;
+                    }
+                    else //switching to another
+                    {
+                        animBlendFactor = 0; 
+                    }
+                }
+                
+                clipPrevName = clipName;
+                clipPrevId = clipId;
+
+                clipName = name;
+                clipId = id;
+            }
+        }
+    }
+    
     public class PlayerCache
     {
         public Vector3 position;
