@@ -19,5 +19,6 @@
 
     "ServerIP": "nix.dynamic-dns.net",
     "ClientID": 111111,
-    "PlayerName": "nix"
+    "PlayerName": "nix",
+    "TPS": 200
 }

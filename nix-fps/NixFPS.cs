@@ -245,7 +245,8 @@ namespace nixfps
                 Content.Load<Texture2D>(ContentFolder3D + "dust2/hdtex/wood-box-side"),
                 Content.Load<Texture2D>(ContentFolder3D + "dust2/hdtex/ground-sand"),
                 Content.Load<Texture2D>(ContentFolder3D + "dust2/hdtex/tile-floor"),
-                Content.Load<Texture2D>(ContentFolder3D + "dust2/hdtex/rock-wall")
+                Content.Load<Texture2D>(ContentFolder3D + "dust2/hdtex/rock-wall"),
+                Content.Load<Texture2D>(ContentFolder3D + "dust2/hdtex/light"),
             };
             dust2NormalTex = new Texture2D[]{
                 Content.Load<Texture2D>(ContentFolder3D + "dust2/hdtex/brick-wall-detail-normal"),

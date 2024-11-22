@@ -231,15 +231,12 @@ namespace nixfps.Components.States
             //    }
             //}
 
-            //MapCollision();
             MapCollisionInit();
             MapCollisionFloor();
             MapCollisionBox();
             foreach (var l in miniLights)
                 game.lightsManager.Register(l);
         }
-
-        
 
         float DistanceSqrNoY(Vector3 v1, Vector3 v2)
         {
@@ -248,22 +245,7 @@ namespace nixfps.Components.States
 
             return Vector2.DistanceSquared(v21, v22);
         }
-        //Vector3 GetSafeLocation()
-        //{
-        //    var safe = game.mapTriangles
-        //              .FindAll(t => DistanceSqrNoY(t.v[0], game.localPlayer.position) < 100f);
 
-        //    if(safe.Count == 0)
-        //        return new Vector3(97, 8, -205);
-
-        //    var ordered = 
-        //              safe.OrderByDescending(t => DistanceSqrNoY(t.v[0], game.localPlayer.position)).ToList();
-
-        //    return ordered[0].v[0];
-
-
-
-        //}
         Vector3[] spawnPos =
         {
             new Vector3(76, 13.5f, -203.5f),
@@ -668,40 +650,16 @@ namespace nixfps.Components.States
                 var cam = game.camera.position;
                 var ap = game.animationManager.animationPlayer;
                 var pos = lp.position;
-                fpsStr = "FPS " + FPS;
-                //+ " RTT " + NetworkManager.Client.RTT +"ms"+ 
-                //+" sb "+ game.animationManager.animationPlayer.blendStart
-                //+ " b "+game.animationManager.animationPlayer.blending
-                //+ " BF " + ap.blendFactor;
-                //+" c " + lp.clipName + " cn " + lp.clipNextName;
-                //fpsStr += string.Format(" ({0:F2}, {1:F2}, {2:F2})", cam.X, cam.Y, cam.Z);
-                //if(ap.sclip != null)
-                //{
-                //    str2 = "" + ap.rp.kf+ " "+ap.sclip.name;
-                //}
-                //if(ap.sclipnext != null)
-                //{
-                //    str3 = "" + ap.rp2.kf + " " + ap.sclipnext.name;
-                //}
-                //str4 = "pos " + ap.pos;
-                str2 = "RTT " + NetworkManager.Client.RTT + "ms " + "TCK " + NetworkManager.tick; ;
-                //str2 = "tri " + closeEnoughC;
+                fpsStr = " FPS " + FPS;
 
-                
-
-                if(NetworkManager.players.Count > 0)
+                if(NetworkManager.Client.IsConnected)
                 {
-                    var p2 = NetworkManager.players[0];
-                    str3 = "prev " + p2.clipPrevName;
-                    str4 = "clip " + p2.clipName;
-                    if(p2.animBlending)
-                    {
-                        str4 += " BL " + p2.animBlendFactor;
-                    }
+                    str2 = " RTT " + NetworkManager.Client.RTT + "ms";
                 }
-
-                //str4 = "NET T " + NetworkManager.netThread.ThreadState.ToString();
-
+                else
+                {
+                    str2 = " Reconectando...";
+                }
             }
             game.spriteBatch.Begin();
             game.spriteBatch.DrawString(game.fontSmall, fpsStr, Vector2.Zero, Color.White);
@@ -945,7 +903,7 @@ namespace nixfps.Components.States
         (Texture2D tex, Texture2D normal, float ka, float kd, float ks, float sh) sand;
         (Texture2D tex, Texture2D normal, float ka, float kd, float ks, float sh) tile;
         (Texture2D tex, Texture2D normal, float ka, float kd, float ks, float sh) rock;
-        
+        (Texture2D tex, Texture2D normal, float ka, float kd, float ks, float sh) light;
         public void InitDust2Values()
         {
             brick_detail = (game.dust2Tex[0], game.dust2NormalTex[0], .3f, .6f, .1f, 2);
@@ -956,6 +914,7 @@ namespace nixfps.Components.States
             sand = (game.dust2Tex[5], game.dust2NormalTex[5], .3f, .6f, .1f, 2);
             tile = (game.dust2Tex[6], game.dust2NormalTex[6], .3f, .8f, .8f, 10);
             rock = (game.dust2Tex[7], game.dust2NormalTex[7], .3f, .8f, .8f, 10);
+            light = (game.dust2Tex[8], game.dust2NormalTex[1], .3f, .8f, .8f, 10);
         }
 
         public (Texture2D tex, Texture2D normal, float ka, float kd, float ks, float sh) Dust2Values(int index)
@@ -994,7 +953,8 @@ namespace nixfps.Components.States
                 case 29: return dd;
                 case 30: return dd;
                 case 31: return box_side;
-
+                case 32: return rock;
+                case 33: return light;
                 default: return brick_detail;
             }
         }

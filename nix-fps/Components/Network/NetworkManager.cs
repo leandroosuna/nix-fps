@@ -36,32 +36,34 @@ namespace nixfps.Components.Network
 
 
         private static uint timerId;
-        static uint TargetMS = 5;
+        static uint TargetMS;
         private static TimerCallback callback;
         public static void Connect()
         {
             game = NixFPS.GameInstance();
             
             var id = game.CFG["ClientID"].Value<uint>();
-            var playerName = game.CFG["PlayerName"].Value<string>();
+            
             localPlayer = new Player(id);
-            localPlayer.name = playerName;
+            localPlayer.name = "name";
             localPlayer.teamColor = new Vector3(0, 1, 1);
 
             Client = new Client();
 
             var server = game.CFG["ServerIP"].Value<string>();
             serverIP = Dns.GetHostAddresses(server)[0].ToString();
-            //var serverIP = "192.168.1.45";
             serverIP +=":7777";
 
             Client.Connect(serverIP);
 
             Client.ConnectionFailed += Client_ConnectionFailed;
             Client.Connected += Client_Connected;
-
+            Client.Disconnected += Client_Disconnected;
             callback = TimerElapsed;
-            
+
+            TargetMS = 1000 / game.CFG["TPS"].Value<uint>();
+
+
             timerId = timeSetEvent(TargetMS, 0, callback, IntPtr.Zero, 1);
 
         }
@@ -79,34 +81,42 @@ namespace nixfps.Components.Network
                 tick--;
             }
         }
-
+        static bool isReconnect = false;
         private static void Client_Connected(object sender, EventArgs e)
         {
             Debug.WriteLine("CONNECTED");
-            //SendPlayerIdentity(); //connect button should send this.
-            ConnectionAttempts = 1;
+            if(isReconnect)
+            {
+                SendPlayerIdentity();
+                isReconnect = false;
+            }
         }
         
         private static void Client_ConnectionFailed(object sender, ConnectionFailedEventArgs e)
         {
             
-            if(ConnectionAttempts < 5)
-            {
-                Debug.WriteLine("Server connection failed, retrying...") ;
-                Client.Connect(serverIP);
-                ConnectionAttempts++;
-            }
-
+            Client.Connect(serverIP);
+            ConnectionAttempts++;
             
         }
 
+        private static void Client_Disconnected(object sender, EventArgs e)
+        {
+            Debug.WriteLine("DISCONNECTED");
 
+            //attempt auto reconnect
+            Client.Connect(serverIP);
+            isReconnect = true; 
+        }
 
         public static void StopNetThread()
         {
             timeKillEvent(timerId);
         }
-
+        public static void SetLocalPlayerName(string name)
+        {
+            localPlayer.name = name;
+        }
         public static void SendPlayerIdentity()
         {
             Message msg = Message.Create(MessageSendMode.Reliable, ClientToServer.PlayerIdentity);
