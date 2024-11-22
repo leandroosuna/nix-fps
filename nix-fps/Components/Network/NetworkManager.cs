@@ -5,10 +5,9 @@ using Riptide;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Diagnostics.Metrics;
 using System.Net;
-using System.Threading;
-using static System.Windows.Forms.VisualStyles.VisualStyleElement.TrackBar;
+using System.Runtime.InteropServices;
+
 
 namespace nixfps.Components.Network
 {
@@ -23,11 +22,22 @@ namespace nixfps.Components.Network
         public static Player localPlayer;
         
         static NixFPS game;
-        public static Thread netThread;
-        static bool netThreadEnabled = true;
         public static int ConnectionAttempts = 1;
         static String serverIP;
         public static int tick;
+
+        private delegate void TimerCallback(uint id, uint msg, IntPtr user, IntPtr param1, IntPtr param2);
+
+        [DllImport("winmm.dll", SetLastError = true)]
+        private static extern uint timeSetEvent(uint msDelay, uint msResolution, TimerCallback callback, IntPtr user, uint eventType);
+
+        [DllImport("winmm.dll", SetLastError = true)]
+        private static extern uint timeKillEvent(uint uTimerId);
+
+
+        private static uint timerId;
+        static uint TargetMS = 5;
+        private static TimerCallback callback;
         public static void Connect()
         {
             game = NixFPS.GameInstance();
@@ -50,49 +60,24 @@ namespace nixfps.Components.Network
             Client.ConnectionFailed += Client_ConnectionFailed;
             Client.Connected += Client_Connected;
 
-            long msTarget = 4;
-            long syncErrorMs = 0;
-            long currentTargetMs;
-            long ms;
-            netThread = new Thread(() =>
-            {
-                try
-                {
-
-
-                    var stopwatch = new Stopwatch();
-                    stopwatch.Start();
-
-                    while (netThreadEnabled)
-                    {
-                        ms = stopwatch.ElapsedMilliseconds;
-                        currentTargetMs = msTarget - syncErrorMs;
-                        if (ms >= currentTargetMs)
-                        {
-                            syncErrorMs = (ms - currentTargetMs);
-                            tick++;
-                            Client.Update();
-                            if (Client.IsConnected)
-                            {
-                                SendData();
-                            }
-                            else
-                            {
-                                tick = -500;
-                            }
-                            stopwatch.Restart();
-                        }
-                        Thread.Sleep(1);
-                    }
-                }
-                catch (Exception ex) 
-                {
-                    Console.WriteLine($"Exception in netThread: {ex.Message}\n{ex.StackTrace}");
-                }
-            });
+            callback = TimerElapsed;
             
-            netThread.Start();
+            timerId = timeSetEvent(TargetMS, 0, callback, IntPtr.Zero, 1);
 
+        }
+
+        private static void TimerElapsed(uint id, uint msg, IntPtr user, IntPtr param1, IntPtr param2)
+        {
+            Client.Update();
+            if (Client.IsConnected)
+            {
+                SendData();
+                tick++;
+            }
+            else
+            {
+                tick--;
+            }
         }
 
         private static void Client_Connected(object sender, EventArgs e)
@@ -119,7 +104,7 @@ namespace nixfps.Components.Network
 
         public static void StopNetThread()
         {
-            netThreadEnabled = false;
+            timeKillEvent(timerId);
         }
 
         public static void SendPlayerIdentity()

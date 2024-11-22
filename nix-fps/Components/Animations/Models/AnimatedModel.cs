@@ -90,7 +90,7 @@ public class AnimatedModel
 
         var playerWorld = player.GetWorld();
 
-        if (player.id == lp.id)
+        if (player.id != lp.id)
         {
             //game.gizmos.DrawSphere(lp.position, Vector3.One * 4f, Color.White);
 

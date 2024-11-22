@@ -200,8 +200,8 @@ namespace nixfps
             netDataCache = netDataCache.OrderBy(pc => pc.timeStamp).ToList();
 
             //rendering one server tick behind, 5ms
-            long renderTimeStamp = now - 100;
-
+            //long renderTimeStamp = now - 200;
+            long renderTimeStamp = now - 10;
             ////rendering 20ms behind
             //long renderTimeStamp = now - 100;
 
@@ -234,6 +234,7 @@ namespace nixfps
                     var p1 = netDataCache[i + 1].pitch;
 
                     position = x0 + (x1 - x0) * (renderTimeStamp - t0) / (t1 - t0);
+                    
                     yaw = y0 + (y1 - y0) * (renderTimeStamp - t0) / (t1 - t0);
                     pitch = p0 + (p1 - p0) * (renderTimeStamp - t0) / (t1 - t0);
                 }
