@@ -40,8 +40,6 @@ public class AnimationPlayer
 {
     Clip[] clips;
     Clip activeClip, targetClip;
-    float blendTime = 0.5f; // Time to blend between animations
-    float blendProgress = 0f;
     public AnimationPlayer(AnimatedModel model, Dictionary<string, AnimationClip> clps )
     {
         
@@ -69,132 +67,163 @@ public class AnimationPlayer
         {
             clips[i].Update(deltaTime);
         }
-        if(blending)
-        {
-            //blendFactor += deltaTime * 4; //.25s transition
-            blendFactor += deltaTime * 2f;
-            if (blendFactor >= 1f )
-            {
-                blendFactor = 0;
-                blending = false;
-                NetworkManager.localPlayer.clipName = NetworkManager.localPlayer.clipNextName;
-                NetworkManager.localPlayer.clipNextName = "";
-                for (int i = 0; i < 400; i++)
-                {
-                    kf1[i] = 0;
-                    kf2[i] = 0;
-                }
-            }
-        }
+
+        //testing, delete fps only or leave in for 3rd person
+        //NetworkManager.localPlayer.UpdateBlend(deltaTime);
+
+        foreach (var p in NetworkManager.players)
+            p.UpdateBlend(deltaTime);
         
     }
-    public float blendFactor = 0f;
-    public bool blendStart = false;
-    public bool blending = false;
-    int[] kf1 = new int[400];
-    int[] kf2 = new int[400];
+    //public float blendFactor = 0f;
+    //public bool blendStart = false;
+    //public bool blending = false;
+
+    //public Clip sclip, sclipnext;
+    public float pos;
+    public (Quaternion r, Vector3 t, int kf) rp;
+    public (Quaternion r, Vector3 t, int kf) rp2;
+
+    //public void SetActiveClip(Player player)
+    //{
+    //    Clip clip = FindClip(player.clipName);
+    //    if (clip == null)
+    //    {
+    //        return;
+    //    }
+    //    Clip clipNext = FindClip(player.clipNextName);
 
 
-    public void SetActiveClip(Player player)
+    //    if (clipNext != null)
+    //    {
+    //        if (player.clipName != player.clipNextName)
+    //        {
+    //            if (player.clipNextNamePrev != player.clipNextName)
+    //            {
+                   
+    //                player.animBlendStart= true;
+    //                player.animBlendFactor = 0;
+    //                player.clipNextNamePrev = player.clipNextName;
+    //            }
+    //        }
+    //        else
+    //        {
+    //            if (player.clipNextNamePrev != player.clipNextName && player.animBlending)
+    //            {
+    //                player.clipName = player.clipNextNamePrev;
+    //                player.clipNextNamePrev = player.clipNextName;
+
+    //                player.animBlendStart = true;
+    //                player.animBlendFactor = 1 - player.animBlendFactor;
+    //            }
+    //        }
+    //    }
+
+    //    //apply an offset for different models, random at their creation
+    //    pos = (clip.position + player.timeOffset) % (float) clip.clip.Duration;
+    //    var pos2 = 0f;
+
+         
+
+    //    int len = clip.boneInfo.Length;
+
+    //    if (player.animBlendStart) //sync keyframes and pos
+    //    {
+    //        //for (int i = 0; i < 400; i++)
+    //        //{
+    //        //    kf1[i] = 0;
+    //        //    kf2[i] = 0;
+    //        //}
+    //        player.animBlendStart = false;
+    //        player.animBlending = true;
+    //        //clip.position = 0;
+            
+    //        //pos = 0;
+
+
+    //    }
+    //    if(player.animBlending)
+    //    {
+    //        len = Math.Min(clip.boneInfo.Length, clipNext.boneInfo.Length);
+
+    //        pos2 = (clipNext.position + player.timeOffset) % (float)clipNext.clip.Duration;
+    //    }
+        
+
+    //    for (int i = 0; i < len; i++)
+    //    {
+    //        var bone1 = clip.boneInfo[i];
+    //        if (bone1.ClipAnimationBone.Keyframes.Count < 2)
+    //        {
+    //            continue;
+    //        }
+    //        rp = bone1.CalculateRotPos(pos, 0);
+    //        //kf1[i] = rp.kf;
+            
+    //        if (player.animBlending)
+    //        {
+                
+    //            var bone2 = clipNext.boneInfo[i];
+    //            if (bone2.ClipAnimationBone.Keyframes.Count < 2)
+    //            {
+    //                continue;
+    //            }
+    //            rp2 = bone2.CalculateRotPos(pos2, 0);
+    //            //kf2[i] = rp2.kf;
+
+    //            rp.r = Quaternion.Slerp(rp.r, rp2.r, player.animBlendFactor);
+    //            rp.t = Vector3.Lerp(rp.t, rp2.t, player.animBlendFactor);
+
+    //        }
+
+    //        bone1.SetRotPos(rp.r, rp.t);
+            
+    //    }
+    //}
+
+    public void SetActiveClip(Player p)
     {
-        Clip clip = FindClip(player.clipName);
-        if (clip == null)
+        Clip clipTo = FindClip(p.clipName);
+        Clip clipFrom = FindClip(p.clipPrevName);
+
+        var posTo = 0f;
+        int len = clipTo.boneInfo.Length;
+        posTo = (clipTo.position + p.timeOffset) % (float)clipTo.clip.Duration;
+
+
+        if (p.animBlending)
         {
-            return;
+            len = Math.Min(clipFrom.boneInfo.Length, clipTo.boneInfo.Length);
+            var posFrom = (clipFrom.position + p.timeOffset) % (float)clipFrom.clip.Duration;
+
         }
-        Clip clipNext = FindClip(player.clipNextName);
-
-
-
-        //apply an offset for different models, random at their creation
-        float pos = clip.position;
-        //+ player.timeOffset;
-
-
-        int len = 0;
-
-        if (blendStart) //sync keyframes and pos
-        {
-
-
-            for (int i = 0; i < 400; i++)
-            {
-                kf1[i] = 0;
-                kf2[i] = 0;
-            }
-            blendStart = false;
-            blending = true;
-            clip.position = 0;
-            blendFactor = 0;
-            pos = 0;
-            if (clipNext == null)
-            {
-                blending = false;
-            }
-        }
-        //len = clip.boneInfo.Length;
-        //if (clipNext != null)
-        //{
-        //    len = blending ? Math.Min(clip.boneInfo.Length, clipNext.boneInfo.Length) : clip.boneInfo.Length;
-        //}
-        len = 80;
-
-
-        if (blending)
-            pos %= 0.5f;
-        else
-            pos %= (float)clip.clip.Duration;
-
-        //string str;
-        //for (int i = 0; i < 328; i++)
-        //{
-        //    str = ""+i+" "+clips[8].clip.Bones[i].Name;
-
-        //    if(i <= 302)
-        //        str += " | " + i + " " + clips[9].clip.Bones[i].Name;
-
-        //    Debug.WriteLine(str);
-        //}
 
         for (int i = 0; i < len; i++)
         {
-            var bone1 = clip.boneInfo[i];
-            if (bone1.ClipAnimationBone.Keyframes.Count < 2)
+            var boneTo = clipTo.boneInfo[i];
+            if (boneTo.ClipAnimationBone.Keyframes.Count < 2)
             {
                 continue;
             }
-            (Quaternion r, Vector3 t, int kf) rp = bone1.CalculateRotPos(pos,0);
-            kf1[i] = rp.kf;
-            if (blending)
-            {
-                var bone2 = clipNext.boneInfo[i];
-                (Quaternion r, Vector3 t, int kf) rp2 = bone2.CalculateRotPos(pos, 0);
-                kf2[i] = rp2.kf;
+            rp2 = boneTo.CalculateRotPos(posTo, 0);
 
-                rp.r = Quaternion.Slerp(rp.r, rp2.r, blendFactor);
-                rp.t = Vector3.Lerp(rp.t, rp2.t, blendFactor);
+            if (p.animBlending)
+            {
+                var bone1 = clipFrom.boneInfo[i];
+                if (bone1.ClipAnimationBone.Keyframes.Count < 2)
+                {
+                    continue;
+                }
+                rp = bone1.CalculateRotPos(pos, 0);
+
+
+                rp2.r = Quaternion.Slerp(rp.r, rp2.r, p.animBlendFactor);
+                rp2.t = Vector3.Lerp(rp.t, rp2.t, p.animBlendFactor);
             }
 
-            bone1.SetRotPos(rp.r, rp.t);
-            //var game = NixFPS.GameInstance();
-            //if (i == (int)game.boneIndex)
-            //{
-            //    var ppos = NetworkManager.localPlayer.position;
-            //    var pl = new PointLight(ppos + bone1._assignedBone.GetAbsoluteTransform().Translation * 0.025f, 5f, Vector3.One, Vector3.One);
-            //    pl.skipDraw = true;
-            //    pl.hasLightGeo = true;
-            //    game.testLights.Add(pl);
-            //    game.testLights.ForEach(l => game.lightsManager.Register(l));
-            //}
+            boneTo.SetRotPos(rp2.r, rp2.t);
         }
 
-        //foreach (var bone in clip.boneInfo)
-        //{
-        //    if (bone.ClipAnimationBone.Keyframes.Count > 1)
-        //    {
-        //        bone.SetPosition(pos);
-        //    }
-        //}
     }
 
     Clip FindClip(string name)

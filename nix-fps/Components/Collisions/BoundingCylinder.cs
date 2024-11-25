@@ -137,11 +137,24 @@ namespace nixfps.Components.Collisions
         ///     Moves the Cylinder center by a delta offset, and updates the internal values of the Cylinder.
         /// </summary>
         /// <param name="delta">The amount of translation on each axis</param>
-        public void Move(Vector3 delta)
+        public void MoveBy(Vector3 delta)
         {
             _center += delta;
 
             UpdateTranslation();
+            UpdateInverseRotation();
+            UpdateTransform();
+        }
+
+        public void MoveRot(Vector3 pos, Matrix rot)
+        {
+            _center = pos;
+            _rotation = rot;
+
+            UpdateTranslation();
+
+            IsXZAligned = _rotation.Equals(Matrix.Identity);
+            
             UpdateInverseRotation();
             UpdateTransform();
         }

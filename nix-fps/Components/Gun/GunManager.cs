@@ -4,6 +4,7 @@ using nixfps.Components.Cameras;
 using nixfps.Components.Effects;
 using nixfps.Components.Input;
 using nixfps.Components.Network;
+using nixfps.Components.States;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -38,6 +39,7 @@ namespace nixfps.Components.Gun
             gunTex1 = game.Content.Load<Texture2D>(NixFPS.ContentFolder3D + "gun/m16/tex/baseColor");
         }
 
+        //float fireRate = .1f;
         float fireRate = .1f;
         float releaseTime = 0;
         float fireRateTimer = 0;
@@ -82,6 +84,7 @@ namespace nixfps.Components.Gun
 
 
         }
+        public (byte location, uint enemyId) hit = (0, uint.MaxValue);
         public void Fire()
         {
             firingAnim = true;
@@ -91,31 +94,33 @@ namespace nixfps.Components.Gun
                         + camera.frontDirection * 1.6f;
 
             var dir = camera.frontDirection;
-            tracers.Add(new Tracer(new Vector3((float)240.0 / 255, (float)111.0 / 255, (float)12.0 / 255), pos, dir));
+            tracers.Add(new Tracer(Color.Green.ToVector3(), pos, dir));
             Ray ray = new Ray(camera.position, camera.frontDirection);
             
             //check environment 
-            var hitEnv = ray.Intersects(game.boundingBox) != null;
-            if (hitEnv)
-            {
-                Debug.WriteLine("hit env, stopping");
-                //return;
-            }
 
             //check players
-            List<Player> hit = new List<Player>();
-            if(game.localPlayer.Hit(ray))
-                hit.Add(game.localPlayer);
-            hit.AddRange(NetworkManager.players.FindAll(p => p.Hit(ray)));
-
-            foreach (var p in hit)
+            foreach(var p in NetworkManager.playersToDraw)
             {
-                if (p.lastHit == 1)
-                    Debug.WriteLine("hit " + p.name + " headshot");
-                else if(p.lastHit == 2)
-                    Debug.WriteLine("hit " + p.name + " bodyshot");
+                var h = p.Hit(ray);
+                if(h > 0)
+                {
+                    var mapHit = GameStateManager.stateRun.CameraRayHitMap();
+                    if (mapHit.HasValue)
+                    {
+                        var distWall = Vector3.DistanceSquared(mapHit.Value, game.localPlayer.position);
+                        var distP = Vector3.DistanceSquared(p.position, game.localPlayer.position);
+
+                        if (distWall < distP)
+                        {
+                            //Debug.WriteLine($"hit wall {distWall}, {distP}");
+                            break;
+                        }
+                    }
+                    hit = (h, p.id);
+                    break;
+                }
             }
-            //dir = hitPos - camera.position;
 
         }
         public void DrawGun(float deltaTime)
@@ -178,6 +183,12 @@ namespace nixfps.Components.Gun
 
                 mesh.Draw();
             }
+        }
+
+        public (byte location, byte id) GetEnemyHit()
+        {
+
+            return (0, 0);
         }
     }
 }

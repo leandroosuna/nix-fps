@@ -1,14 +1,14 @@
 ﻿using Microsoft.Xna.Framework;
 using Newtonsoft.Json.Linq;
 using nixfps.Components.Input;
+using nixfps.Components.States;
 using Riptide;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Diagnostics.Metrics;
 using System.Net;
-using System.Threading;
-using static System.Windows.Forms.VisualStyles.VisualStyleElement.TrackBar;
+using System.Runtime.InteropServices;
+
 
 namespace nixfps.Components.Network
 {
@@ -21,94 +21,104 @@ namespace nixfps.Components.Network
 
         public static List<Player> players = new List<Player>();
         public static Player localPlayer;
+        public static List<Player> playersToDraw = new List<Player>();
         
         static NixFPS game;
-        static Thread netThread;
-        static bool netThreadEnabled = true;
         public static int ConnectionAttempts = 1;
         static String serverIP;
+        public static int tick;
+
+        private delegate void TimerCallback(uint id, uint msg, IntPtr user, IntPtr param1, IntPtr param2);
+
+        [DllImport("winmm.dll", SetLastError = true)]
+        private static extern uint timeSetEvent(uint msDelay, uint msResolution, TimerCallback callback, IntPtr user, uint eventType);
+
+        [DllImport("winmm.dll", SetLastError = true)]
+        private static extern uint timeKillEvent(uint uTimerId);
+
+
+        private static uint timerId;
+        static uint TargetMS;
+        private static TimerCallback callback;
         public static void Connect()
         {
             game = NixFPS.GameInstance();
             
             var id = game.CFG["ClientID"].Value<uint>();
-            var playerName = game.CFG["PlayerName"].Value<string>();
+            
             localPlayer = new Player(id);
-            localPlayer.name = playerName;
+            localPlayer.name = "name";
             localPlayer.teamColor = new Vector3(0, 1, 1);
 
             Client = new Client();
 
             var server = game.CFG["ServerIP"].Value<string>();
             serverIP = Dns.GetHostAddresses(server)[0].ToString();
-            //var serverIP = "192.168.1.45";
             serverIP +=":7777";
 
             Client.Connect(serverIP);
 
             Client.ConnectionFailed += Client_ConnectionFailed;
             Client.Connected += Client_Connected;
+            Client.Disconnected += Client_Disconnected;
+            callback = TimerElapsed;
 
-            long msTarget = 4;
-            long syncErrorMs = 0;
-            long currentTargetMs;
-            long ms;
-            netThread = new Thread(() =>
-            {
-                var stopwatch = new Stopwatch();
-                stopwatch.Start();
+            TargetMS = 1000 / game.CFG["TPS"].Value<uint>();
 
-                while (netThreadEnabled)
-                {
-                    ms = stopwatch.ElapsedMilliseconds;
-                    currentTargetMs = msTarget + syncErrorMs;
-                    if (ms >= currentTargetMs)
-                    {
-                        syncErrorMs = (ms - currentTargetMs);
 
-                        Client.Update();
-                        if(Client.IsConnected)
-                        {
-                            SendData();
-                        }
-                        stopwatch.Restart();
-                    }
-                    Thread.Sleep(1);
-                }
-            });
-
-            //thread.IsBackground = true;
-            netThread.Start();
+            timerId = timeSetEvent(TargetMS, 0, callback, IntPtr.Zero, 1);
 
         }
 
+        private static void TimerElapsed(uint id, uint msg, IntPtr user, IntPtr param1, IntPtr param2)
+        {
+            Client.Update();
+            if (Client.IsConnected)
+            {
+                SendData();
+                tick++;
+            }
+            else
+            {
+                tick--;
+            }
+        }
+        static bool isReconnect = false;
         private static void Client_Connected(object sender, EventArgs e)
         {
             Debug.WriteLine("CONNECTED");
-            //SendPlayerIdentity(); //connect button should send this.
-            ConnectionAttempts = 1;
+            if(isReconnect)
+            {
+                SendPlayerIdentity();
+                isReconnect = false;
+            }
         }
         
         private static void Client_ConnectionFailed(object sender, ConnectionFailedEventArgs e)
         {
             
-            if(ConnectionAttempts < 5)
-            {
-                Debug.WriteLine("Server connection failed, retrying...") ;
-                Client.Connect(serverIP);
-                ConnectionAttempts++;
-            }
-
+            Client.Connect(serverIP);
+            ConnectionAttempts++;
             
         }
 
+        private static void Client_Disconnected(object sender, EventArgs e)
+        {
+            Debug.WriteLine("DISCONNECTED");
 
+            //attempt auto reconnect
+            Client.Connect(serverIP);
+            isReconnect = true; 
+        }
 
         public static void StopNetThread()
         {
-            netThreadEnabled = false;
+            timeKillEvent(timerId);
         }
-
+        public static void SetLocalPlayerName(string name)
+        {
+            localPlayer.name = name;
+        }
         public static void SendPlayerIdentity()
         {
             Message msg = Message.Create(MessageSendMode.Reliable, ClientToServer.PlayerIdentity);
@@ -119,23 +129,31 @@ namespace nixfps.Components.Network
         public static void SendData()
         {
             var inputMan = game.gameState.inputManager;
+            var gunMan = game.gunManager;
 
+            
             inputMan.clientInputState.messageId = inputMan.messagesSent;
             //inputMan.InputStateCache.Add(inputMan.clientInputState);
             inputMan.messagesSent++;
 
             inputMan.clientInputState.positionDelta = localPlayer.position - localPlayer.positionPrev;
-            localPlayer.positionPrev = localPlayer.position;    
+            localPlayer.positionPrev = localPlayer.position;
+            if (gunMan == null) return;
+            var (hitLocation, enemyId) = gunMan.hit;
 
 
             var msg = Message.Create(MessageSendMode.Unreliable, ClientToServer.PlayerData);
             msg.AddUInt(localPlayer.id);
-            msg.AddUInt(inputMan.clientInputState.messageId);
 
+            msg.AddUInt(inputMan.clientInputState.messageId); 
+            
             msg.AddVector3(localPlayer.position);
             msg.AddVector3(inputMan.clientInputState.positionDelta);
             msg.AddFloat(localPlayer.yaw);
             msg.AddFloat(localPlayer.pitch);
+            msg.AddByte(hitLocation);
+            msg.AddByte(0); // gun id
+            msg.AddUInt(enemyId);
             msg.AddBool(inputMan.clientInputState.Forward);
             msg.AddBool(inputMan.clientInputState.Backward);
             msg.AddBool(inputMan.clientInputState.Left);
@@ -149,8 +167,12 @@ namespace nixfps.Components.Network
             msg.AddBool(inputMan.clientInputState.Ability2);
             msg.AddBool(inputMan.clientInputState.Ability3);
             msg.AddBool(inputMan.clientInputState.Ability4);
-            
-            //msg.AddFloat(inputMan.clientInputState.accDeltaTime);
+
+            if(hitLocation >0)
+            {
+                gunMan.hit = (0, uint.MaxValue);
+            }
+
             Client.Send(msg);
         }
 
@@ -162,87 +184,79 @@ namespace nixfps.Components.Network
             for (int i = 0; i < playerCount; i++)
             {
                 var id = message.GetUInt();
-                var lastProcessedMessage = message.GetUInt();
-                var lastMovementValid = message.GetBool();
-                var netPos = message.GetVector3();
-                var netYaw = message.GetFloat();
-                var netPitch = message.GetFloat();
-                var netClip = message.GetByte();
-
+                var connected = message.GetBool();
+                
+                var p = localPlayer;
                 if (id != localPlayer.id)
                 {
-                    var p = GetPlayerFromId(id);
-                    if (p.id != uint.MaxValue)
+                    p = GetPlayerFromId(id, true);
+                    p.connected = connected;
+                }
+                if (connected)
+                {
+                    var lastProcessedMessage = message.GetUInt();
+                    var lastMovementValid = message.GetBool();
+                    var netPos = message.GetVector3();
+                    var netYaw = message.GetFloat();
+                    var netPitch = message.GetFloat();
+                    var netClip = message.GetByte();
+                    var hp = message.GetByte();
+                    var hitLocation = message.GetByte();
+                    var damagerId = message.GetUInt();
+                    if (id != localPlayer.id)
                     {
-                        var cache = new PlayerCache(netPos, netYaw, netPitch, netClip, game.mainStopwatch.ElapsedMilliseconds);
-                        game.playerCacheMutex.WaitOne();
-                        p.netDataCache.Add(cache);
-                        game.playerCacheMutex.ReleaseMutex();
+                        if (p.id != uint.MaxValue)
+                        {
+                            var cache = new PlayerCache(netPos, netYaw, netPitch, netClip, hp, game.mainStopwatch.ElapsedMilliseconds);
+                            game.playerCacheMutex.WaitOne();
+                            p.netDataCache.Add(cache);
+                            game.playerCacheMutex.ReleaseMutex();
+                        }
+                        else
+                        {
+                            //Debug.WriteLine("player not found");
+                        }
                     }
                     else
                     {
-                        //Debug.WriteLine("player not found");
-                    }
-                }
-                else
-                {
-                    //server reconciliation
-                    //auth position from server
-                    var prevPos = localPlayer.position;
+                        //server reconciliation
+                        //auth position from server
+                        var prevPos = localPlayer.position;
 
-                    //localPlayer.position = netPos;
-                    var inputMan = game.gameState.inputManager;
-                    var cache = inputMan.InputStateCache;
+                        //localPlayer.position = netPos;
+                        var inputMan = game.gameState.inputManager;
+                        var cache = inputMan.InputStateCache;
 
-                    //we remove all processed messages from the cache
-                    cache.RemoveAll(c => c.messageId <= lastProcessedMessage);
+                        //we remove all processed messages from the cache
+                        cache.RemoveAll(c => c.messageId <= lastProcessedMessage);
 
-                    for(int j = 0; j < cache.Count; j++)
-                    {
-                        //inputMan.ApplyInput(cache[j]);
-                        if(InputManager.keyMappings.TAB.IsDown())
+                        for(int j = 0; j < cache.Count; j++)
                         {
-                            var a = 0;
+                            //inputMan.ApplyInput(cache[j]);
+                            if(InputManager.keyMappings.TAB.IsDown())
+                            {
+                                var a = 0;
+                            }
                         }
+                        posDiff = localPlayer.position - prevPos;
+
+                        localPlayer.health = hp;
+
+                        if(hp == 0)
+                        {
+                            localPlayer.position = GameStateManager.stateRun.GetSafeLocation();
+                        }
+
+                        localPlayer.hitLocation = hitLocation;
+                        localPlayer.damagerId = damagerId;
+
+                        //p.hp = hp;
                     }
-                    posDiff = localPlayer.position - prevPos;
-
-
                 }
+
             }
         }
-        [MessageHandler((ushort)ServerToClient.PlayerConnected)]
-        private static void HandlePlayerConnected(Message message)
-        {
-            var id = message.GetUInt();
-            var name = message.GetString();
-            if (id == localPlayer.id)
-                return;
-            Debug.WriteLine(name + " (" + id + ") connected");
-
-            var p = GetPlayerFromId(id, true);
-            p.name = name;
-            p.connected = true;
-
-        }
-
-        [MessageHandler((ushort)ServerToClient.PlayerDisconnected)]
-        private static void HandlePlayerDisconnected(Message message)
-        {
-            var id = message.GetUInt();
-            var name = message.GetString();
-
-            Debug.WriteLine(name + " (" + id + ") disconnected");
-
-            var p = GetPlayerFromId(id);
-            if (p.id != uint.MaxValue)
-            {
-                p.name = name;
-                p.connected = false;
-                return;
-            }
-            Debug.WriteLine("player not found");
-        }
+        
         public static Player GetPlayerFromId(uint id, bool createIfNull = false)
         {
             foreach (var player in players)
@@ -266,6 +280,19 @@ namespace nixfps.Components.Network
         {
             foreach (var player in players)
                 player.Interpolate(now);
+        }
+
+        internal static void UpdatePlayers()
+        {
+            localPlayer.UpdateZoneCollider();
+            foreach (var player in players)
+                player.UpdateZoneCollider();
+
+            playersToDraw.Clear();
+
+            playersToDraw.AddRange(
+                players.FindAll(p => game.camera.FrustumContains(p.zoneCollider)));
+
         }
     }
 }

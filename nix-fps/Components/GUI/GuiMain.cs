@@ -2,6 +2,7 @@
 using Microsoft.VisualBasic.ApplicationServices;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
+using Newtonsoft.Json.Linq;
 using nixfps.Components.Network;
 using nixfps.Components.States;
 using System;
@@ -20,9 +21,9 @@ namespace nixfps.Components.GUI
 
         public override void AddControllers()
         {
-            
+
         }
-        static String username = "nix";
+        static String username = game.CFG.ContainsKey("PlayerName") ? game.CFG["PlayerName"].Value<string>() : "nombre";
         static String user = "";
         public override void DrawLayout(GameTime gameTime)
         {
@@ -30,6 +31,7 @@ namespace nixfps.Components.GUI
             ImGui.SetNextWindowSize(new System.Numerics.Vector2(450,
                 GraphicsAdapter.DefaultAdapter.CurrentDisplayMode.Height));
             var style = ImGui.GetStyle();
+            style.Colors[(int)ImGuiCol.Text] = new System.Numerics.Vector4(1, 1f, 1f, 1);
             style.Colors[(int)ImGuiCol.Header] = new System.Numerics.Vector4(0, .5f, .5f, 1);
             style.Colors[(int)ImGuiCol.HeaderActive] = new System.Numerics.Vector4(0, .5f, .5f, 1);
             style.Colors[(int)ImGuiCol.HeaderHovered] = new System.Numerics.Vector4(0, .5f, .5f, 1);
@@ -76,16 +78,34 @@ namespace nixfps.Components.GUI
             }
 
             ImGui.Dummy(new System.Numerics.Vector2(1, 30));
-            ImGui.Text("Nombre del jugador");
-            ImGui.InputText("##username", ref username, 20);
-            ImGui.Dummy(new System.Numerics.Vector2(1, 60));
+            
+            
+            if(!NetworkManager.Client.IsConnected)
+            {
+                style.Colors[(int)ImGuiCol.Button] = new System.Numerics.Vector4(0, .25f, .25f, 1);
+                style.Colors[(int)ImGuiCol.ButtonHovered] = new System.Numerics.Vector4(0, .25f, .25f, 1);
+                style.Colors[(int)ImGuiCol.ButtonActive] = new System.Numerics.Vector4(0, .25f, .25f, 1);
+                style.Colors[(int)ImGuiCol.Text] = new System.Numerics.Vector4(.5f, .5f, .5f, 1);
+            }
             if (ImGui.Button("Entrar al juego"))
             {
-                user = username;
-                NetworkManager.SendPlayerIdentity();
-                GameStateManager.SwitchTo(State.RUN);
+                if(NetworkManager.Client.IsConnected)
+                {
+                    game.CFG["PlayerName"] = username;
+                    NetworkManager.SetLocalPlayerName(username);
+                    NetworkManager.SendPlayerIdentity();
+                    GameStateManager.SwitchTo(State.RUN);
+                }
             }
 
+            style.Colors[(int)ImGuiCol.Button] = new System.Numerics.Vector4(0, .5f, .5f, 1);
+            style.Colors[(int)ImGuiCol.ButtonHovered] = new System.Numerics.Vector4(0, .75f, .75f, 1);
+            style.Colors[(int)ImGuiCol.ButtonActive] = new System.Numerics.Vector4(0, 1, 1, 1);
+            style.Colors[(int)ImGuiCol.Text] = new System.Numerics.Vector4(1, 1f, 1f, 1);
+            ImGui.Dummy(new System.Numerics.Vector2(1, 30));
+
+            ImGui.Text("Nombre del jugador");
+            ImGui.InputText("##username", ref username, 20);
             ImGui.Dummy(new System.Numerics.Vector2(1, 60));
 
             if (ImGui.Button("Opciones"))

@@ -75,8 +75,8 @@ namespace nixfps.Components.Lights
             
                 foreach (var mesh in sphere.Meshes)
                 {
-                    //var w = mesh.ParentBone.Transform * Matrix.CreateScale(0.005f) * Matrix.CreateTranslation(position);
-                    var w = mesh.ParentBone.Transform * Matrix.CreateScale(0.01f) * Matrix.CreateTranslation(position);
+                    var w = mesh.ParentBone.Transform * Matrix.CreateScale(0.0025f) * Matrix.CreateTranslation(position);
+                    //var w = mesh.ParentBone.Transform * Matrix.CreateScale(0.01f) * Matrix.CreateTranslation(position);
                     basicModelEffect.SetWorld(w);
                     basicModelEffect.SetInverseTransposeWorld(Matrix.Invert(Matrix.Transpose(w)));
                     mesh.Draw();

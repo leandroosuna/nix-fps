@@ -125,12 +125,14 @@ namespace nixfps.Components.Effects
         {
             
             animatedModel.DrawPlayer(NetworkManager.localPlayer);
-            foreach (var p in NetworkManager.players)
+            foreach (var p in NetworkManager.playersToDraw)
                 animatedModel.DrawPlayer(p);
             
         }
         public void SetClipName(Player p, byte clipId)
         {
+
+
             if (clipId < 0 || clipId > animationNames.Count - 1)
             {
                 p.clipName = "idle";
@@ -140,6 +142,14 @@ namespace nixfps.Components.Effects
             p.clipName = animationNames[clipId];
             p.clipId = clipId;
         }
+        public (byte id, String name) GetClip(byte clipId)
+        {
+            if (clipId < 0 || clipId > animationNames.Count - 1)
+            {
+                return (0, "idle");
+            }
+            return (clipId, animationNames[clipId]);
+        }
         public void SetClipName(Player p, PlayerAnimation anim)
         {
             p.clipName = animationNames[(byte)anim];
@@ -148,6 +158,7 @@ namespace nixfps.Components.Effects
         {
             animationPlayer.Update(deltaTime);
             effect.SetTime(deltaTime);
+            
         }
 
         

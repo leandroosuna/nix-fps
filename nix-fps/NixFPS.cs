@@ -40,7 +40,7 @@ namespace nixfps
         public SpriteFont fontSmall;
         public SpriteFont fontMedium;
         public SpriteFont fontLarge;
-
+        public SpriteFont fontXLarge;
         public Skybox skybox;
         public static Texture2D Pixel { get; set; }
 
@@ -50,7 +50,6 @@ namespace nixfps
 
         public Model plane;
         public Model cube;
-        public BoundingBox boundingBox;
         public Model aztec;
         public Model dust2;
         public Texture2D[] aztecTex;
@@ -157,6 +156,7 @@ namespace nixfps
             Gui.Init();
             GameStateManager.Init();
             GameStateManager.SwitchTo(State.MAIN);
+            //GameStateManager.SwitchTo(State.RUN);
 
             NetworkManager.Connect();
             localPlayer = NetworkManager.localPlayer;
@@ -174,45 +174,42 @@ namespace nixfps
             hud.spriteBatch = spriteBatch;
             hud.crosshair.spriteBatch = spriteBatch;
             fullScreenQuad = new FullScreenQuad(GraphicsDevice);
-            plane = Content.Load<Model>(ContentFolder3D + "basic/plane");
-            cube = Content.Load<Model>(ContentFolder3D + "basic/cube");
-            floorTex = Content.Load<Texture2D>(ContentFolder3D + "basic/tex/metalfloor");
+            //plane = Content.Load<Model>(ContentFolder3D + "basic/plane");
+            //cube = Content.Load<Model>(ContentFolder3D + "basic/cube");
+            //floorTex = Content.Load<Texture2D>(ContentFolder3D + "basic/tex/metalfloor");
 
             fontSmall = Content.Load<SpriteFont>(ContentFolderFonts + "unispace/15");
             fontMedium = Content.Load<SpriteFont>(ContentFolderFonts + "unispace/20");
             fontLarge = Content.Load<SpriteFont>(ContentFolderFonts + "unispace/25");
+            fontXLarge = Content.Load<SpriteFont>(ContentFolderFonts + "unispace/35");
 
 
-            boxTex = Content.Load<Texture2D>(ContentFolder3D + "basic/tex/wood");
+            //boxTex = Content.Load<Texture2D>(ContentFolder3D + "basic/tex/wood");
 
-            aztec = Content.Load<Model>(ContentFolder3D + "aztec/de_aztec");
+            //aztec = Content.Load<Model>(ContentFolder3D + "aztec/de_aztec");
             dust2 = Content.Load<Model>(ContentFolder3D + "dust2/dust2");
             
             //Content.Load<Texture2D>(ContentFolder3D + "aztec/de_aztec_texture_0"),
             
-            aztecTex = new Texture2D[61];
-            for(int i = 0; i < 61; i++)
-            {
-                aztecTex[i] = Content.Load<Texture2D>(ContentFolder3D + "aztec/de_aztec_texture_" + i);
-            }
-            numTex = new Texture2D[101];
-            for (int i = 0; i < 101; i++)
-            {
-                numTex[i] = Content.Load<Texture2D>(ContentFolder3D + "basic/tex/num/" + i);
-            }
-            dust2Tex = new Texture2D[34];
-            dust2NormalTex = new Texture2D[34];
-
-            LoadDust2Tex();
-            //for (int i = 0; i < 34; i++)
+            //aztecTex = new Texture2D[61];
+            //for(int i = 0; i < 61; i++)
             //{
-            //    dust2Tex[i] = Content.Load<Texture2D>(ContentFolder3D + "dust2/de_dust2_material_" + i);
+            //    aztecTex[i] = Content.Load<Texture2D>(ContentFolder3D + "aztec/de_aztec_texture_" + i);
             //}
+            //numTex = new Texture2D[101];
+            //for (int i = 0; i < 101; i++)
+            //{
+            //    numTex[i] = Content.Load<Texture2D>(ContentFolder3D + "basic/tex/num/" + i);
+            //}
+            
+            LoadDust2Tex();
+            
+            GameStateManager.stateRun.InitDust2Values();
 
             LightVolume.Init();
 
-            AssignEffectToModel(plane, basicModelEffect.effect);
-            AssignEffectToModel(aztec, basicModelEffect.effect);
+            //AssignEffectToModel(plane, basicModelEffect.effect);
+            //AssignEffectToModel(aztec, basicModelEffect.effect);
             AssignEffectToModel(dust2, basicModelEffect.effect);
 
 
@@ -223,7 +220,7 @@ namespace nixfps
             BuildMapCollider();
 
             // Create many point lights
-            GeneratePointLights();
+            //GeneratePointLights();
 
             // Create the render targets we are going to use
             SetupRenderTargets();
@@ -240,55 +237,27 @@ namespace nixfps
 
         private void LoadDust2Tex()
         {
-            for (int i = 0; i < 34; i++)
-            {
-                if (i == 0)
-                {
-                    dust2Tex[i] = Content.Load<Texture2D>(ContentFolder3D + "dust2/hdtex/brick-wall-detail");
-                    dust2NormalTex[i] = Content.Load<Texture2D>(ContentFolder3D + "dust2/hdtex/brick-wall-detail-normal");
-                }
-                else if (i == 1 || i == 8 || i == 13 || i == 14 || i == 16 || i == 4)
-                {
-                    dust2Tex[i] = Content.Load<Texture2D>(ContentFolder3D + "dust2/hdtex/brick-wall");
-                    dust2NormalTex[i] = Content.Load<Texture2D>(ContentFolder3D + "dust2/hdtex/brick-wall-normal");
-                }
-                else if (i == 7 || i == 26 || i == 28 || i == 29 || i == 30)
-                {
-                    dust2Tex[i] = Content.Load<Texture2D>(ContentFolder3D + "dust2/hdtex/dd");
-                    dust2NormalTex[i] = Content.Load<Texture2D>(ContentFolder3D + "dust2/hdtex/dd-normal");
-                }
-                else if (i == 2 || i == 9 || i == 17 || i == 17 || i == 17 || i == 17 || i == 21 )
-                {
-                    dust2Tex[i] = Content.Load<Texture2D>(ContentFolder3D + "dust2/hdtex/wood-box");
-                    dust2NormalTex[i] = Content.Load<Texture2D>(ContentFolder3D + "dust2/hdtex/wood-box-normal");
-                }
-                else if( i == 12 || i == 20 || i == 31)
-                {
-                    dust2Tex[i] = Content.Load<Texture2D>(ContentFolder3D + "dust2/hdtex/wood-box-side");
-                    dust2NormalTex[i] = Content.Load<Texture2D>(ContentFolder3D + "dust2/hdtex/wood-box-side-normal");
-                }
-                else if (i == 5 || i == 6 || i == 22)
-                {
-                    dust2Tex[i] = Content.Load<Texture2D>(ContentFolder3D + "dust2/hdtex/ground-sand");
-                    dust2NormalTex[i] = Content.Load<Texture2D>(ContentFolder3D + "dust2/hdtex/ground-sand-normal");
-                }
-                else if (i == 10 || i == 15 || i == 25)
-                {
-                    dust2Tex[i] = Content.Load<Texture2D>(ContentFolder3D + "dust2/hdtex/tile-floor");
-                    dust2NormalTex[i] = Content.Load<Texture2D>(ContentFolder3D + "dust2/hdtex/tile-floor-normal");
-                }
-                else if(i == 11)
-                {
-                    dust2Tex[i] = Content.Load<Texture2D>(ContentFolder3D + "dust2/hdtex/rock-wall");
-                    dust2NormalTex[i] = Content.Load<Texture2D>(ContentFolder3D + "dust2/hdtex/rock-wall-normal");
-                }
-                else
-                {
-                    dust2NormalTex[i] = Content.Load<Texture2D>(ContentFolder3D + "dust2/hdtex/default-normal");
-                    dust2Tex[i] = Content.Load<Texture2D>(ContentFolder3D + "dust2/de_dust2_material_" + i);
-
-                }
-            }
+            dust2Tex = new Texture2D[]{
+                Content.Load<Texture2D>(ContentFolder3D + "dust2/hdtex/brick-wall-detail"),
+                Content.Load<Texture2D>(ContentFolder3D + "dust2/hdtex/brick-wall"),
+                Content.Load<Texture2D>(ContentFolder3D + "dust2/hdtex/dd"),
+                Content.Load<Texture2D>(ContentFolder3D + "dust2/hdtex/wood-box"),
+                Content.Load<Texture2D>(ContentFolder3D + "dust2/hdtex/wood-box-side"),
+                Content.Load<Texture2D>(ContentFolder3D + "dust2/hdtex/ground-sand"),
+                Content.Load<Texture2D>(ContentFolder3D + "dust2/hdtex/tile-floor"),
+                Content.Load<Texture2D>(ContentFolder3D + "dust2/hdtex/rock-wall"),
+                Content.Load<Texture2D>(ContentFolder3D + "dust2/hdtex/light"),
+            };
+            dust2NormalTex = new Texture2D[]{
+                Content.Load<Texture2D>(ContentFolder3D + "dust2/hdtex/brick-wall-detail-normal"),
+                Content.Load<Texture2D>(ContentFolder3D + "dust2/hdtex/brick-wall-normal"),
+                Content.Load<Texture2D>(ContentFolder3D + "dust2/hdtex/dd-normal"),
+                Content.Load<Texture2D>(ContentFolder3D + "dust2/hdtex/wood-box-normal"),
+                Content.Load<Texture2D>(ContentFolder3D + "dust2/hdtex/wood-box-side-normal"),
+                Content.Load<Texture2D>(ContentFolder3D + "dust2/hdtex/ground-sand-normal"),
+                Content.Load<Texture2D>(ContentFolder3D + "dust2/hdtex/tile-floor-normal"),
+                Content.Load<Texture2D>(ContentFolder3D + "dust2/hdtex/rock-wall-normal")
+            };
         }
 
         public void StopGame()
@@ -398,6 +367,12 @@ namespace nixfps
             public CollisionTriangle()
             {
                 v = new Vector3[3];
+            }
+            public Vector3 GetNormal()
+            {
+                Vector3 edge1 = v[1] - v[0];
+                Vector3 edge2 = v[2] - v[0];
+                return Vector3.Cross(edge1, edge2);
             }
         }
         public bool CheckTriangle(CollisionTriangle t)
