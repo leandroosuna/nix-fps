@@ -29,9 +29,14 @@ namespace nixfps
         public bool onAir = false;
         public float yaw;
         public float pitch = 0f;
-        
+
+        public byte health = 150;
+        public byte hitLocation;
+        public uint damagerId;
+
         public Matrix scale = Matrix.CreateScale(0.025f);
         public Matrix world;
+
         public string clipName;
         public byte clipId;
         
@@ -119,28 +124,28 @@ namespace nixfps
                 switch(i)
                 {
                     case 0: 
-                        translation += rot.Up * .25f - rot.Forward * 0.1f; 
+                        translation += rot.Up * .25f - rot.Forward * 0.1f; //head
                         color = Color.White; break;
                     case 1:
-                        translation += rot.Up * .25f - rot.Forward * 0.15f;
+                        translation += rot.Up * .25f - rot.Forward * 0.15f;//body
                         color = Color.Yellow; break;
                     case 2:
-                        translation += rot.Up * .25f; 
+                        translation += rot.Up * .25f; //left arm
                         color = Color.Green; break;
                     case 3:
-                        translation += rot.Up * .25f; 
+                        translation += rot.Up * .25f; //right arm
                         color = Color.Blue; break;
                     case 4:
-                        translation += rot.Up * .6f;
-                        color = Color.Cyan; break;
+                        translation += rot.Up * .6f; //left leg
+                        color = Color.Cyan; break; 
                     case 5:
-                        translation += rot.Up * .6f;
+                        translation += rot.Up * .6f; //right leg
                         color = Color.Magenta; break;
                     case 6:
-                        translation += rot.Up * .6f; 
+                        translation += rot.Up * .6f; //left leg
                         color = Color.Cyan; break;
                     case 7:
-                        translation += rot.Up * .6f; 
+                        translation += rot.Up * .6f; //right leg
                         color = Color.Magenta; break;
                 }
                 if (lastHit == i)
@@ -152,18 +157,28 @@ namespace nixfps
         }
         
         public int lastHit = -1;
-        public bool Hit(Ray ray)
+        public byte Hit(Ray ray)
         {
             for(int i = 0; i < bodyCollider.Length; i++)
             {
                 if (bodyCollider[i].Intersects(ray))
                 {
                     lastHit = i;
-                    return true;
+                    switch(i)
+                    {
+                        case 0: return 1;
+                        case 1: return 2;
+                        case 2: return 2;
+                        case 3: return 2;
+                        case 4: return 3;
+                        case 5: return 3;
+                        case 6: return 3;
+                        case 7: return 3;
+                    }
                 }
             }
             lastHit = -1;
-            return false;
+            return 0;
         }
         public Matrix GetWorld()
         {
@@ -199,13 +214,10 @@ namespace nixfps
             
             netDataCache = netDataCache.OrderBy(pc => pc.timeStamp).ToList();
 
-            //rendering one server tick behind, 5ms
-            //long renderTimeStamp = now - 200;
-            long renderTimeStamp = now - 10;
-            ////rendering 20ms behind
-            //long renderTimeStamp = now - 100;
-
-
+            //rendering 4 server ticks behind, 20ms
+            
+            long renderTimeStamp = now - 20;
+            
             ////check if there is at least one timestamp after renderTimeStamp to interpolate to
             if (netDataCache.All(pc => pc.timeStamp <= renderTimeStamp))
             {
@@ -305,13 +317,15 @@ namespace nixfps
         public float yaw, pitch;
         public byte clipId;
         public long timeStamp;
-        public PlayerCache(Vector3 position, float yaw, float pitch, byte clipId, long timeStamp)
+        public byte health;
+        public PlayerCache(Vector3 position, float yaw, float pitch, byte clipId, byte health, long timeStamp)
         {
             this.position = position;
             this.yaw = yaw;
             this.pitch = pitch;
             this.clipId = clipId;
             this.timeStamp = timeStamp;
+            this.health = health;
         }
     }
 }

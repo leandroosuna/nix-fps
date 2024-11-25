@@ -1,6 +1,7 @@
 ﻿using Microsoft.Xna.Framework;
 using Newtonsoft.Json.Linq;
 using nixfps.Components.Input;
+using nixfps.Components.States;
 using Riptide;
 using System;
 using System.Collections.Generic;
@@ -20,6 +21,7 @@ namespace nixfps.Components.Network
 
         public static List<Player> players = new List<Player>();
         public static Player localPlayer;
+        public static List<Player> playersToDraw = new List<Player>();
         
         static NixFPS game;
         public static int ConnectionAttempts = 1;
@@ -127,23 +129,31 @@ namespace nixfps.Components.Network
         public static void SendData()
         {
             var inputMan = game.gameState.inputManager;
+            var gunMan = game.gunManager;
 
+            
             inputMan.clientInputState.messageId = inputMan.messagesSent;
             //inputMan.InputStateCache.Add(inputMan.clientInputState);
             inputMan.messagesSent++;
 
             inputMan.clientInputState.positionDelta = localPlayer.position - localPlayer.positionPrev;
-            localPlayer.positionPrev = localPlayer.position;    
+            localPlayer.positionPrev = localPlayer.position;
+            if (gunMan == null) return;
+            var (hitLocation, enemyId) = gunMan.hit;
 
 
             var msg = Message.Create(MessageSendMode.Unreliable, ClientToServer.PlayerData);
             msg.AddUInt(localPlayer.id);
-            msg.AddUInt(inputMan.clientInputState.messageId);
 
+            msg.AddUInt(inputMan.clientInputState.messageId); 
+            
             msg.AddVector3(localPlayer.position);
             msg.AddVector3(inputMan.clientInputState.positionDelta);
             msg.AddFloat(localPlayer.yaw);
             msg.AddFloat(localPlayer.pitch);
+            msg.AddByte(hitLocation);
+            msg.AddByte(0); // gun id
+            msg.AddUInt(enemyId);
             msg.AddBool(inputMan.clientInputState.Forward);
             msg.AddBool(inputMan.clientInputState.Backward);
             msg.AddBool(inputMan.clientInputState.Left);
@@ -157,8 +167,12 @@ namespace nixfps.Components.Network
             msg.AddBool(inputMan.clientInputState.Ability2);
             msg.AddBool(inputMan.clientInputState.Ability3);
             msg.AddBool(inputMan.clientInputState.Ability4);
-            
-            //msg.AddFloat(inputMan.clientInputState.accDeltaTime);
+
+            if(hitLocation >0)
+            {
+                gunMan.hit = (0, uint.MaxValue);
+            }
+
             Client.Send(msg);
         }
 
@@ -172,7 +186,7 @@ namespace nixfps.Components.Network
                 var id = message.GetUInt();
                 var connected = message.GetBool();
                 
-                var p = NetworkManager.localPlayer;
+                var p = localPlayer;
                 if (id != localPlayer.id)
                 {
                     p = GetPlayerFromId(id, true);
@@ -186,12 +200,14 @@ namespace nixfps.Components.Network
                     var netYaw = message.GetFloat();
                     var netPitch = message.GetFloat();
                     var netClip = message.GetByte();
-
+                    var hp = message.GetByte();
+                    var hitLocation = message.GetByte();
+                    var damagerId = message.GetUInt();
                     if (id != localPlayer.id)
                     {
                         if (p.id != uint.MaxValue)
                         {
-                            var cache = new PlayerCache(netPos, netYaw, netPitch, netClip, game.mainStopwatch.ElapsedMilliseconds);
+                            var cache = new PlayerCache(netPos, netYaw, netPitch, netClip, hp, game.mainStopwatch.ElapsedMilliseconds);
                             game.playerCacheMutex.WaitOne();
                             p.netDataCache.Add(cache);
                             game.playerCacheMutex.ReleaseMutex();
@@ -224,7 +240,17 @@ namespace nixfps.Components.Network
                         }
                         posDiff = localPlayer.position - prevPos;
 
+                        localPlayer.health = hp;
 
+                        if(hp == 0)
+                        {
+                            localPlayer.position = GameStateManager.stateRun.GetSafeLocation();
+                        }
+
+                        localPlayer.hitLocation = hitLocation;
+                        localPlayer.damagerId = damagerId;
+
+                        //p.hp = hp;
                     }
                 }
 
@@ -261,6 +287,12 @@ namespace nixfps.Components.Network
             localPlayer.UpdateZoneCollider();
             foreach (var player in players)
                 player.UpdateZoneCollider();
+
+            playersToDraw.Clear();
+
+            playersToDraw.AddRange(
+                players.FindAll(p => game.camera.FrustumContains(p.zoneCollider)));
+
         }
     }
 }

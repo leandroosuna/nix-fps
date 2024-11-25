@@ -125,7 +125,7 @@ namespace nixfps.Components.Effects
         {
             
             animatedModel.DrawPlayer(NetworkManager.localPlayer);
-            foreach (var p in NetworkManager.players)
+            foreach (var p in NetworkManager.playersToDraw)
                 animatedModel.DrawPlayer(p);
             
         }
@@ -158,6 +158,7 @@ namespace nixfps.Components.Effects
         {
             animationPlayer.Update(deltaTime);
             effect.SetTime(deltaTime);
+            
         }
 
         

@@ -6,12 +6,10 @@ namespace nixfps.Components.Network
     public enum ClientToServer : ushort
     {
         PlayerIdentity,
-        PlayerData,
+        PlayerData
     }
     public enum ServerToClient: ushort
     {
-        PlayerConnected,
-        PlayerDisconnected,
         AllPlayerData
     }
 

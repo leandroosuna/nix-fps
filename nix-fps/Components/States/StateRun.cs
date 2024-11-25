@@ -74,7 +74,7 @@ namespace nixfps.Components.States
             game.gizmos.UpdateViewProjection(game.camera.view, game.camera.projection);
 
             game.animationManager.Update(uDeltaTimeFloat);
-            game.UpdatePointLights(uDeltaTimeFloat);
+            //game.UpdatePointLights(uDeltaTimeFloat);
 
             game.lightsManager.Update(uDeltaTimeFloat);
             game.gunManager.Update(gameTime);
@@ -206,7 +206,6 @@ namespace nixfps.Components.States
             }
             //game.hud.crosshair.SetColor(onAir?Color.Blue:Color.White);
 
-            //ShowPointingAtVertex();
 
 
             //var ms = Mouse.GetState();
@@ -230,7 +229,6 @@ namespace nixfps.Components.States
             //        mb2down = false;
             //    }
             //}
-
             MapCollisionInit();
             MapCollisionFloor();
             MapCollisionBox();
@@ -285,7 +283,7 @@ namespace nixfps.Components.States
             new Vector3(-103.7f, 5, -7.3f),
             new Vector3(-126, 7.2f, -38)
         }; 
-        Vector3 GetSafeLocation()
+        public Vector3 GetSafeLocation()
         {
             Random r = new Random();
             return spawnPos[r.NextInt64(0, spawnPos.Length)];
@@ -462,10 +460,8 @@ namespace nixfps.Components.States
 
         }
 
-        void ShowPointingAtVertex()
+        public Vector3? CameraRayHitMap()
         {
-            totalChecks = 0;
-
             IOrderedEnumerable<NixFPS.CollisionTriangle> closeEnough;
 
             var hitList = new List<Vector3>();
@@ -475,9 +471,9 @@ namespace nixfps.Components.States
             var camFD = game.camera.frontDirection;
             float posOffset = 0;
 
-            Vector3 []tempArr= new Vector3[3];
+            Vector3[] tempArr = new Vector3[3];
 
-            while (hitList.Count == 0 && posOffset <= 212f)
+            while (posOffset <= 212f)
             {
                 closeEnough = game.mapTriangles
                     .FindAll(t => Vector3.DistanceSquared(t.v[0], fromPos + camFD * posOffset) < triangleDistSqr)
@@ -491,6 +487,8 @@ namespace nixfps.Components.States
                 //    if (hitPos.HasValue)
                 //        hitList.Add(hitPos.Value);
                 //}
+                //if (closeEnough.Any(t => BoundingVolumesExtensions.IntersectRayWithTriangle(game.camera.position, camFD, t.v[0], t.v[1], t.v[2]).HasValue))
+                //    return true;
                 Parallel.ForEach(closeEnough, triangle =>
                 {
 
@@ -499,37 +497,21 @@ namespace nixfps.Components.States
                     if (hitPos.HasValue)
                     {
                         hitList.Add(hitPos.Value);
-
-                        tempArr[0] = triangle.v[1];
-                        tempArr[1] = triangle.v[2];
-                        tempArr[2] = triangle.v[2];
-                        var closest = tempArr.OrderBy(v => Vector3.DistanceSquared(v, hitPos.Value)).ToList()[0];
-                        vertexHitList.Add(closest);
                     }
                 });
                 posOffset += stepDist; //2 * sqrt 500
 
             }
-            //if (hitList.Count > 0)
-            //{
-            //    currentPosHit = hitList.OrderBy(t => Vector3.DistanceSquared(t, game.camera.position)).ToList()[0];
-            //    var pl = new PointLight(currentPosHit - game.camera.frontDirection * 4f, 10f, new Vector3(1, 0, 1), new Vector3(1, 0, 1));
-            //    //var pl = new CylinderLight(currentPosHit - game.camera.frontDirection * 1, 20f, 10f, Color.White.ToVector3(), Matrix.Identity, Color.White.ToVector3());
-            //    pl.hasLightGeo = true;
-            //    pl.skipDraw = false;
-            //    miniLights.Add(pl);
-            //}
 
-            if (vertexHitList.Count > 0)
-            {
-                var cph = vertexHitList.OrderBy(t => Vector3.DistanceSquared(t, game.camera.position)).ToList()[0];
-                var pl = new PointLight(cph, 10f, new Vector3(1, 1, 1), new Vector3(1, 1, 1));
-                pl.hasLightGeo = true;
-                pl.skipDraw = true;
-                miniLights.Add(pl);
-            }
+            if(hitList.Count == 1)
+                return hitList[0];
 
+            if (hitList.Count >= 2)
+                return hitList.OrderBy(t => Vector3.DistanceSquared(t, fromPos)).ToArray()[0];
+            
+            return null;
         }
+
         String fpsStr = "";
         string str2 = "";
         string str3 = "";
@@ -719,8 +701,7 @@ namespace nixfps.Components.States
             var min = new Vector3(4, 2, 4) - new Vector3(1, 1f, 1);
             var max = new Vector3(4, 2, 4) + new Vector3(1, 1f, 1);
 
-            game.boundingBox = new BoundingBox(min, max);
-            //gizmos.DrawCube(Matrix.CreateScale(2f) * , Color.Magenta);
+
             game.gizmos.DrawCube(new Vector3(4, 2, 4), new Vector3(2, 2, 2), Color.Magenta);
 
         }

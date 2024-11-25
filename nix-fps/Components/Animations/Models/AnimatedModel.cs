@@ -94,7 +94,7 @@ public class AnimatedModel
         {
             //game.gizmos.DrawSphere(lp.position, Vector3.One * 4f, Color.White);
 
-            lp.UpdateBodyColliders(new Matrix[] {
+            player.UpdateBodyColliders(new Matrix[] {
                 _bones[8].AbsoluteTransform * playerWorld,
                 _bones[4].AbsoluteTransform * playerWorld,
                 _bones[12].AbsoluteTransform * playerWorld,

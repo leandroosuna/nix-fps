@@ -40,7 +40,7 @@ namespace nixfps
         public SpriteFont fontSmall;
         public SpriteFont fontMedium;
         public SpriteFont fontLarge;
-
+        public SpriteFont fontXLarge;
         public Skybox skybox;
         public static Texture2D Pixel { get; set; }
 
@@ -50,7 +50,6 @@ namespace nixfps
 
         public Model plane;
         public Model cube;
-        public BoundingBox boundingBox;
         public Model aztec;
         public Model dust2;
         public Texture2D[] aztecTex;
@@ -182,6 +181,7 @@ namespace nixfps
             fontSmall = Content.Load<SpriteFont>(ContentFolderFonts + "unispace/15");
             fontMedium = Content.Load<SpriteFont>(ContentFolderFonts + "unispace/20");
             fontLarge = Content.Load<SpriteFont>(ContentFolderFonts + "unispace/25");
+            fontXLarge = Content.Load<SpriteFont>(ContentFolderFonts + "unispace/35");
 
 
             //boxTex = Content.Load<Texture2D>(ContentFolder3D + "basic/tex/wood");
@@ -220,7 +220,7 @@ namespace nixfps
             BuildMapCollider();
 
             // Create many point lights
-            GeneratePointLights();
+            //GeneratePointLights();
 
             // Create the render targets we are going to use
             SetupRenderTargets();

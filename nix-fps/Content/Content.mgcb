@@ -935,6 +935,18 @@
 /processorParam:TextureFormat=Compressed
 /build:3D/basic/sphere.fbx
 
+#begin 3D/basic/Tex/HP.png
+/importer:TextureImporter
+/processor:TextureProcessor
+/processorParam:ColorKeyColor=255,0,255,255
+/processorParam:ColorKeyEnabled=True
+/processorParam:GenerateMipmaps=False
+/processorParam:PremultiplyAlpha=True
+/processorParam:ResizeToPowerOfTwo=False
+/processorParam:MakeSquare=False
+/processorParam:TextureFormat=Color
+/build:3D/basic/Tex/HP.png
+
 #begin 3D/basic/Tex/metalfloor.png
 /importer:TextureImporter
 /processor:TextureProcessor
@@ -2754,18 +2766,6 @@
 /processorParam:TextureFormat=Color
 /build:3D/dust2/hdtex/light.png
 
-#begin 3D/dust2/hdtex/light.png
-/importer:TextureImporter
-/processor:TextureProcessor
-/processorParam:ColorKeyColor=255,0,255,255
-/processorParam:ColorKeyEnabled=True
-/processorParam:GenerateMipmaps=False
-/processorParam:PremultiplyAlpha=True
-/processorParam:ResizeToPowerOfTwo=False
-/processorParam:MakeSquare=False
-/processorParam:TextureFormat=Color
-/build:3D/dust2/hdtex/light.png
-
 #begin 3D/dust2/hdtex/rock-wall-normal.png
 /importer:TextureImporter
 /processor:TextureProcessor
@@ -3141,4 +3141,11 @@
 /processorParam:PremultiplyAlpha=True
 /processorParam:TextureFormat=Compressed
 /build:Fonts/unispace/25.spritefont
+
+#begin Fonts/unispace/35.spritefont
+/importer:FontDescriptionImporter
+/processor:FontDescriptionProcessor
+/processorParam:PremultiplyAlpha=True
+/processorParam:TextureFormat=Compressed
+/build:Fonts/unispace/35.spritefont
 
