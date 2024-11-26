@@ -2,6 +2,7 @@
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
+using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
@@ -173,7 +174,8 @@ namespace nixfps.Components.GUI.ImGuiNET
             //};
             ///////////////////////////////////////////
             ///
-            CustomFont = ImGui.GetIO().Fonts.AddFontFromFileTTF("C:/Windows/Fonts/Unispace bd.ttf", 20);
+            var cfg = NixFPS.GameInstance().CFG;
+            CustomFont = ImGui.GetIO().Fonts.AddFontFromFileTTF(cfg["FontPath"].Value<string>(), cfg["FontSize"].Value<int>());
             
         }
 

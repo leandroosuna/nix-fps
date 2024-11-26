@@ -32,8 +32,8 @@ namespace nixfps.Components.States
         {
             game.GraphicsDevice.SetRenderTarget(null);
             game.GraphicsDevice.Clear(Color.Black);
-            game.GraphicsDevice.RasterizerState = RasterizerState.CullClockwise;
-            game.skybox.Draw();
+            game.GraphicsDevice.RasterizerState = RasterizerState.CullNone;
+            game.skybox.Draw(game.camera.view, game.camera.projection, game.camera.position, false);
             game.camera.RotateBy(new Vector2(dDeltaTimeFloat * 2, 0));
             gui.Draw(gameTime);
 

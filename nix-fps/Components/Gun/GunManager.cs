@@ -1,5 +1,6 @@
 ﻿using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
+using nixfps.Components.Audio;
 using nixfps.Components.Cameras;
 using nixfps.Components.Effects;
 using nixfps.Components.Input;
@@ -19,63 +20,114 @@ namespace nixfps.Components.Gun
     {
         NixFPS game;
         Camera camera;
-        Model gun;
+        Model[] gunModels;
+        Texture2D[] gunsTex;
         Matrix gunWorld;
-        Texture2D gunTex1;
         BasicModelEffect basicModelEffect;
         List<Tracer> tracers = new List<Tracer>();
+        public Gun currentGun;
+        public Gun rifle;
+        public Gun pistol;
         public GunManager()
         {
             game = NixFPS.GameInstance();
             camera = game.camera;
             basicModelEffect = game.basicModelEffect;
 
-            gun = game.Content.Load<Model>(NixFPS.ContentFolder3D + "gun/m16/m16");
+            gunModels = new Model[] {
+                game.Content.Load<Model>(NixFPS.ContentFolder3D + "gun/m16/m16"),
+                game.Content.Load<Model>(NixFPS.ContentFolder3D + "gun/beretta/BerettaPistol")};
+
             Tracer.model = game.Content.Load<Model>(NixFPS.ContentFolder3D + "basic/cube");
             Tracer.game = game;
-            NixFPS.AssignEffectToModel(gun, basicModelEffect.effect);
+            foreach (var g in gunModels)
+                NixFPS.AssignEffectToModel(g, basicModelEffect.effect);
+
             NixFPS.AssignEffectToModel(Tracer.model, basicModelEffect.effect);
 
-            gunTex1 = game.Content.Load<Texture2D>(NixFPS.ContentFolder3D + "gun/m16/tex/baseColor");
+            gunsTex = new Texture2D[] { 
+                game.Content.Load<Texture2D>(NixFPS.ContentFolder3D + "gun/m16/tex/baseColor"),
+                game.Content.Load<Texture2D>(NixFPS.ContentFolder3D + "gun/beretta/Berreta M9_Material_BaseColor"),
+            };
+            
+
+            var recoilPattern = new List<(float, float)>
+            {
+                (2.5f, 0.2f), 
+                (2.5f, -0.1f),
+                (1.6f, 0.3f),
+                (3f, -0.2f), 
+                (2.5f, -0.2f),
+                (2.5f, -0.1f),
+                (1.6f, 0.3f),
+                (3f, -0.5f),
+                (2.5f, -0.7f),
+                (2.5f, -.8f),
+                (1.6f, 1.4f),
+                (3f, -1.5f),
+                (2.5f, -0.6f),
+                (1.6f, 0.6f),
+                (3f, -0.2f), 
+                (4.2f, 0.2f),
+                (4.3f, -0.1f),
+                (4.5f, 0.3f),
+                (6f, -0.2f), 
+            };
+            rifle = new Gun(1,"rifle", 150, 40, 25, true, .1f, 20,recoilPattern);
+
+            recoilPattern = new List<(float, float)>
+            {
+                (6f, 0.4f), 
+                (6f, -0.5f),
+                (6f, 0.6f), 
+                (6f, -0.7f), 
+            };
+            pistol = new Gun(2,"pistol", 100, 20, 10, false, .2f, 6, recoilPattern);
+
+            currentGun = rifle;
         }
 
-        //float fireRate = .1f;
-        float fireRate = .1f;
-        float releaseTime = 0;
-        float fireRateTimer = 0;
-
-        bool firingAnim = false;
+        
+        public bool firedThisFrame = false;
+        bool firingAnim;
+        
         public void Update(GameTime gameTime)
         {
             float elapsedTime = (float)gameTime.ElapsedGameTime.TotalSeconds;
             float totalTime = (float)gameTime.TotalGameTime.TotalSeconds;
 
-            if(InputManager.keyMappings.Fire.IsDown())
-            //if (game.inputManager.clientInputState.Fire)
-            {
-                if (fireRateTimer == 0)
-                {
-                    Fire();
-                }
-                fireRateTimer += elapsedTime;
+            currentGun.Update(elapsedTime, InputManager.keyMappings.Fire.IsDown());
+            firingAnim = false;
 
-                if (fireRateTimer >= fireRate)
-                {
-                    fireRateTimer = 0;
-                }
-                releaseTime = 0;
-            }
-            else
-            {
-                releaseTime += elapsedTime;
+            firedThisFrame = currentGun.Fire();
+            if (firedThisFrame)
+                Fire();
+            //if (InputManager.keyMappings.Fire.IsDown())
+            ////if (game.inputManager.clientInputState.Fire)
+            //{
+            //    if (fireRateTimer == 0)
+            //    {
+            //        Fire();
+            //    }
+            //    fireRateTimer += elapsedTime;
 
-                if (releaseTime >= fireRate - fireRateTimer)
-                    fireRateTimer = 0;
+            //    if (fireRateTimer >= fireRate)
+            //    {
+            //        fireRateTimer = 0;
+            //    }
+            //    releaseTime = 0;
+            //}
+            //else
+            //{
+            //    releaseTime += elapsedTime;
 
-                firingAnim = false;
+            //    if (releaseTime >= fireRate - fireRateTimer)
+            //        fireRateTimer = 0;
+
+            //    firingAnim = false;
 
 
-            }
+            //}
             foreach (var tracer in tracers)
             {
                 tracer.Update(elapsedTime);
@@ -96,11 +148,10 @@ namespace nixfps.Components.Gun
             var dir = camera.frontDirection;
             tracers.Add(new Tracer(Color.Green.ToVector3(), pos, dir));
             Ray ray = new Ray(camera.position, camera.frontDirection);
-            
-            //check environment 
 
+            SoundManager.FireGun(currentGun.name, game.localPlayer);
             //check players
-            foreach(var p in NetworkManager.playersToDraw)
+            foreach (var p in NetworkManager.playersToDraw)
             {
                 var h = p.Hit(ray);
                 if(h > 0)
@@ -118,9 +169,42 @@ namespace nixfps.Components.Gun
                         }
                     }
                     hit = (h, p.id);
+                    SoundManager.PlayHit();
                     break;
                 }
             }
+            
+        }
+        public void ChangeGun(int id)
+        {
+            switch (id)
+            {
+                case 1: currentGun = rifle; break;
+                case 2: currentGun = pistol; break;
+            }
+        }
+
+        public void EnemyFire(Player ep, byte id)
+        {
+            if (id == 0)
+                return;
+            var gun = game.gunManager.rifle;
+
+            switch(id)
+            {
+                case 1: gun = game.gunManager.rifle; break;
+                case 2: gun = game.gunManager.pistol; break;
+            }
+            ep.SetFireLight(false);
+            if (ep.soundFireTimer == 0)
+            {
+                SoundManager.FireGun(gun.name, ep);
+                ep.SetFireLight(true);
+            }
+            ep.soundFireTimer += game.gameState.uDeltaTimeFloat;
+            if(ep.soundFireTimer >= gun.fireRate)
+                ep.soundFireTimer = 0;
+            
 
         }
         public void DrawGun(float deltaTime)
@@ -154,37 +238,51 @@ namespace nixfps.Components.Gun
             basicModelEffect.SetShininess(30f);
             basicModelEffect.SetColor(Color.White.ToVector3());
 
-            basicModelEffect.SetColorTexture(gunTex1);
             basicModelEffect.SetTiling(Vector2.One);
-            foreach (var mesh in gun.Meshes)
+
+            if (currentGun.id == 1)
             {
-                if (mesh.Name == "BARREL")//body
+                basicModelEffect.SetColorTexture(gunsTex[0]);
+                foreach (var mesh in gunModels[0].Meshes)
+                {
+                    if (mesh.Name == "BARREL")//body
+                    {
+                        var w = mesh.ParentBone.Transform * gunWorld;
+
+                        basicModelEffect.SetWorld(w);
+                        basicModelEffect.SetInverseTransposeWorld(Matrix.Invert(Matrix.Transpose(w)));
+                    }
+                    else if (mesh.Name == "BARREL.001")//mag
+                    {
+                        var w = mesh.ParentBone.Transform * gunWorld;
+
+                        basicModelEffect.SetWorld(w);
+                        basicModelEffect.SetInverseTransposeWorld(Matrix.Invert(Matrix.Transpose(w)));
+                    }
+                    else if (mesh.Name == "BARREL.002")
+                    {
+                        var w = mesh.ParentBone.Transform * gunWorld;
+
+                        basicModelEffect.SetWorld(w);
+                        basicModelEffect.SetInverseTransposeWorld(Matrix.Invert(Matrix.Transpose(w)));
+                    }
+
+
+                    mesh.Draw();
+                }
+            }
+            else
+            {
+                basicModelEffect.SetColorTexture(gunsTex[1]);
+                foreach (var mesh in gunModels[1].Meshes)
                 {
                     var w = mesh.ParentBone.Transform * gunWorld;
-
                     basicModelEffect.SetWorld(w);
                     basicModelEffect.SetInverseTransposeWorld(Matrix.Invert(Matrix.Transpose(w)));
+                    mesh.Draw();
                 }
-                else if (mesh.Name == "BARREL.001")//mag
-                {
-                    var w = mesh.ParentBone.Transform * gunWorld;
-
-                    basicModelEffect.SetWorld(w);
-                    basicModelEffect.SetInverseTransposeWorld(Matrix.Invert(Matrix.Transpose(w)));
-                }
-                else if (mesh.Name == "BARREL.002")
-                {
-                    var w = mesh.ParentBone.Transform * gunWorld;
-
-                    basicModelEffect.SetWorld(w);
-                    basicModelEffect.SetInverseTransposeWorld(Matrix.Invert(Matrix.Transpose(w)));
-                }
-
-
-                mesh.Draw();
             }
         }
-
         public (byte location, byte id) GetEnemyHit()
         {
 

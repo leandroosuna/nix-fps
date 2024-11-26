@@ -49,7 +49,7 @@ namespace nixfps.Components.Network
             localPlayer = new Player(id);
             localPlayer.name = "name";
             localPlayer.teamColor = new Vector3(0, 1, 1);
-
+            localPlayer.position = GameStateManager.stateRun.GetSafeLocation();
             Client = new Client();
 
             var server = game.CFG["ServerIP"].Value<string>();
@@ -152,7 +152,7 @@ namespace nixfps.Components.Network
             msg.AddFloat(localPlayer.yaw);
             msg.AddFloat(localPlayer.pitch);
             msg.AddByte(hitLocation);
-            msg.AddByte(0); // gun id
+            msg.AddByte(game.gunManager.currentGun.id);
             msg.AddUInt(enemyId);
             msg.AddBool(inputMan.clientInputState.Forward);
             msg.AddBool(inputMan.clientInputState.Backward);
@@ -203,11 +203,15 @@ namespace nixfps.Components.Network
                     var hp = message.GetByte();
                     var hitLocation = message.GetByte();
                     var damagerId = message.GetUInt();
+                    var enemyGunId = message.GetByte();
+                    var kills = message.GetUInt();
+                    var deaths = message.GetUInt();
+
                     if (id != localPlayer.id)
                     {
                         if (p.id != uint.MaxValue)
                         {
-                            var cache = new PlayerCache(netPos, netYaw, netPitch, netClip, hp, game.mainStopwatch.ElapsedMilliseconds);
+                            var cache = new PlayerCache(netPos, netYaw, netPitch, netClip, hp, enemyGunId, kills, deaths, game.mainStopwatch.ElapsedMilliseconds);
                             game.playerCacheMutex.WaitOne();
                             p.netDataCache.Add(cache);
                             game.playerCacheMutex.ReleaseMutex();
@@ -249,7 +253,8 @@ namespace nixfps.Components.Network
 
                         localPlayer.hitLocation = hitLocation;
                         localPlayer.damagerId = damagerId;
-
+                        localPlayer.kills = kills;
+                        localPlayer.deaths = deaths;
                         //p.hp = hp;
                     }
                 }

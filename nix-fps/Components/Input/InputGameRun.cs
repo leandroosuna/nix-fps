@@ -1,4 +1,5 @@
 ﻿using Microsoft.Xna.Framework;
+using nixfps.Components.Audio;
 using nixfps.Components.Cameras;
 using nixfps.Components.Effects;
 using nixfps.Components.States;
@@ -94,8 +95,11 @@ namespace nixfps.Components.Input
                 if (!keysDown.Contains(keyMappings.Debug0))
                 {
                     keysDown.Add(keyMappings.Debug0);
-                    if(game.selectedVertexIndex < 14500)
-                        game.selectedVertexIndex+=20;
+                    var r = (float)new Random().NextDouble() *2 -1;
+                    var r2 = (float)new Random().NextDouble() *2 -1;
+
+                    var pos = new Vector3(10f * r, 0, 10 * r2);
+                    SoundManager.FireGun("pistol", localPlayer);
                 }
             }
             if (keyMappings.Debug9.IsDown())
