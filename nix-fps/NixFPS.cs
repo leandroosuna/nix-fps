@@ -15,9 +15,9 @@ using System.Threading;
 using nixfps.Components.HUD;
 using nixfps.Components.Gun;
 using nixfps.Components.Gizmos;
-using nixfps.Components.Collisions;
 using nixfps.Components.GUI;
 using nixfps.Components.States;
+using nixfps.Components.Audio;
 
 namespace nixfps
 {
@@ -26,7 +26,6 @@ namespace nixfps
         public const string ContentFolder2D = "2D/";
         public const string ContentFolder3D = "3D/";
         public const string ContentFolderEffects = "Effects/";
-        public const string ContentFolderMusic = "Music/";
         public const string ContentFolderSounds = "Sounds/";
         public const string ContentFolderFonts = "Fonts/";
 
@@ -41,7 +40,8 @@ namespace nixfps
         public SpriteFont fontMedium;
         public SpriteFont fontLarge;
         public SpriteFont fontXLarge;
-        public Skybox skybox;
+        public SkyBox skybox;
+        
         public static Texture2D Pixel { get; set; }
 
         //public IConfigurationRoot CFG;
@@ -183,7 +183,7 @@ namespace nixfps
             fontLarge = Content.Load<SpriteFont>(ContentFolderFonts + "unispace/25");
             fontXLarge = Content.Load<SpriteFont>(ContentFolderFonts + "unispace/35");
 
-
+            SoundManager.LoadContent();
             //boxTex = Content.Load<Texture2D>(ContentFolder3D + "basic/tex/wood");
 
             //aztec = Content.Load<Model>(ContentFolder3D + "aztec/de_aztec");
@@ -216,17 +216,24 @@ namespace nixfps
             lightsManager = new LightsManager();
             lightsManager.ambientLight = new AmbientLight(new Vector3(-50, 50, 50), new Vector3(1f, 1f, 1f), Vector3.One, Vector3.One);
             animationManager = new AnimationManager();
-            
+
+            NetworkManager.players.ForEach(p => lightsManager.Register(p.fireLight));
             BuildMapCollider();
 
             // Create many point lights
-            //GeneratePointLights();
+            GeneratePointLights();
 
             // Create the render targets we are going to use
             SetupRenderTargets();
 
-            
-            skybox = new Skybox();
+            var skyboxModel = Content.Load<Model>(ContentFolder3D + "skybox/cube");
+
+            var skyBoxTexture = Content.Load<TextureCube>(ContentFolder3D + "/skybox/space");
+
+            var skyeffect = Content.Load<Effect>(ContentFolderEffects + "skybox");
+            AssignEffectToModel(skyboxModel, skyeffect);
+            skybox = new SkyBox(skyboxModel, skyBoxTexture, skyeffect);
+
             InputManager.camera = camera;
 
             
@@ -271,10 +278,8 @@ namespace nixfps
         bool firstUpdate = true;
         protected override void Update(GameTime gameTime)
         {
-            
-            
             gameState.Update(gameTime);
-
+            SoundManager.Update();
             
             base.Update(gameTime);
         }
@@ -336,13 +341,43 @@ namespace nixfps
         List<LightVolume> lights = new List<LightVolume>();
         void GeneratePointLights()
         {
-            var random = new Random();
-            var light = new PointLight(new Vector3(74, 10, -170), 15f, new Vector3(1,0,1), new Vector3(1, 0, 1));
-            lightsManager.Register(light);
-            lights.Add(light);
-            light.hasLightGeo = true;
-            offsetR.Add(5);
-            offsetT.Add(0);
+            var yellowLightsPos = new Vector3 []{
+                new Vector3(-133, 8f, -80),
+                new Vector3(-73, 8f, -73),
+                new Vector3(-62, -2.5f, -101),
+                new Vector3(21, -4.5f, -167),
+                new Vector3(39, 4, -34),
+                new Vector3(89, -7, -9),
+                new Vector3(58, 12, -178),
+                new Vector3(21, 12, -124),
+                new Vector3(-28, 4, 10),
+                new Vector3(-9, 6, -104),
+                new Vector3(-95, 6, -187),
+                new Vector3(-137, 6, -200),
+                new Vector3(115, 8, -149),
+                new Vector3(-133, 12, -39),
+                new Vector3(44,4,18),
+                new Vector3(-33, 12, 65),
+                new Vector3(-111, 6, -111),
+            };
+
+            foreach(var pos in yellowLightsPos)
+            {
+                var l = new PointLight(pos, 30f, Color.LightGoldenrodYellow.ToVector3(), Color.LightGoldenrodYellow.ToVector3());
+                lightsManager.Register(l);
+
+            }
+
+
+
+
+            //var random = new Random();
+            //var light = new PointLight(new Vector3(74, 10, -170), 15f, new Vector3(1,0,1), new Vector3(1, 0, 1));
+            //lightsManager.Register(light);
+            //lights.Add(light);
+            //light.hasLightGeo = true;
+            //offsetR.Add(5);
+            //offsetT.Add(0);
 
             //for (int i = 1; i < maxPointLights; i++)
             //{

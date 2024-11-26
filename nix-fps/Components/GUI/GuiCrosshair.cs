@@ -142,7 +142,7 @@ namespace nixfps.Components.GUI
         }
         bool GetEnableDot()
         {
-            return true;
+            return false;
         }
         bool GetEnabled()
         {
@@ -151,7 +151,7 @@ namespace nixfps.Components.GUI
 
         int GetLineLength()
         {
-            return 10;
+            return 5;
         }
         int GetLineThickness()
         {
@@ -159,7 +159,7 @@ namespace nixfps.Components.GUI
         }
         int GetLineOffset()
         {
-            return 10;
+            return 4;
         }
         int GetOutlineThickness()
         {

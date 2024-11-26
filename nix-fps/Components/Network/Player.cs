@@ -3,6 +3,7 @@ using nixfps.Components.Animations.Models;
 using nixfps.Components.Collisions;
 using nixfps.Components.Effects;
 using nixfps.Components.Input;
+using nixfps.Components.Lights;
 using nixfps.Components.Network;
 using Riptide;
 using SharpDX.Direct3D9;
@@ -65,6 +66,10 @@ namespace nixfps
         public float animBlendFactor;
         public float animBlendTime = .25f;
 
+        public float soundFireTimer;
+        public uint kills;
+        public uint deaths;
+        public PointLight fireLight;
         public Player(uint id)
         {
             this.id = id;
@@ -97,10 +102,17 @@ namespace nixfps
             boxCollider = new BoundingBox(
                 position + new Vector3(-boxWidth / 2, 2 - boxHeight / 2, -boxWidth / 2), 
                 position + new Vector3(boxWidth / 2, 2 + boxHeight / 2, boxWidth / 2));
+
+            fireLight = new PointLight(Vector3.Zero, 15f, Color.Green.ToVector3(), Color.Green.ToVector3());
+            fireLight.skipDraw = true;
+            if(game.lightsManager != null)
+                game.lightsManager.Register(fireLight);
         }
+        
         public void UpdateZoneCollider()
         {
             zoneCollider.Center = position;
+            fireLight.position = position + frontDirection * 1 + Vector3.Up * 4;
             UpdateBoxCollider();
         }
         public void UpdateBoxCollider()
@@ -152,7 +164,7 @@ namespace nixfps
                     color = Color.Red;
                 
                 bodyCollider[i].MoveRot(translation, rot);
-                game.gizmos.DrawCylinder(translation, rot, new Vector3(bodyCollider[i].Radius, bodyCollider[i].HalfHeight, bodyCollider[i].Radius), color);
+                //game.gizmos.DrawCylinder(translation, rot, new Vector3(bodyCollider[i].Radius, bodyCollider[i].HalfHeight, bodyCollider[i].Radius), color);
             }
         }
         
@@ -179,6 +191,10 @@ namespace nixfps
             }
             lastHit = -1;
             return 0;
+        }
+        public void SetFireLight(bool en)
+        {
+            fireLight.skipDraw = !en;
         }
         public Matrix GetWorld()
         {
@@ -255,6 +271,12 @@ namespace nixfps
             //game.animationManager.SetClipName(this, netDataCache[indexFound].clipId);
             SetClip(netDataCache[indexFound].clipId);
 
+            game.gunManager.EnemyFire(this, netDataCache[indexFound].gunId);
+
+            kills = netDataCache[indexFound].kills;
+            deaths = netDataCache[indexFound].deaths;
+
+
             //we delete elements that are old
             if (netDataCache.Count > 2)
             {
@@ -318,7 +340,10 @@ namespace nixfps
         public byte clipId;
         public long timeStamp;
         public byte health;
-        public PlayerCache(Vector3 position, float yaw, float pitch, byte clipId, byte health, long timeStamp)
+        public byte gunId;
+        public uint kills; 
+        public uint deaths;
+        public PlayerCache(Vector3 position, float yaw, float pitch, byte clipId, byte health, byte gunId, uint kills, uint deaths, long timeStamp)
         {
             this.position = position;
             this.yaw = yaw;
@@ -326,6 +351,9 @@ namespace nixfps
             this.clipId = clipId;
             this.timeStamp = timeStamp;
             this.health = health;
+            this.gunId = gunId;
+            this.kills = kills;
+            this.deaths = deaths;
         }
     }
 }

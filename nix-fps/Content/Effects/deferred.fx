@@ -295,7 +295,7 @@ float4 processBloom(float3 color, float filter, float3 light, float2 texCoord)
     float3 blurHColor = tex2D(blurHSampler, texCoord).rgb;
     float3 blurVColor = tex2D(blurVSampler, texCoord).rgb;
     
-    float attenuation = 0.95;
+    float attenuation = 1;
     float bloomPower = 3;
     
     if (filter == 0)

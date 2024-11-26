@@ -33,9 +33,16 @@ namespace nixfps.Components.HUD
             spriteBatch.Begin();
             crosshair.Draw();
 
+            var gun = game.gunManager.currentGun;
+            var magStr = $"{gun.magSize - gun.shotsFired}/{gun.magSize}";
+
+            if (gun.reload)
+                magStr += " R";
+
             spriteBatch.DrawString(game.fontXLarge, "+", new Vector2(game.screenWidth / 3, game.screenHeight - 55), Color.White);
             spriteBatch.DrawString(game.fontLarge, ""+lp.health, new Vector2(game.screenWidth / 3 + 25, game.screenHeight - 50), Color.White);
-
+            spriteBatch.DrawString(game.fontLarge,
+               magStr, new Vector2(game.screenWidth  *2 / 3 + 25, game.screenHeight - 50), Color.White);
             spriteBatch.End();
         }
     }

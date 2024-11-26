@@ -1,53 +1,90 @@
 ﻿using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
-using nixfps.Components.Cameras;
-using System;
-using System.Collections.Generic;
-using System.Drawing;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace nixfps.Components.Skybox
 {
-    public class Skybox
+    /// <summary>
+    ///     Handles all of the aspects of working with a SkyBox.
+    /// </summary>
+    public class SkyBox
     {
-        Model model;
-        //TextureCube texture;
-        Texture2D texture2D;
-        Effect effect;
-        float size;
-        NixFPS game;
-        public Skybox()
+        /// <summary>
+        ///     Creates a new SkyBox
+        /// </summary>
+        /// <param name="model">The geometry to use for SkyBox.</param>
+        /// <param name="texture">The SkyBox texture to use.</param>
+        /// <param name="effect">The size of the cube.</param>
+        public SkyBox(Model model, TextureCube texture, Effect effect) : this(model, texture, effect, 600)
         {
-            
-            game = NixFPS.GameInstance();
-            model = game.Content.Load<Model>(NixFPS.ContentFolder3D + "basic/skyboxSphere");
-            //texture = game.Content.Load<TextureCube>(NixFPS.ContentFolder3D + "skybox/space");
-            texture2D = game.Content.Load<Texture2D>(NixFPS.ContentFolder3D + "skybox/milkyway");
-
-            var ef = NixFPS.ContentFolderEffects + "SkyBox";
-            effect = game.Content.Load<Effect>(ef);
-            size = 400;
-            NixFPS.AssignEffectToModel(model, effect);
-            effect.CurrentTechnique = effect.Techniques["sphere2d"];
         }
-        public void Draw()
+
+        /// <summary>
+        ///     Creates a new SkyBox
+        /// </summary>
+        /// <param name="model">The geometry to use for SkyBox.</param>
+        /// <param name="texture">The SkyBox texture to use.</param>
+        /// <param name="effect">The SkyBox fx to use.</param>
+        /// <param name="size">The SkyBox fx to use.</param>
+        public SkyBox(Model model, TextureCube texture, Effect effect, float size)
         {
-            //effect.Parameters["skyBoxTexture"]?.SetValue(texture);
-            effect.Parameters["skyBox2DTexture"]?.SetValue(texture2D);
+            Model = model;
+            Texture = texture;
+            Effect = effect;
+            Size = size;
 
-            effect.Parameters["cameraPosition"].SetValue(game.camera.position);
 
-            foreach (var mesh in model.Meshes)
+        }
+
+        /// <summary>
+        ///     The size of the cube, used so that we can resize the box
+        ///     for different sized environments.
+        /// </summary>
+        private float Size { get; }
+
+        /// <summary>
+        ///     The effect file that the SkyBox will use to render
+        /// </summary>
+        public Effect Effect { get; set; }
+
+        /// <summary>
+        ///     The actual SkyBox texture
+        /// </summary>
+        private TextureCube Texture { get; }
+
+        /// <summary>
+        ///     The SkyBox model, which will just be a cube
+        /// </summary>
+        public Model Model { get; set; }
+
+        /// <summary>
+        ///     Does the actual drawing of the SkyBox with our SkyBox effect.
+        ///     There is no world matrix, because we're assuming the SkyBox won't
+        ///     be moved around.  The size of the SkyBox can be changed with the size
+        ///     variable.
+        /// </summary>
+        /// <param name="view">The view matrix for the effect</param>
+        /// <param name="projection">The projection matrix for the effect</param>
+        /// <param name="cameraPosition">The position of the camera</param>
+        /// 
+        public void Draw(Matrix view, Matrix projection, Vector3 cameraPosition)
+        {
+            Draw(view, projection, cameraPosition, true);
+        }
+        public void Draw(Matrix view, Matrix projection, Vector3 cameraPosition, bool isDeferred)
+        {
+            var game = NixFPS.GameInstance();
+            Effect.Parameters["isDeferred"].SetValue(isDeferred);
+            Effect.Parameters["SkyBoxTexture"].SetValue(Texture);
+            Effect.Parameters["CameraPosition"].SetValue(cameraPosition);
+            foreach (var mesh in Model.Meshes)
             {
-                effect.Parameters["world"].SetValue(Matrix.CreateScale(size) * Matrix.CreateTranslation(game.camera.position));
-                effect.Parameters["view"].SetValue(game.camera.view);
-                effect.Parameters["projection"].SetValue(game.camera.projection);
-                
+                var world = Matrix.CreateScale(Size) * Matrix.CreateTranslation(cameraPosition);
+                var wvp = world * view * projection;
+                Effect.Parameters["World"].SetValue(world);
+                Effect.Parameters["WorldViewProjection"].SetValue(wvp);
+
                 mesh.Draw();
             }
-            
         }
     }
 }

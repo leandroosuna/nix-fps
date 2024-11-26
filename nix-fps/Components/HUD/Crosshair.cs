@@ -11,8 +11,8 @@ namespace nixfps.Components.HUD
 {
     public class Crosshair
     {
-        public bool centerDot = true;
         public bool enabled = true;
+        public bool centerDot = false;
         public bool mainLines = true;
         public bool outline = true;
         bool centerDotOutline = true;
@@ -23,10 +23,10 @@ namespace nixfps.Components.HUD
         Color outlineColor = Color.Black;
 
         public int centerDotSize = 2;
-        public int length = 10;
+        public int length = 4;
         public int thickness = 2;
         public int outlineThickness = 1;
-        public int offset = 10;
+        public int offset = 4;
         public int correction = 0;
         public SpriteBatch spriteBatch;
         Point c;

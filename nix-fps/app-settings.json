@@ -8,6 +8,9 @@
     "ProcessorName": "Animation Processor",
     "rebuild-animations": false,
 
+    "FontPath": "C:/Windows/Fonts/Unispace bd.ttf",
+    "FontSize": 20,
+
     "ScreenWidth": 1600,
     "ScreenHeight": 900,
     "Fullscreen": false,

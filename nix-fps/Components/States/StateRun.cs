@@ -35,6 +35,8 @@ namespace nixfps.Components.States
             
             System.Windows.Forms.Cursor.Position = inputManager.center;
             game.IsMouseVisible = false;
+
+            
         }
         List<LightVolume> miniLights = new List<LightVolume>();
 
@@ -84,10 +86,23 @@ namespace nixfps.Components.States
 
             var keyState = Keyboard.GetState();
             var changed = false;
-            if(keyState.IsKeyDown(Keys.Q))
+            //if(keyState.IsKeyDown(Keys.Q))
+            //{
+            //    game.Exit();
+            //}
+            if (keyState.IsKeyDown(Keys.NumPad1) || keyState.IsKeyDown(Keys.D1))
             {
-                game.Exit();
+                game.gunManager.ChangeGun(1);
             }
+            if (keyState.IsKeyDown(Keys.NumPad2) || keyState.IsKeyDown(Keys.D2))
+            {
+                game.gunManager.ChangeGun(2);
+            }
+            if (keyState.IsKeyDown(Keys.R))
+            {
+                game.gunManager.currentGun.reload = true;
+            }
+
             if (keyState.IsKeyDown(Keys.Up))
             {
                 game.camera.pitch += uDeltaTimeFloat * 70;
@@ -121,52 +136,14 @@ namespace nixfps.Components.States
                 game.camera.UpdateCameraVectors();
             }
             
-            string nextClip = "idle";
+            
             //if(lp.clipName )
 
                 //NetworkManager.localPlayer.clipName = "run right";
                 //NetworkManager.localPlayer.clipName = "idle";
-                
-            if (keyState.IsKeyDown(Keys.L))
-            {
-                nextClip = "run right";
-            }
-            if (keyState.IsKeyDown(Keys.J))
-            {
-                nextClip = "run left";
-            }
-            if (keyState.IsKeyDown(Keys.I))
-            {
-                if (keyState.IsKeyDown(Keys.U))
-                {
-                    //nextClip = "sprint forward";
-
-                    //if (keyState.IsKeyDown(Keys.L))
-                    //    nextClip = "sprint forward right";
-                    //if (keyState.IsKeyDown(Keys.J))
-                    //    nextClip = "sprint forward left";
-                }
-                else
-                {
-                    nextClip = "run forward";
-
-                    if (keyState.IsKeyDown(Keys.L))
-                        nextClip = "run forward right";
-                    if (keyState.IsKeyDown(Keys.J))
-                        nextClip = "run forward left";
-                }
-            }
-            if (keyState.IsKeyDown(Keys.K))
-            {
-                nextClip = "run backward";
-
-                if (keyState.IsKeyDown(Keys.L))
-                    nextClip = "run backward right";
-                if (keyState.IsKeyDown(Keys.J))
-                    nextClip = "run backward left";
-
-            }
-            lp.clipNextName = nextClip;
+            
+            
+           
             
 
             //oneSec += uDeltaTimeFloat;
@@ -534,9 +511,9 @@ namespace nixfps.Components.States
             game.GraphicsDevice.SetRenderTargets(game.colorTarget, game.normalTarget, game.positionTarget, game.bloomFilterTarget);
             game.GraphicsDevice.BlendState = BlendState.NonPremultiplied;
             game.GraphicsDevice.DepthStencilState = DepthStencilState.Default;
-            game.GraphicsDevice.RasterizerState = RasterizerState.CullClockwise;
+            game.GraphicsDevice.RasterizerState = RasterizerState.CullNone;
 
-            game.skybox.Draw();
+            game.skybox.Draw(game.camera.view, game.camera.projection, game.camera.position);
             game.GraphicsDevice.RasterizerState = RasterizerState.CullCounterClockwise;
 
             // Draw a simple plane, enable lighting on it
@@ -642,6 +619,12 @@ namespace nixfps.Components.States
                 {
                     str2 = " Reconectando...";
                 }
+                str3 = $" KD {lp.kills}/{lp.deaths}";
+                //if(NetworkManager.players.Count > 0)    
+                //    str4 = $" KD enemigo {NetworkManager.players[0].kills}/{NetworkManager.players[0].deaths}";
+                //str3 = $"{game.gunManager.currentGun.reload} {game.gunManager.currentGun.reloadTimer}";
+
+
             }
             game.spriteBatch.Begin();
             game.spriteBatch.DrawString(game.fontSmall, fpsStr, Vector2.Zero, Color.White);
