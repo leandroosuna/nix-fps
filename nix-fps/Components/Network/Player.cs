@@ -1,5 +1,6 @@
 ﻿using Microsoft.Xna.Framework;
 using nixfps.Components.Animations.Models;
+using nixfps.Components.Audio;
 using nixfps.Components.Collisions;
 using nixfps.Components.Effects;
 using nixfps.Components.Input;
@@ -70,6 +71,7 @@ namespace nixfps
         public uint kills;
         public uint deaths;
         public PointLight fireLight;
+        public bool footsteps;
         public Player(uint id)
         {
             this.id = id;
@@ -217,10 +219,14 @@ namespace nixfps
             return frontDirection;
         }
 
-        
+        Vector3 lastPosition;
 
         public void Interpolate(long now)
         {
+            if(!connected)
+            {
+                return;
+            }
             game.playerCacheMutex.WaitOne();
             if (netDataCache.Count < 2)
             {
@@ -232,7 +238,7 @@ namespace nixfps
 
             //rendering 4 server ticks behind, 20ms
             
-            long renderTimeStamp = now - 20;
+            long renderTimeStamp = now - 30;
             
             ////check if there is at least one timestamp after renderTimeStamp to interpolate to
             if (netDataCache.All(pc => pc.timeStamp <= renderTimeStamp))
@@ -261,7 +267,20 @@ namespace nixfps
                     var p0 = netDataCache[i].pitch;
                     var p1 = netDataCache[i + 1].pitch;
 
+                    lastPosition = position;
+
                     position = x0 + (x1 - x0) * (renderTimeStamp - t0) / (t1 - t0);
+
+                    var dist = Vector3.DistanceSquared(lastPosition, position);
+                    //if(dist != 0)
+                    //{
+                    //    dist = dist;
+                    //}
+                    //footsteps = dist > .002f;
+                    //if(footsteps == true)
+                    //{
+                    //    footsteps = footsteps;
+                    //}
                     
                     yaw = y0 + (y1 - y0) * (renderTimeStamp - t0) / (t1 - t0);
                     pitch = p0 + (p1 - p0) * (renderTimeStamp - t0) / (t1 - t0);
@@ -330,6 +349,11 @@ namespace nixfps
                 clipName = name;
                 clipId = id;
             }
+        }
+        public void SetColor(Color color)
+        {
+            
+            teamColor = color.ToVector3();
         }
     }
     

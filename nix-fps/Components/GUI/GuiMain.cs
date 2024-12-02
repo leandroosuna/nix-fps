@@ -21,7 +21,7 @@ namespace nixfps.Components.GUI
 
         public override void AddControllers()
         {
-
+            controller.AddColor("Color", NetworkManager.SetPlayerColor, Color.Black);
         }
         static String username = game.CFG.ContainsKey("PlayerName") ? game.CFG["PlayerName"].Value<string>() : "nombre";
         static String user = "";
@@ -78,18 +78,32 @@ namespace nixfps.Components.GUI
             }
 
             ImGui.Dummy(new System.Numerics.Vector2(1, 30));
-            
-            
-            if(!NetworkManager.Client.IsConnected)
+
+
+            var canJoin = NetworkManager.Client.IsConnected && game.versionReceived && game.correctVersion;
+
+            if (!canJoin)
             {
                 style.Colors[(int)ImGuiCol.Button] = new System.Numerics.Vector4(0, .25f, .25f, 1);
                 style.Colors[(int)ImGuiCol.ButtonHovered] = new System.Numerics.Vector4(0, .25f, .25f, 1);
                 style.Colors[(int)ImGuiCol.ButtonActive] = new System.Numerics.Vector4(0, .25f, .25f, 1);
+                
+            }
+            var buttonStr = "Entrar al juego";
+            if(!NetworkManager.Client.IsConnected)
+            {
+                buttonStr = "Desconectado";
                 style.Colors[(int)ImGuiCol.Text] = new System.Numerics.Vector4(.5f, .5f, .5f, 1);
             }
-            if (ImGui.Button("Entrar al juego"))
+            else if (!game.correctVersion)
             {
-                if(NetworkManager.Client.IsConnected)
+                buttonStr = "Version incorrecta, actualizar";
+                style.Colors[(int)ImGuiCol.Text] = new System.Numerics.Vector4(1f, 0f, 0f, 1);
+            }
+
+            if (ImGui.Button(buttonStr))
+            {
+                if(canJoin)
                 {
                     game.CFG["PlayerName"] = username;
                     NetworkManager.SetLocalPlayerName(username);
@@ -106,12 +120,18 @@ namespace nixfps.Components.GUI
 
             ImGui.Text("Nombre del jugador");
             ImGui.InputText("##username", ref username, 20);
+            ImGui.Dummy(new System.Numerics.Vector2(1, 30));
+            
+            ImGui.Text("Color del jugador");
+            controller.Draw(0, 1);
+
             ImGui.Dummy(new System.Numerics.Vector2(1, 60));
 
             if (ImGui.Button("Opciones"))
             {
                 GameStateManager.SwitchTo(State.OPTIONS);
             }
+
             //ImGui.Dummy(new System.Numerics.Vector2(1, 15));
             //if (ImGui.Button("Mapeo de teclas"))
             //{

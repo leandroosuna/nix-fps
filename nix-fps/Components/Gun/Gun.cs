@@ -177,7 +177,16 @@ namespace nixfps.Components.Gun
             }
         }
 
-        public bool Fire()
+        public void Reload()
+        {
+            if (shotsFired > 0)
+                reload = true;
+        }
+        public void InstantReload()
+        {
+            shotsFired = 0;
+        }
+        public bool IsFiring()
         {
             return fire;
         }

@@ -2015,6 +2015,18 @@
 /processorParam:TextureFormat=Color
 /build:3D/dust2/hdtex/light.png
 
+#begin 3D/dust2/hdtex/minimap.png
+/importer:TextureImporter
+/processor:TextureProcessor
+/processorParam:ColorKeyColor=255,0,255,255
+/processorParam:ColorKeyEnabled=True
+/processorParam:GenerateMipmaps=False
+/processorParam:PremultiplyAlpha=True
+/processorParam:ResizeToPowerOfTwo=False
+/processorParam:MakeSquare=False
+/processorParam:TextureFormat=Color
+/build:3D/dust2/hdtex/minimap.png
+
 #begin 3D/dust2/hdtex/rock-wall-normal.png
 /importer:TextureImporter
 /processor:TextureProcessor
@@ -2130,7 +2142,7 @@
 /processorParam:TextureFormat=Compressed
 /build:3D/gun/beretta/BerettaPistol.fbx
 
-#begin 3D/gun/beretta/Berreta M9_Material_BaseColor.png
+#begin 3D/gun/beretta/BerretaM9_Material_BaseColor.png
 /importer:TextureImporter
 /processor:TextureProcessor
 /processorParam:ColorKeyColor=255,0,255,255
@@ -2140,7 +2152,31 @@
 /processorParam:ResizeToPowerOfTwo=False
 /processorParam:MakeSquare=False
 /processorParam:TextureFormat=Color
-/build:3D/gun/beretta/Berreta M9_Material_BaseColor.png
+/build:3D/gun/beretta/BerretaM9_Material_BaseColor.png
+
+#begin 3D/gun/beretta/icon.png
+/importer:TextureImporter
+/processor:TextureProcessor
+/processorParam:ColorKeyColor=255,0,255,255
+/processorParam:ColorKeyEnabled=True
+/processorParam:GenerateMipmaps=False
+/processorParam:PremultiplyAlpha=True
+/processorParam:ResizeToPowerOfTwo=False
+/processorParam:MakeSquare=False
+/processorParam:TextureFormat=Color
+/build:3D/gun/beretta/icon.png
+
+#begin 3D/gun/m16/icon.png
+/importer:TextureImporter
+/processor:TextureProcessor
+/processorParam:ColorKeyColor=255,0,255,255
+/processorParam:ColorKeyEnabled=True
+/processorParam:GenerateMipmaps=False
+/processorParam:PremultiplyAlpha=True
+/processorParam:ResizeToPowerOfTwo=False
+/processorParam:MakeSquare=False
+/processorParam:TextureFormat=Color
+/build:3D/gun/m16/icon.png
 
 #begin 3D/gun/m16/m16.fbx
 /importer:FbxImporter
@@ -2354,6 +2390,12 @@
 /processorParam:DebugMode=Auto
 /build:Effects/gizmos.fx
 
+#begin Effects/minimap.fx
+/importer:EffectImporter
+/processor:EffectProcessor
+/processorParam:DebugMode=Auto
+/build:Effects/minimap.fx
+
 #begin Effects/skinning.fx
 /importer:EffectImporter
 /processor:EffectProcessor
@@ -2429,11 +2471,29 @@
 /processorParam:TextureFormat=Compressed
 /build:Fonts/unispace/35.spritefont
 
+#begin Sounds/death.wav
+/importer:WavImporter
+/processor:SoundEffectProcessor
+/processorParam:Quality=Best
+/build:Sounds/death.wav
+
 #begin Sounds/hit.wav
 /importer:WavImporter
 /processor:SoundEffectProcessor
 /processorParam:Quality=Best
 /build:Sounds/hit.wav
+
+#begin Sounds/kill.wav
+/importer:WavImporter
+/processor:SoundEffectProcessor
+/processorParam:Quality=Best
+/build:Sounds/kill.wav
+
+#begin Sounds/minecraft-hit.wav
+/importer:WavImporter
+/processor:SoundEffectProcessor
+/processorParam:Quality=Best
+/build:Sounds/minecraft-hit.wav
 
 #begin Sounds/pistol.wav
 /importer:WavImporter
@@ -2452,4 +2512,22 @@
 /processor:SoundEffectProcessor
 /processorParam:Quality=Best
 /build:Sounds/sniper.wav
+
+#begin Sounds/step-ceramic.wav
+/importer:WavImporter
+/processor:SoundEffectProcessor
+/processorParam:Quality=Best
+/build:Sounds/step-ceramic.wav
+
+#begin Sounds/step-sand.wav
+/importer:WavImporter
+/processor:SoundEffectProcessor
+/processorParam:Quality=Best
+/build:Sounds/step-sand.wav
+
+#begin Sounds/streak.wav
+/importer:WavImporter
+/processor:SoundEffectProcessor
+/processorParam:Quality=Best
+/build:Sounds/streak.wav
 

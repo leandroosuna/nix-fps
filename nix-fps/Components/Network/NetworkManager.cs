@@ -1,5 +1,7 @@
 ﻿using Microsoft.Xna.Framework;
 using Newtonsoft.Json.Linq;
+using nixfps.Components.Audio;
+using nixfps.Components.Gun;
 using nixfps.Components.Input;
 using nixfps.Components.States;
 using Riptide;
@@ -16,7 +18,7 @@ namespace nixfps.Components.Network
     internal class NetworkManager
     {
         public static Client Client { get; set; }
-        public static int playerCount;
+        public static int playerCount = 0;
         public static List<Vector3> positions = new List<Vector3>();
 
         public static List<Player> players = new List<Player>();
@@ -48,7 +50,7 @@ namespace nixfps.Components.Network
             
             localPlayer = new Player(id);
             localPlayer.name = "name";
-            localPlayer.teamColor = new Vector3(0, 1, 1);
+            localPlayer.teamColor = new Vector3(0, 0, 0);
             localPlayer.position = GameStateManager.stateRun.GetSafeLocation();
             Client = new Client();
 
@@ -124,6 +126,7 @@ namespace nixfps.Components.Network
             Message msg = Message.Create(MessageSendMode.Reliable, ClientToServer.PlayerIdentity);
             msg.AddUInt(localPlayer.id);
             msg.AddString(localPlayer.name);
+            msg.AddInt(game.CFG["Version"].Value<int>());
             Client.Send(msg);  
         }
         public static void SendData()
@@ -145,8 +148,8 @@ namespace nixfps.Components.Network
             var msg = Message.Create(MessageSendMode.Unreliable, ClientToServer.PlayerData);
             msg.AddUInt(localPlayer.id);
 
-            msg.AddUInt(inputMan.clientInputState.messageId); 
-            
+            msg.AddUInt(inputMan.clientInputState.messageId);
+            msg.AddVector3(localPlayer.teamColor);
             msg.AddVector3(localPlayer.position);
             msg.AddVector3(inputMan.clientInputState.positionDelta);
             msg.AddFloat(localPlayer.yaw);
@@ -177,6 +180,42 @@ namespace nixfps.Components.Network
         }
 
         public static Vector3 posDiff;
+        [MessageHandler((ushort)ServerToClient.Version)]
+        private static void HandleVersion(Message message)
+        {
+            game.correctVersion = game.CFG["Version"].Value<int>() == message.GetInt();
+            game.versionReceived = true;
+        }
+
+        [MessageHandler((ushort)ServerToClient.PlayerName)]
+        private static void HandlePlayerNames(Message message)
+        {
+            var count = message.GetUInt();
+            for(int i = 0; i < count; i++)
+            {
+                var id = message.GetUInt();
+                var name = message.GetString();
+
+                var p = GetPlayerFromId(id, true);
+                p.name = name;
+
+            }
+        }
+
+        //public static List<(uint p1, uint p2, byte gun, float time)> killFeed = new List<(uint p1, uint p2, byte gun, float time)>();
+        public static List<KillFeedElement> killFeed = new List<KillFeedElement>();
+        [MessageHandler((ushort)ServerToClient.KillFeed)]
+        private static void HandleKillFeed(Message message)
+        {
+            var p1 = message.GetUInt();
+            var p2 = message.GetUInt();
+            var gun = message.GetByte();
+
+            killFeed.Add(new KillFeedElement(GetPlayerFromId(p1).name, GetPlayerFromId(p2).name, gun, 10f));
+            
+        }
+
+
         [MessageHandler((ushort)ServerToClient.AllPlayerData)]
         private static void HandleAllPlayerData(Message message)
         {
@@ -196,6 +235,7 @@ namespace nixfps.Components.Network
                 {
                     var lastProcessedMessage = message.GetUInt();
                     var lastMovementValid = message.GetBool();
+                    var color = message.GetVector3();
                     var netPos = message.GetVector3();
                     var netYaw = message.GetFloat();
                     var netPitch = message.GetFloat();
@@ -215,6 +255,7 @@ namespace nixfps.Components.Network
                             game.playerCacheMutex.WaitOne();
                             p.netDataCache.Add(cache);
                             game.playerCacheMutex.ReleaseMutex();
+                            p.teamColor = color;
                         }
                         else
                         {
@@ -244,16 +285,25 @@ namespace nixfps.Components.Network
                         }
                         posDiff = localPlayer.position - prevPos;
 
+                        var prevHp = localPlayer.health;
+                        
                         localPlayer.health = hp;
+                        if(prevHp > localPlayer.health)
+                            SoundManager.PlayDamaged(hp);
 
                         if(hp == 0)
                         {
                             localPlayer.position = GameStateManager.stateRun.GetSafeLocation();
+                            game.gunManager.currentGun.InstantReload();
                         }
 
                         localPlayer.hitLocation = hitLocation;
                         localPlayer.damagerId = damagerId;
+
+                        var prevKills = localPlayer.kills;
                         localPlayer.kills = kills;
+                        if (localPlayer.kills > prevKills)
+                            SoundManager.PlayKill(localPlayer.kills);
                         localPlayer.deaths = deaths;
                         //p.hp = hp;
                     }
@@ -261,9 +311,15 @@ namespace nixfps.Components.Network
 
             }
         }
-        
+        public static void SetPlayerColor(Color color)
+        {
+            if (localPlayer != null) 
+                localPlayer.SetColor(color);
+        }
         public static Player GetPlayerFromId(uint id, bool createIfNull = false)
         {
+            if(id == localPlayer.id) return localPlayer;
+
             foreach (var player in players)
             {
                 if (player.id == id)
@@ -287,8 +343,11 @@ namespace nixfps.Components.Network
                 player.Interpolate(now);
         }
 
-        internal static void UpdatePlayers()
+        internal static void UpdatePlayers(float deltaTime)
         {
+            killFeed.ForEach(e => e.Update(deltaTime));
+            killFeed.RemoveAll(e => e.shouldBeDestroyed);
+
             localPlayer.UpdateZoneCollider();
             foreach (var player in players)
                 player.UpdateZoneCollider();

@@ -72,17 +72,17 @@ namespace nixfps.Components.Effects
 
             animationNames = new List<string> {
                 "idle",
-                "run forward",
-                "run forward right",
-                "run forward left",
-                "run backward",
-                "run backward right",
-                "run backward left",
-                "run right",
-                "run left",
-                "sprint forward",
-                "sprint forward right",
-                "sprint forward left",
+                "run-forward",
+                "run-forward-right",
+                "run-forward-left",
+                "run-backward",
+                "run-backward-right",
+                "run-backward-left",
+                "run-right",
+                "run-left",
+                "sprint-forward",
+                "sprint-forward-right",
+                "sprint-forward-left",
             };
             var rebuild = game.CFG["rebuild-animations"].Value<bool>();
             if (rebuild)

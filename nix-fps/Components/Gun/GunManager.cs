@@ -47,7 +47,7 @@ namespace nixfps.Components.Gun
 
             gunsTex = new Texture2D[] { 
                 game.Content.Load<Texture2D>(NixFPS.ContentFolder3D + "gun/m16/tex/baseColor"),
-                game.Content.Load<Texture2D>(NixFPS.ContentFolder3D + "gun/beretta/Berreta M9_Material_BaseColor"),
+                game.Content.Load<Texture2D>(NixFPS.ContentFolder3D + "gun/beretta/BerretaM9_Material_BaseColor"),
             };
             
 
@@ -73,7 +73,7 @@ namespace nixfps.Components.Gun
                 (4.5f, 0.3f),
                 (6f, -0.2f), 
             };
-            rifle = new Gun(1,"rifle", 150, 40, 25, true, .1f, 20,recoilPattern);
+            rifle = new Gun(1,"rifle", 150, 40, 25, true, .1f, 25, recoilPattern);
 
             recoilPattern = new List<(float, float)>
             {
@@ -96,38 +96,16 @@ namespace nixfps.Components.Gun
             float elapsedTime = (float)gameTime.ElapsedGameTime.TotalSeconds;
             float totalTime = (float)gameTime.TotalGameTime.TotalSeconds;
 
-            currentGun.Update(elapsedTime, InputManager.keyMappings.Fire.IsDown());
+            var fireKey = InputManager.keyMappings.Fire.IsDown();
+            var ignoreFireKey = game.camera.isFree || !game.IsActive || GameStateManager.paused;
+            
+            currentGun.Update(elapsedTime, ignoreFireKey ? false : fireKey);
             firingAnim = false;
 
-            firedThisFrame = currentGun.Fire();
+            firedThisFrame = currentGun.IsFiring();
             if (firedThisFrame)
                 Fire();
-            //if (InputManager.keyMappings.Fire.IsDown())
-            ////if (game.inputManager.clientInputState.Fire)
-            //{
-            //    if (fireRateTimer == 0)
-            //    {
-            //        Fire();
-            //    }
-            //    fireRateTimer += elapsedTime;
-
-            //    if (fireRateTimer >= fireRate)
-            //    {
-            //        fireRateTimer = 0;
-            //    }
-            //    releaseTime = 0;
-            //}
-            //else
-            //{
-            //    releaseTime += elapsedTime;
-
-            //    if (releaseTime >= fireRate - fireRateTimer)
-            //        fireRateTimer = 0;
-
-            //    firingAnim = false;
-
-
-            //}
+            
             foreach (var tracer in tracers)
             {
                 tracer.Update(elapsedTime);

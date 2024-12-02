@@ -10,7 +10,10 @@ namespace nixfps.Components.Network
     }
     public enum ServerToClient: ushort
     {
-        AllPlayerData
+        AllPlayerData,
+        PlayerName,
+        Version,
+        KillFeed
     }
 
 

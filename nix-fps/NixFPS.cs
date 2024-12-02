@@ -18,6 +18,7 @@ using nixfps.Components.Gizmos;
 using nixfps.Components.GUI;
 using nixfps.Components.States;
 using nixfps.Components.Audio;
+using System.Reflection;
 
 namespace nixfps
 {
@@ -41,7 +42,10 @@ namespace nixfps
         public SpriteFont fontLarge;
         public SpriteFont fontXLarge;
         public SkyBox skybox;
-        
+
+        public bool correctVersion = false;
+        public bool versionReceived = false;
+
         public static Texture2D Pixel { get; set; }
 
         //public IConfigurationRoot CFG;
@@ -87,10 +91,12 @@ namespace nixfps
         //public GUI GUI;
         public NixFPS()
         {
+            
             updateMutex = new Mutex();
             CFG = JObject.Parse(File.ReadAllText("app-settings.json"));
             game = this;
             Graphics = new GraphicsDeviceManager(this);
+
             Graphics.GraphicsProfile = GraphicsProfile.HiDef;
             screenWidth = CFG["ScreenWidth"].Value<int>();
             screenHeight = CFG["ScreenHeight"].Value<int>();
@@ -110,9 +116,13 @@ namespace nixfps
             //if(framerateLimit > 0)
             //    TargetElapsedTime = TimeSpan.FromMilliseconds(1000.0/framerateLimit);
             IsFixedTimeStep = false;
+
+            //IsFixedTimeStep = true;
+            //TargetElapsedTime = TimeSpan.FromMilliseconds(1000.0 / 120);
+
+
             Graphics.SynchronizeWithVerticalRetrace = CFG["VSync"].Value<bool>();
             Graphics.ApplyChanges();
-
             Content.RootDirectory = "Content";
 
             if (!CFG.ContainsKey("ClientID"))
@@ -132,6 +142,9 @@ namespace nixfps
                 mainStopwatch.Stop();
 
             };
+            //CFG["stage"] = 1;
+            //CFG["dir"] = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
+            //File.WriteAllText("app-settings.json", CFG.ToString());
         }
         public static NixFPS GameInstance() { return game; } 
         
@@ -143,6 +156,9 @@ namespace nixfps
         }
         protected override void Initialize()
         {
+            //CFG["stage"] = 2.1;
+            //File.WriteAllText("app-settings.json", CFG.ToString());
+
             gizmos = new Gizmos();
 
             Pixel = new Texture2D(GraphicsDevice, 1, 1);
@@ -160,8 +176,14 @@ namespace nixfps
 
             NetworkManager.Connect();
             localPlayer = NetworkManager.localPlayer;
+            //CFG["stage"] = 2.2;
+            //File.WriteAllText("app-settings.json", CFG.ToString());
 
             base.Initialize();
+            //CFG["stage"] = 2.3;
+            //File.WriteAllText("app-settings.json", CFG.ToString());
+
+            
         }
         public Texture2D boxTex;
         protected override void LoadContent()
@@ -239,7 +261,8 @@ namespace nixfps
             
             gunManager = new GunManager();
             mainStopwatch.Start();
-            
+            //CFG["stage"] = 3;
+            //File.WriteAllText("app-settings.json", CFG.ToString());
         }
 
         private void LoadDust2Tex()
@@ -276,9 +299,19 @@ namespace nixfps
         public Stopwatch mainStopwatch = new Stopwatch();
         Matrix gunWorld;
         bool firstUpdate = true;
+        bool firstDraw = true;
+
+
         protected override void Update(GameTime gameTime)
         {
+            //if (firstUpdate)
+            //{
+            //    CFG["stage"] = 4;
+            //    File.WriteAllText("app-settings.json", CFG.ToString());
+            //    firstUpdate = false;
+            //}
             gameState.Update(gameTime);
+            
             SoundManager.Update();
             
             base.Update(gameTime);
@@ -287,6 +320,12 @@ namespace nixfps
 
         protected override void Draw(GameTime gameTime)
         {
+            //if (firstDraw)
+            //{
+            //    CFG["stage"] = 5;
+            //    File.WriteAllText("app-settings.json", CFG.ToString());
+            //    firstDraw = false;
+            //}
             testLights.ForEach(l => lightsManager.Destroy(l));
             testLights.Clear();
             gameState.Draw(gameTime);

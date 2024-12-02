@@ -20,7 +20,9 @@ namespace nixfps.Components.States
         public override void OnSwitch()
         {
             game.IsMouseVisible = true;
-            
+            game.hud.miniMapEnabled = false;
+
+
         }
         public override void Update(GameTime gameTime)
         {

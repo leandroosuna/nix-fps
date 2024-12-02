@@ -30,6 +30,10 @@ namespace nixfps.Components.GUI
 
             controller.AddFloat("Mouse Sens", ChangeMouseSens, GetMouseSens(), 0.001f, 5);
 
+            controller.AddFloat("Escala", game.hud.ChangeMapSize, .7f, 0f, 1f);
+            controller.AddToggle("Rotacion", game.hud.EnableRotation, false);
+
+
         }
         enum Resolution
         {
@@ -183,6 +187,9 @@ namespace nixfps.Components.GUI
             controller.Draw(0, 4);
             ImGui.SeparatorText("Camara");
             controller.Draw(4, 6);
+            ImGui.SeparatorText("Mini mapa");
+            controller.Draw(6, 8);
+
             ImGui.Dummy(new System.Numerics.Vector2(1, 30));
             
             ImGui.Dummy(new System.Numerics.Vector2(1, 15));

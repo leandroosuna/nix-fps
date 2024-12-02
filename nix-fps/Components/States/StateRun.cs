@@ -35,7 +35,7 @@ namespace nixfps.Components.States
             
             System.Windows.Forms.Cursor.Position = inputManager.center;
             game.IsMouseVisible = false;
-
+            game.hud.miniMapEnabled = true;
             
         }
         List<LightVolume> miniLights = new List<LightVolume>();
@@ -58,9 +58,22 @@ namespace nixfps.Components.States
 
         Vector3 currentPosHit = Vector3.Zero;
         Player lp;
+
+        bool prevMouseLock;
+        bool prevIsActive;
         public override void Update(GameTime gameTime)
         {
-            if(lp == null)
+            ///TODO: 
+            /// self dmg audio
+            /// footsteps
+            /// resolution > native
+            //if (!game.IsActive)
+            //{
+            //    game.camera.mouseLocked = false;
+            //}
+            
+
+            if (lp == null)
                 lp = game.localPlayer;
             
             //game.animationManager.animationPlayer.blendFactor = blendFactor;
@@ -69,7 +82,7 @@ namespace nixfps.Components.States
 
             base.Update(gameTime);
             
-            NetworkManager.UpdatePlayers();
+            NetworkManager.UpdatePlayers(uDeltaTimeFloat);
 
             NetworkManager.InterpolatePlayers(game.mainStopwatch.ElapsedMilliseconds);
 
@@ -83,6 +96,21 @@ namespace nixfps.Components.States
             game.hud.Update(uDeltaTimeFloat);
 
             game.camera.Update(inputManager);
+
+            if (prevIsActive != game.IsActive)
+            {
+                prevIsActive = game.IsActive;
+                if (!game.IsActive)
+                {
+                    prevMouseLock = game.camera.mouseLocked;
+                    game.camera.mouseLocked = false;
+                }
+                else
+                {
+                    game.camera.mouseLocked = prevMouseLock;
+                }
+            }
+
 
             var keyState = Keyboard.GetState();
             var changed = false;
@@ -100,8 +128,10 @@ namespace nixfps.Components.States
             }
             if (keyState.IsKeyDown(Keys.R))
             {
-                game.gunManager.currentGun.reload = true;
+                game.gunManager.currentGun.Reload();
             }
+
+           
 
             if (keyState.IsKeyDown(Keys.Up))
             {
@@ -263,6 +293,7 @@ namespace nixfps.Components.States
         public Vector3 GetSafeLocation()
         {
             Random r = new Random();
+            return spawnPos[0];
             return spawnPos[r.NextInt64(0, spawnPos.Length)];
         }
 
@@ -566,6 +597,9 @@ namespace nixfps.Components.States
             game.deferredEffect.SetBloomFilter(game.bloomFilterTarget);
             game.lightsManager.Draw();
 
+
+            game.hud.DrawMiniMapTarget(dDeltaTimeFloat);
+
             /// Finally, we have our color texture we calculated in step one, and the lights from step two
             /// we combine them here by simply multiplying them, finalColor = color * light, 
             /// using a final fullscreen quad pass.
@@ -585,33 +619,17 @@ namespace nixfps.Components.States
             game.deferredEffect.SetBlurV(game.blurVTarget);
 
             game.fullScreenQuad.Draw(game.deferredEffect.effect);
-            game.GraphicsDevice.RasterizerState = RasterizerState.CullClockwise;
-            //var rec = new Rectangle(0, 0, game.screenWidth, game.screenHeight);
-
-            /// In this example, by hitting key 0 you can see the targets in the corners of the screen
-            //if (debugRTs)
-            //{
-            //    spriteBatch.Begin(blendState: BlendState.Opaque);
-
-            //    spriteBatch.Draw(colorTarget, Vector2.Zero, rec, Color.White, 0f, Vector2.Zero, 0.25f, SpriteEffects.None, 0f);
-            //    spriteBatch.Draw(normalTarget, new Vector2(0, screenHeight - screenHeight / 4), rec, Color.White, 0f, Vector2.Zero, 0.25f, SpriteEffects.None, 0f);
-            //    spriteBatch.Draw(positionTarget, new Vector2(screenWidth - screenWidth / 4, 0), rec, Color.White, 0f, Vector2.Zero, 0.25f, SpriteEffects.None, 0f);
-            //    spriteBatch.Draw(lightTarget, new Vector2(screenWidth - screenWidth / 4, screenHeight - screenHeight / 4), rec, Color.White, 0f, Vector2.Zero, 0.25f, SpriteEffects.None, 0f);
-
-            //    spriteBatch.End();
-            //}
-
             
-
             if (dTime >= 0.1f)
             {
                 dTime = 0;
                 var cam = game.camera.position;
                 var ap = game.animationManager.animationPlayer;
                 var pos = lp.position;
+                
                 fpsStr = " FPS " + FPS;
-
-                if(NetworkManager.Client.IsConnected)
+                //fpsStr += $" {lp.position.X:F2} {lp.position.Z:F2} ";
+                if (NetworkManager.Client.IsConnected)
                 {
                     str2 = " RTT " + NetworkManager.Client.RTT + "ms";
                 }
@@ -620,18 +638,25 @@ namespace nixfps.Components.States
                     str2 = " Reconectando...";
                 }
                 str3 = $" KD {lp.kills}/{lp.deaths}";
-                //if(NetworkManager.players.Count > 0)    
-                //    str4 = $" KD enemigo {NetworkManager.players[0].kills}/{NetworkManager.players[0].deaths}";
-                //str3 = $"{game.gunManager.currentGun.reload} {game.gunManager.currentGun.reloadTimer}";
+
+                //if (NetworkManager.players.Count > 0)
+                //    str4 = $"{NetworkManager.players[0].footsteps}";
+
+                        //    str4 = $" KD enemigo {NetworkManager.players[0].kills}/{NetworkManager.players[0].deaths}";
+                        //str3 = $"{game.gunManager.currentGun.reload} {game.gunManager.currentGun.reloadTimer}";
 
 
             }
             game.spriteBatch.Begin();
-            game.spriteBatch.DrawString(game.fontSmall, fpsStr, Vector2.Zero, Color.White);
-
-            game.spriteBatch.DrawString(game.fontSmall, str2, new Vector2(0, 20), Color.White);
-            game.spriteBatch.DrawString(game.fontSmall, str3, new Vector2(0, 40), Color.White);
-            game.spriteBatch.DrawString(game.fontSmall, str4, new Vector2(0, 60), Color.White);
+            var fontSizeY = 15;
+            var currentY = game.hud.mapHeight + fontSizeY + 5;
+            game.spriteBatch.DrawString(game.fontSmall, fpsStr, new Vector2(0, currentY), Color.White);
+            currentY += fontSizeY + 5;
+            game.spriteBatch.DrawString(game.fontSmall,  str2, new Vector2(0, currentY), Color.White);
+            currentY += fontSizeY + 5;
+            game.spriteBatch.DrawString(game.fontSmall, str3, new Vector2(0, currentY), Color.White);
+            currentY += fontSizeY + 5; 
+            game.spriteBatch.DrawString(game.fontSmall, str4, new Vector2(0, currentY), Color.White);
 
 
             //spriteBatch.DrawString(font, str, new Vector2(screenWidth - font.MeasureString(str).X, 0), Color.White);

@@ -116,8 +116,8 @@ PSO MRTPS(VSO input)
     color += tex2D(specTexSampler, input.TexCoord).rgb * .8;
     
     
-    color += teamColor * .25 * (sin(time * 5) + 1) *.5;
-
+    //color += teamColor * .25 * (sin(time * 5) + 1) *.5;
+    color += teamColor * .4f;
     float3 normal = normalize(input.Normal.xyz);
 
     float3 normalColor = 0.5f * (normal + 1.0f);

@@ -95,11 +95,7 @@ namespace nixfps.Components.Input
                 if (!keysDown.Contains(keyMappings.Debug0))
                 {
                     keysDown.Add(keyMappings.Debug0);
-                    var r = (float)new Random().NextDouble() *2 -1;
-                    var r2 = (float)new Random().NextDouble() *2 -1;
-
-                    var pos = new Vector3(10f * r, 0, 10 * r2);
-                    SoundManager.FireGun("pistol", localPlayer);
+                    
                 }
             }
             if (keyMappings.Debug9.IsDown())
@@ -111,42 +107,7 @@ namespace nixfps.Components.Input
                         game.selectedVertexIndex -= 20;
                 }
             }
-            //if(keyMappings.Debug0.IsDown())
-            //{
-            //    if(!keysDown.Contains(keyMappings.Debug0))
-            //    {
-            //        keysDown.Add(keyMappings.Debug0);
-            //        game.hud.crosshair.thickness++;
-            //        game.hud.crosshair.modified = true;
-            //    }
-            //}
-            //if (keyMappings.Debug1.IsDown())
-            //{
-            //    if (!keysDown.Contains(keyMappings.Debug1))
-            //    {
-            //        keysDown.Add(keyMappings.Debug1);
-            //        game.hud.crosshair.thickness--;
-            //        game.hud.crosshair.modified = true;
-            //    }
-            //}
-            //if (keyMappings.Debug2.IsDown())
-            //{
-            //    if (!keysDown.Contains(keyMappings.Debug2))
-            //    {
-            //        keysDown.Add(keyMappings.Debug2);
-            //        game.hud.crosshair.offset++;
-            //        game.hud.crosshair.modified = true;
-            //    }
-            //}
-            //if (keyMappings.Debug3.IsDown())
-            //{
-            //    if (!keysDown.Contains(keyMappings.Debug3))
-            //    {
-            //        keysDown.Add(keyMappings.Debug3);
-            //        game.hud.crosshair.offset--;
-            //        game.hud.crosshair.modified = true;
-            //    }
-            //}
+            
         }
 
         
