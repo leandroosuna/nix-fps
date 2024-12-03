@@ -64,7 +64,7 @@ namespace nixfps.Components.States
         public override void Update(GameTime gameTime)
         {
             ///TODO: 
-            /// self dmg audio
+
             /// footsteps
             /// resolution > native
             //if (!game.IsActive)

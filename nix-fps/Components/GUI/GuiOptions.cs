@@ -39,11 +39,6 @@ namespace nixfps.Components.GUI
 
         }
 
-        private float GetFPSLimit()
-        {
-            return game.CFG["FPSLimit"].Value<int>();
-        }
-
         enum Resolution
         {
             r1280x720,
@@ -70,6 +65,11 @@ namespace nixfps.Components.GUI
         bool newFullscreen;
         bool newVysnc;
         string newGraphics;
+        private float GetFPSLimit()
+        {
+            return game.CFG["FPSLimit"].Value<int>();
+        }
+
 
         Resolution GetResolution()
         {
@@ -218,12 +218,26 @@ namespace nixfps.Components.GUI
 
             }
             ImGui.SameLine();
+            int dw = GraphicsAdapter.DefaultAdapter.CurrentDisplayMode.Width;
+            int dh = GraphicsAdapter.DefaultAdapter.CurrentDisplayMode.Height;
+
             if (ImGui.Button("Guardar cambios"))
             {
                 bool anyChange = false;
+                if (game.Graphics.IsFullScreen != newFullscreen)
+                {
+                    anyChange = true;
+                    game.Graphics.IsFullScreen = newFullscreen;
+                    game.Window.IsBorderless = true;
+                    game.CFG["Fullscreen"] = newFullscreen;
+                    
+                }
                 if (game.Graphics.PreferredBackBufferWidth != newResWidth)
                 {
                     anyChange = true;
+                    
+                    
+                    
                     game.Graphics.PreferredBackBufferWidth = newResWidth;
                     game.Graphics.PreferredBackBufferHeight = newResHeight;
                     game.CFG["ScreenWidth"] = newResWidth;
@@ -231,21 +245,12 @@ namespace nixfps.Components.GUI
                     game.screenWidth = newResWidth;
                     game.screenHeight = newResHeight;
 
-
-                    int dw = GraphicsAdapter.DefaultAdapter.CurrentDisplayMode.Width;
-                    int dh = GraphicsAdapter.DefaultAdapter.CurrentDisplayMode.Height;
-
-                    game.Window.Position = new Point((dw - newResWidth) / 2, (dh - newResHeight) / 2);
+                        
                     game.SetupRenderTargets();
                     game.hud.crosshair.Center();
+                    
                 }
-                if (game.Graphics.IsFullScreen != newFullscreen)
-                {
-                    anyChange = true;
-                    game.Graphics.IsFullScreen = newFullscreen;
-                    game.CFG["Fullscreen"] = newFullscreen;
-                    game.Window.IsBorderless = true;
-                }
+                
                 if (game.graphicsPreset != newGraphics)
                 {
                     anyChange = true;
@@ -261,12 +266,22 @@ namespace nixfps.Components.GUI
                     game.Graphics.SynchronizeWithVerticalRetrace = newVysnc;
                     game.CFG["VSync"] = newVysnc;
                 }
+                
                 if (anyChange || cfgChange)
                 {
                     cfgChange = false;
                     game.Graphics.ApplyChanges();
+                    if(!game.Graphics.IsFullScreen)
+                    {
+                        game.Window.IsBorderless = true;
+
+                        game.Window.Position = new Point((dw - newResWidth) / 2, (dh - newResHeight) / 2);
+                        if (newResWidth > dw || newResHeight > dh)
+                            game.Window.Position = new Point(0, 0);
+                    }
+                    game.hud.crosshair.Center();
+                    File.WriteAllText("app-settings.json", game.CFG.ToString());
                 }
-                File.WriteAllText("app-settings.json", game.CFG.ToString());
             }
         }
     }

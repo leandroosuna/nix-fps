@@ -46,6 +46,12 @@ namespace nixfps.Components.HUD
         public void Center(int offsetX = 0, int offsetY = 0)
         {
             c = new Point(game.screenWidth / 2, game.screenHeight / 2);
+            int dw = GraphicsAdapter.DefaultAdapter.CurrentDisplayMode.Width;
+            int dh = GraphicsAdapter.DefaultAdapter.CurrentDisplayMode.Height;
+            if(game.screenWidth > dw || game.screenHeight > dh)
+            {
+                c = new Point(dw/2, dh/2);
+            }
             modified = true;
         }
 
