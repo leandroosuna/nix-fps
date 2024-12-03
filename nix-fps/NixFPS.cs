@@ -91,7 +91,7 @@ namespace nixfps
         //public GUI GUI;
         public NixFPS()
         {
-            
+
             updateMutex = new Mutex();
             CFG = JObject.Parse(File.ReadAllText("app-settings.json"));
             game = this;
@@ -111,16 +111,8 @@ namespace nixfps
             Window.Position = new Point((dw - screenWidth) / 2, (dh - screenHeight) / 2);
             screenCenter = new Point(screenWidth / 2 + Window.Position.X, screenHeight / 2 + Window.Position.Y);
 
-            //var framerateLimit = CFG["FramerateLimit"].Value<int>();
-            //IsFixedTimeStep = framerateLimit != 0;
-            //if(framerateLimit > 0)
-            //    TargetElapsedTime = TimeSpan.FromMilliseconds(1000.0/framerateLimit);
-            IsFixedTimeStep = false;
-
-            //IsFixedTimeStep = true;
-            //TargetElapsedTime = TimeSpan.FromMilliseconds(1000.0 / 120);
-
-
+            SetFPSLimit(CFG["FPSLimit"].Value<int>());
+            
             Graphics.SynchronizeWithVerticalRetrace = CFG["VSync"].Value<bool>();
             Graphics.ApplyChanges();
             Content.RootDirectory = "Content";
@@ -146,6 +138,25 @@ namespace nixfps
             //CFG["dir"] = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
             //File.WriteAllText("app-settings.json", CFG.ToString());
         }
+
+        public void SetFPSLimit(float l)
+        {
+            var fpslim = (int) l;
+            if (fpslim >= 30)
+            {
+                IsFixedTimeStep = true;
+                TargetElapsedTime = TimeSpan.FromMilliseconds(1000.0 / fpslim);
+                CFG["FPSLimit"] = fpslim;
+            }
+            else
+            {
+                IsFixedTimeStep = false;
+                CFG["FPSLimit"] = 0;
+            }
+
+            
+        }
+
         public static NixFPS GameInstance() { return game; } 
         
         public static void AssignEffectToModel(Model m, Effect e)

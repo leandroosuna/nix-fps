@@ -16,6 +16,7 @@
     "Fullscreen": false,
     "GraphicsPreset": "ultra",
     "VSync": false,
+    "FPSLimit": 269,
 
     "FOV": 95,
     "MouseSensitivity": 0.15,

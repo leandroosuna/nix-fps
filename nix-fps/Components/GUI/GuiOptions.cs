@@ -6,6 +6,7 @@ using Newtonsoft.Json.Linq;
 using nixfps.Components.Input;
 using nixfps.Components.Network;
 using nixfps.Components.States;
+using System;
 using System.IO;
 
 
@@ -25,16 +26,24 @@ namespace nixfps.Components.GUI
             controller.AddOptions("Modo pantalla", modes, GetMode(), ScreenModeChange);
             controller.AddOptions("Graficos", presets, GetGraphicsPreset(), GraphicsPresetChange);
             controller.AddToggle("V SYNC", EnableVsync, GetVsync());
-            
+            controller.AddFloat("MAX FPS", game.SetFPSLimit, GetFPSLimit(), 0, 1000);
+
+
             controller.AddFloat("FOV", ChangeFOV, GetFOV(), 45, 170);
 
             controller.AddFloat("Mouse Sens", ChangeMouseSens, GetMouseSens(), 0.001f, 5);
 
             controller.AddFloat("Escala", game.hud.ChangeMapSize, .7f, 0f, 1f);
             controller.AddToggle("Rotacion", game.hud.EnableRotation, false);
-
+                
 
         }
+
+        private float GetFPSLimit()
+        {
+            return game.CFG["FPSLimit"].Value<int>();
+        }
+
         enum Resolution
         {
             r1280x720,
@@ -184,11 +193,11 @@ namespace nixfps.Components.GUI
             ImGui.Begin("nix FPS | Opciones", ImGuiWindowFlags.MenuBar | ImGuiWindowFlags.NoMove | ImGuiWindowFlags.NoResize | ImGuiWindowFlags.NoCollapse);
             
             ImGui.SeparatorText("Graficos");
-            controller.Draw(0, 4);
+            controller.Draw(0, 5);
             ImGui.SeparatorText("Camara");
-            controller.Draw(4, 6);
+            controller.Draw(5, 7);
             ImGui.SeparatorText("Mini mapa");
-            controller.Draw(6, 8);
+            controller.Draw(7, 9);
 
             ImGui.Dummy(new System.Numerics.Vector2(1, 30));
             
@@ -256,8 +265,8 @@ namespace nixfps.Components.GUI
                 {
                     cfgChange = false;
                     game.Graphics.ApplyChanges();
-                    File.WriteAllText("app-settings.json", game.CFG.ToString());
                 }
+                File.WriteAllText("app-settings.json", game.CFG.ToString());
             }
         }
     }
