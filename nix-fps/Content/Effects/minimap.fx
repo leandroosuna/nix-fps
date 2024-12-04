@@ -66,12 +66,41 @@ float2 playerPositions[MAX_PLAYERS]; // Array of player positions
 int numPlayers; // Number of active players
 
 float2 localPlayerPos;
+float localPlayerYaw;
 
 float PIOver2; 
+float PI;
+
+bool PointInTriangle(float2 p, float2 v0, float2 v1, float2 v2)
+{
+    float2 e0 = v1 - v0;
+    float2 e1 = v2 - v1;
+    float2 e2 = v0 - v2;
+
+    float2 c0 = p - v0;
+    float2 c1 = p - v1;
+    float2 c2 = p - v2;
+
+    float cross0 = e0.x * c0.y - e0.y * c0.x;
+    float cross1 = e1.x * c1.y - e1.y * c1.x;
+    float cross2 = e2.x * c2.y - e2.y * c2.x;
+
+    return (cross0 >= 0 && cross1 >= 0 && cross2 >= 0) || (cross0 <= 0 && cross1 <= 0 && cross2 <= 0);
+}
+
+bool DrawPlayerTriangle(float2 texCoord, float2 playerPos, float yaw, float size, float baseWidth)
+{
+
+    float2 tip = playerPos + float2(size * cos(yaw), size * sin(yaw));
+    float2 leftBase = playerPos + float2(-baseWidth * cos(yaw + PI / 2), -baseWidth * sin(yaw + PI / 2));
+    float2 rightBase = playerPos + float2(-baseWidth * cos(yaw - PI / 2), -baseWidth * sin(yaw - PI / 2));
+
+    return PointInTriangle(texCoord, tip, leftBase, rightBase);
+}
 
 float4 PS(VSO input) : COLOR
 {
-    float2 center = float2(0.5, 0.5); // Assuming the texture's center is at (0.5, 0.5)
+    float2 center = float2(0.5, 0.5); 
     float2 rotatedTexCoord = RotateTexCoord(input.TexCoord, center, rotation);
     
     float4 sampledColor = tex2D(TextureSampler, rotatedTexCoord);
@@ -79,9 +108,15 @@ float4 PS(VSO input) : COLOR
 
     if (color.r < 0.01 && color.g < 0.01 && color.b < 0.01)
         discard;
-
+    
+    if (DrawPlayerTriangle(RotateTexCoord(input.TexCoord, center, PIOver2 + rotation), 
+        localPlayerPos, localPlayerYaw, 0.025, 0.0175))
+    {
+        return float4(1, 1, 1, 1);
+    }
+    
     float distanceToPlayer = length(localPlayerPos - RotateTexCoord(input.TexCoord, center, PIOver2 + rotation));
-    if (distanceToPlayer <= 0.015) 
+    if (distanceToPlayer <= 0.015)
     {
         return float4(1, 1, 1, 1);
     }

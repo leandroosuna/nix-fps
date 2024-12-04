@@ -66,11 +66,6 @@ namespace nixfps.Components.States
             ///TODO: 
 
             /// footsteps
-            /// resolution > native
-            //if (!game.IsActive)
-            //{
-            //    game.camera.mouseLocked = false;
-            //}
             
 
             if (lp == null)

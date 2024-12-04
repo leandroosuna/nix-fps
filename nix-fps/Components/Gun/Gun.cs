@@ -43,7 +43,7 @@ namespace nixfps.Components.Gun
 
         public bool reload = false;
         public float reloadTimer = 0;
-        float reloadTime = 1.5f;
+        public float reloadTime = 1.5f;
 
         public Gun(byte id, string name, byte damageHead, byte damageBody, byte damageLeg, bool fullAuto, float fireRate, uint magSize, List<(float, float)> recoil)
         {

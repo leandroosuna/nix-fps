@@ -1,5 +1,5 @@
 ﻿using Microsoft.Xna.Framework;
-using Microsoft.Xna.Framework.Content.Pipeline.Serialization.Intermediate;
+using Microsoft.Xna.Framework.Input;
 using Microsoft.Xna.Framework.Graphics;
 using nixfps.Components.Network;
 using System;
@@ -25,6 +25,7 @@ namespace nixfps.Components.HUD
 
         Texture2D pistol, rifle;
         Vector2 sizePistol, sizeRifle;
+        Texture2D semiTransparentPixel;
         public Hud()
         {
             game = NixFPS.GameInstance();
@@ -33,6 +34,7 @@ namespace nixfps.Components.HUD
             mmEffect = game.Content.Load<Effect>(NixFPS.ContentFolderEffects + "minimap");
             pistol = game.Content.Load<Texture2D>(NixFPS.ContentFolder3D + "gun/beretta/icon");
             rifle = game.Content.Load<Texture2D>(NixFPS.ContentFolder3D + "gun/m16/icon");
+            semiTransparentPixel = game.Content.Load<Texture2D>(NixFPS.ContentFolder3D + "basic/Tex/pixelSemiTransparent");
 
             sizeRifle = new Vector2((int)((1000) * .1f), (int)((363) * .1f));
             sizePistol = new Vector2((int)((650) * .06f), (int)((400) * .06f));
@@ -41,8 +43,9 @@ namespace nixfps.Components.HUD
             mmEffect.Parameters["Texture"].SetValue(miniMap);
             //mmEffect.Parameters["PI"].SetValue(MathF.PI);
             mmEffect.Parameters["PIOver2"].SetValue(MathHelper.PiOver2);
+            mmEffect.Parameters["PI"].SetValue(MathHelper.Pi);
 
-            
+
 
             ChangeMapSize(.7f);
         }
@@ -57,14 +60,17 @@ namespace nixfps.Components.HUD
             crosshair.Update();
             time += deltaTime;
             mmEffect.Parameters["time"].SetValue(time);
-            
-            mmEffect.Parameters["rotation"].SetValue(rotateWithPlayerYaw? MathHelper.ToRadians(lp.yaw) : MathHelper.PiOver2);
-            
+            var yaw = MathHelper.ToRadians(lp.yaw);
+            mmEffect.Parameters["rotation"].SetValue(rotateWithPlayerYaw? yaw : MathHelper.PiOver2);
+            mmEffect.Parameters["localPlayerYaw"].SetValue(yaw);
+
             mmEffect.Parameters["localPlayerPos"].SetValue(GetTextureCoord(lp.position));
+
+            //mmEffect.Parameters["yaw"].SetValue(yaw);
 
             //var count = 1;
             //playerPositions[0] = GetTextureCoord(lp.position + new Vector3(20, 0, 0));
-            
+
             int i = 0;
             foreach(var p in NetworkManager.players)
             {
@@ -89,15 +95,16 @@ namespace nixfps.Components.HUD
             var gun = game.gunManager.currentGun;
             var magStr = $"{gun.magSize - gun.shotsFired}/{gun.magSize}";
 
-            if (gun.reload)
-                magStr += " R";
-
-
-            //DrawMiniMap(deltaTime);
-
+            
             if(miniMapEnabled)
                 spriteBatch.Draw(mapTarget, mapTexBounds, Color.White);
 
+            var keyState = Keyboard.GetState();
+
+            if (keyState.IsKeyDown(Keys.Tab))
+            {
+                DrawTAB();
+            }
             KillFeed(deltaTime);
 
             spriteBatch.DrawString(game.fontXLarge, "+", new Vector2(game.screenWidth / 3, game.screenHeight - 55), Color.White);
@@ -107,7 +114,53 @@ namespace nixfps.Components.HUD
             spriteBatch.End();
 
         }
-        
+        void DrawTAB()
+        {
+            var xPos = game.screenWidth / 4;
+            var yPos = game.screenHeight / 4;
+
+            spriteBatch.Draw(semiTransparentPixel, new Rectangle(xPos,yPos, game.screenWidth / 2, game.screenHeight / 2), new Color(Color.Black, .5f));
+
+            xPos += 5;
+            yPos += 5;
+
+            var kdDelta = 400;
+            var lp = game.localPlayer;
+            var strName = $"{lp.name}";
+            var strNameSize = game.fontSmall.MeasureString(strName).X;
+            var xDelta = kdDelta > strNameSize ? kdDelta - strNameSize : strNameSize + 5;
+            var col = lp.teamColor != Vector3.Zero ? new Color(lp.teamColor) : Color.White;
+            var KDpos = xPos + xDelta;
+
+            var strKD = $"KD {lp.kills} / {lp.deaths}";
+
+            spriteBatch.DrawString(game.fontSmall, strName, new Vector2(xPos, yPos), col);
+
+            spriteBatch.DrawString(game.fontSmall, strKD, new Vector2(KDpos, yPos), Color.White);
+
+
+            yPos += 30;
+
+            foreach (var p in NetworkManager.players)
+            {
+                if (p.connected)
+                {
+                    strName = $"{p.name}";
+                    strNameSize = game.fontSmall.MeasureString(strName).X;
+                    xDelta = kdDelta > strNameSize ? kdDelta - strNameSize : strNameSize + 5;
+                    col = p.teamColor != Vector3.Zero ? new Color(p.teamColor) : Color.White;
+                    KDpos = xPos + xDelta;
+
+                    strKD = $"KD {p.kills} / {p.deaths}";
+                    spriteBatch.DrawString(game.fontSmall, strName, new Vector2(xPos, yPos), col);
+
+                    spriteBatch.DrawString(game.fontSmall, strKD, new Vector2(KDpos, yPos), Color.White);
+
+
+                    yPos += 30;
+                }
+            }
+        }
         void KillFeed(float deltaTime)
         {
             var kfl = NetworkManager.killFeed;

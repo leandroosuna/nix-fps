@@ -185,6 +185,12 @@ namespace nixfps.Components.Gun
             
 
         }
+
+        float reloadAnimTime = 0f;
+        float pitchDelta = 0f;
+        float posDelta = 0f;
+        bool reloadAnim;
+        
         public void DrawGun(float deltaTime)
         {
             if (camera.isFree)
@@ -206,6 +212,64 @@ namespace nixfps.Components.Gun
                 pitch += (float)(r.NextDouble() * 2 - 1) * 1.15f;
                 pos += camera.frontDirection * (float)(r.NextDouble() * 2 - 1) * .05f;
             }
+
+            var targetPitch = 50;
+            var targetPos = 1.2f;
+            
+            var animDownTime = .25f;
+            var speedPitch = targetPitch / animDownTime;
+            var speedPos = targetPos / animDownTime;
+
+            var animUpTime = .5f;
+            var speedUpPitch = targetPitch / animUpTime;
+            var speedUpPos = targetPos / animUpTime;
+
+            if(currentGun.reload)
+            {
+                if (currentGun.reloadTimer < currentGun.reloadTime - animUpTime * 1.1f) //small time buffer for animation
+                {
+                    if (reloadAnimTime < animDownTime)
+                    {
+                        pitchDelta -= speedPitch * deltaTime;
+                        posDelta += speedPos * deltaTime;
+
+                        reloadAnimTime += deltaTime;
+                    }
+                    else if (reloadAnimTime >= animDownTime)
+                    {
+                        pitchDelta = -targetPitch;
+                        posDelta = targetPos;
+
+                        reloadAnimTime = animDownTime;
+                    }
+
+                }
+                else
+                {
+                    if (reloadAnimTime >= animDownTime && reloadAnimTime < animDownTime + animUpTime)
+                    {
+                        pitchDelta += speedUpPitch * deltaTime;
+                        posDelta -= speedUpPos * deltaTime;
+
+                        reloadAnimTime += deltaTime;
+                    }
+                    else if (reloadAnimTime >= animDownTime + animUpTime)
+                    {
+
+                        pitchDelta = 0;
+                        posDelta = 0;
+
+                        reloadAnimTime = 0;
+
+                    }
+                }
+            }
+            
+
+            pitch += pitchDelta;
+            pos += -camera.upDirection * 0.5f * posDelta;
+
+
             var rot = Matrix.CreateFromYawPitchRoll(-MathHelper.ToRadians(yaw) + MathHelper.PiOver2, -MathHelper.ToRadians(pitch), 0);
             gunWorld = Matrix.CreateScale(.8f) * rot * Matrix.CreateTranslation(pos);
 
