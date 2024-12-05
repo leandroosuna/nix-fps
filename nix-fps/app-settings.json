@@ -11,8 +11,8 @@
     "FontPath": "C:/Windows/Fonts/Unispace bd.ttf",
     "FontSize": 20,
 
-    "ScreenWidth": 1600,
-    "ScreenHeight": 900,
+    "ScreenWidth": 1366,
+    "ScreenHeight": 768,
     "Fullscreen": false,
     "GraphicsPreset": "ultra",
     "VSync": false,

@@ -26,6 +26,9 @@
     <None Update="Content\Fonts\unispace\unispace.ttf">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
+    <None Update="crosshair-slots.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
     <None Update="input-settings.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>

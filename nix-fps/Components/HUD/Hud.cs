@@ -124,42 +124,81 @@ namespace nixfps.Components.HUD
             xPos += 5;
             yPos += 5;
 
-            var kdDelta = 400;
+            var KDPos = xPos + 400;
+            
             var lp = game.localPlayer;
-            var strName = $"{lp.name}";
-            var strNameSize = game.fontSmall.MeasureString(strName).X;
-            var xDelta = kdDelta > strNameSize ? kdDelta - strNameSize : strNameSize + 5;
-            var col = lp.teamColor != Vector3.Zero ? new Color(lp.teamColor) : Color.White;
-            var KDpos = xPos + xDelta;
 
-            var strKD = $"KD {lp.kills} / {lp.deaths}";
-
-            spriteBatch.DrawString(game.fontSmall, strName, new Vector2(xPos, yPos), col);
-
-            spriteBatch.DrawString(game.fontSmall, strKD, new Vector2(KDpos, yPos), Color.White);
+            //yPos += 30;
+            
+            (_, yPos) = DrawHeader(xPos, yPos, KDPos);
 
 
-            yPos += 30;
+            (_, yPos) = DrawPlayerName(lp, xPos, yPos);
+            (_, yPos) = DrawPlayerKD(lp, KDPos, yPos);
+
+            //yPos += 30;
 
             foreach (var p in NetworkManager.players)
             {
                 if (p.connected)
                 {
-                    strName = $"{p.name}";
-                    strNameSize = game.fontSmall.MeasureString(strName).X;
-                    xDelta = kdDelta > strNameSize ? kdDelta - strNameSize : strNameSize + 5;
-                    col = p.teamColor != Vector3.Zero ? new Color(p.teamColor) : Color.White;
-                    KDpos = xPos + xDelta;
+                    (_, yPos) = DrawPlayerName(p, xPos, yPos);
+                    (_, yPos) = DrawPlayerKD(p, KDPos, yPos);
+                    //strName = $"{p.name}";
+                    //strNameSize = game.fontSmall.MeasureString(strName).X;
+                    //xDelta = kdDelta > strNameSize ? kdDelta - strNameSize : strNameSize + 5;
+                    //col = p.teamColor != Vector3.Zero ? new Color(p.teamColor) : Color.White;
+                    //KDpos = xPos + xDelta;
 
-                    strKD = $"KD {p.kills} / {p.deaths}";
-                    spriteBatch.DrawString(game.fontSmall, strName, new Vector2(xPos, yPos), col);
+                    //strKD = $"KD {p.kills} / {p.deaths}";
+                    //spriteBatch.DrawString(game.fontSmall, strName, new Vector2(xPos, yPos), col);
 
-                    spriteBatch.DrawString(game.fontSmall, strKD, new Vector2(KDpos, yPos), Color.White);
+                    //spriteBatch.DrawString(game.fontSmall, strKD, new Vector2(KDpos, yPos), Color.White);
 
 
-                    yPos += 30;
+                    //yPos = 30;
                 }
             }
+        }
+        (int x, int y) DrawHeader(int x, int y, int KDPos)
+        {
+            var str = "NIX FPS - DEATHMATCH";
+            var size = game.fontMedium.MeasureString(str);
+
+            
+
+            spriteBatch.DrawString(game.fontMedium, str, new Vector2(game.screenWidth/2 - size.X/2, y), Color.White);
+            y+=(int)size.Y + 5;
+
+            str = "Jugador";
+            size = game.fontSmall.MeasureString(str);
+
+            spriteBatch.DrawString(game.fontSmall, str, new Vector2(x, y), Color.White);
+
+            str = "KD";
+            x = KDPos;
+            spriteBatch.DrawString(game.fontSmall, str, new Vector2(x, y), Color.White);
+            y += (int)size.Y + 5;
+            
+            return (x, y);
+        }
+        (int x, int y) DrawPlayerName(Player p, int x, int y)
+        {
+            var str = p.name;
+
+            var col = p.teamColor != Vector3.Zero ? new Color(p.teamColor) : Color.White;
+            spriteBatch.DrawString(game.fontSmall, p.name, new Vector2(x, y), col);
+            //y+= (int)game.fontSmall.MeasureString(str).Y + 5;
+
+            return (x, y);
+        }
+        (int x, int y) DrawPlayerKD(Player p, int x, int y)
+        {
+            var str = $"{p.kills} - {p.deaths}";
+            spriteBatch.DrawString(game.fontSmall, str, new Vector2(x, y), Color.White);
+            y += (int)game.fontSmall.MeasureString(str).Y + 5;
+
+            return (x, y);
         }
         void KillFeed(float deltaTime)
         {

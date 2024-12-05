@@ -1,10 +1,15 @@
 ﻿using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
+using Newtonsoft.Json.Linq;
+using SharpDX.XAudio2;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using static System.Reflection.Metadata.BlobBuilder;
 using static System.Windows.Forms.VisualStyles.VisualStyleElement;
 
 namespace nixfps.Components.HUD
@@ -21,7 +26,7 @@ namespace nixfps.Components.HUD
         Color color = Color.White;
         Color centerDotColor = Color.White;
         Color outlineColor = Color.Black;
-
+            
         public int centerDotSize = 2;
         public int length = 4;
         public int thickness = 2;
@@ -36,11 +41,20 @@ namespace nixfps.Components.HUD
         Texture2D pixelTex;
         NixFPS game;
         public bool modified = false;
+        //JObject slots;
+        JArray slots;
+        int currentSlot = 0;
+        const string slotsFilePath = "crosshair-slots.json";
         public Crosshair(NixFPS game)
         {
             this.game = game;
             pixelTex = game.Content.Load<Texture2D>(NixFPS.ContentFolder3D + "basic/Tex/white-pixel");
-            
+            slots = JArray.Parse(File.ReadAllText(slotsFilePath));
+
+            //Debug.WriteLine(outlineColor.PackedValue.ToString()); //{R:255 G:255 B:255 A:255} white 4294967295  black 4278190080
+
+
+
             Center();
         }
         public void Center(int offsetX = 0, int offsetY = 0)
@@ -118,7 +132,96 @@ namespace nixfps.Components.HUD
                 }
             }
         }
+        public void SetSlotActive(int slot)
+        {
+            if (slot < 0 || slot >= 10)
+                return;
+            currentSlot = slot;
+            enabled = slots[slot]["Enabled"].Value<bool>();
+            centerDot = slots[slot]["CenterDot"].Value<bool>();
+            mainLines = slots[slot]["MainLines"].Value<bool>();
+            outline = slots[slot]["Outline"].Value<bool>();
+            centerDotSize = slots[slot]["CenterDotSize"].Value<int>();
+            length= slots[slot]["Length"].Value<int>();
+            thickness = slots[slot]["Thickness"].Value<int>();
+            outlineThickness = slots[slot]["OutlineThickness"].Value<int>();
+            offset = slots[slot]["Offset"].Value<int>();
+            color = new Color(slots[slot]["Color"].Value<uint>());
+            centerDotColor = new Color(slots[slot]["CenterDotColor"].Value<uint>());
+            outlineColor = new Color(slots[slot]["OutlineColor"].Value<uint>());
+        }
+        public void SaveFile()
+        {
+            slots[currentSlot]["Enabled"] = enabled;
+            slots[currentSlot]["CenterDot"] = centerDot;
+            slots[currentSlot]["MainLines"] = mainLines;
+            slots[currentSlot]["Outline"] = outline;
+            slots[currentSlot]["CenterDotSize"] = centerDotSize;
+            slots[currentSlot]["Length"] = length;
+            slots[currentSlot]["Thickness"] = thickness;
+            slots[currentSlot]["OutlineThickness"] = outlineThickness;
+            slots[currentSlot]["Offset"] = offset;
+            slots[currentSlot]["Color"] = color.PackedValue;
+            slots[currentSlot]["CenterDotColor"] = centerDotColor.PackedValue;
+            slots[currentSlot]["OutlineColor"] = outlineColor.PackedValue;
 
+            File.WriteAllText(slotsFilePath, slots.ToString());
+        }
+        public int GetSlotActive()
+        {
+            return currentSlot;
+        }
+        public Color GetColor()
+        {
+            
+            return new Color(slots[currentSlot]["Color"].Value<uint>());
+        }
+        public Color GetDotColor()
+        {
+            return new Color(slots[currentSlot]["CenterDotColor"].Value<uint>());
+        }
+        public Color GetOutlineColor()
+        {
+
+            return new Color(slots[currentSlot]["OutlineColor"].Value<uint>());
+        }
+        public bool GetEnableLines()
+        {
+            return slots[currentSlot]["MainLines"].Value<bool>();
+        }
+        public bool GetEnableOutline()
+        {
+            return slots[currentSlot]["Outline"].Value<bool>();
+        }
+        public bool GetEnableDot()
+        {
+            return slots[currentSlot]["CenterDot"].Value<bool>();
+        }
+        public bool GetEnabled()
+        {
+            return slots[currentSlot]["Enabled"].Value<bool>();
+        }
+
+        public int GetLineLength()
+        {
+            return slots[currentSlot]["Length"].Value<int>();
+        }
+        public int GetLineThickness()
+        {
+            return slots[currentSlot]["Thickness"].Value<int>(); 
+        }
+        public int GetLineOffset()
+        {
+            return slots[currentSlot]["Offset"].Value<int>();
+        }
+        public int GetOutlineThickness()
+        {
+            return slots[currentSlot]["OutlineThickness"].Value<int>();
+        }
+        public int GetDotSize()
+        {
+            return slots[currentSlot]["CenterDotSize"].Value<int>();
+        }
         public void SetColor(Color color)
         {
             this.color = color;

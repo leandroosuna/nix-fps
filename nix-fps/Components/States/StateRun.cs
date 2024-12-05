@@ -288,7 +288,6 @@ namespace nixfps.Components.States
         public Vector3 GetSafeLocation()
         {
             Random r = new Random();
-            return spawnPos[0];
             return spawnPos[r.NextInt64(0, spawnPos.Length)];
         }
 
