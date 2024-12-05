@@ -155,6 +155,19 @@ namespace nixfps.Components.Gun
         }
         public void ChangeGun(int id)
         {
+            if(currentGun.reload)
+            {
+                
+                currentGun.reloadTimer = 0;
+                reloadAnimTime = 0f;
+                pitchDelta = 0f;
+                posDelta = 0f;
+
+                if(currentGun.shotsFired < currentGun.magSize)
+                {
+                    currentGun.reload = false;
+                }
+            }
             switch (id)
             {
                 case 1: currentGun = rifle; break;
@@ -189,7 +202,6 @@ namespace nixfps.Components.Gun
         float reloadAnimTime = 0f;
         float pitchDelta = 0f;
         float posDelta = 0f;
-        bool reloadAnim;
         
         public void DrawGun(float deltaTime)
         {
