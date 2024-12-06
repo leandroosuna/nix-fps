@@ -29,10 +29,8 @@ namespace nixfps.Components.Gun
         private float accumulatedYaw = 0f;
         private bool isFiring = false;
 
-        // Smoothing settings
-        private float recoilReturnSpeed = 20f; // Speed of return to the original position
-        private float recoilSmoothingSpeed = 60f; // Higher values mean faster smoothing
-        // Game instance
+        private float recoilReturnSpeed = 20f; 
+        private float recoilSmoothingSpeed = 60f; 
         NixFPS game;
         public string name;
         public byte id;
@@ -45,6 +43,20 @@ namespace nixfps.Components.Gun
         public float reloadTimer = 0;
         public float reloadTime = 1.5f;
 
+        public float reloadAnimTime = 0f;
+        float targetPitch = 50f;
+        float targetPos = 1.2f;
+        float animDownTime = .25f;
+        float animUpTime = .5f;
+
+        float speedPitch;
+        float speedPos;
+
+        float speedUpPitch;
+        float speedUpPos;
+
+        public float pitchDelta;
+        public float posDelta;
         public Gun(byte id, string name, byte damageHead, byte damageBody, byte damageLeg, bool fullAuto, float fireRate, uint magSize, List<(float, float)> recoil)
         {
             this.id = id;
@@ -56,12 +68,16 @@ namespace nixfps.Components.Gun
             this.fireRate = fireRate;
             this.magSize = magSize;
 
-            // Get game instance
             game = NixFPS.GameInstance();
 
             fixedRecoilPattern = recoil;
-            
-            
+
+            speedPitch = targetPitch / animDownTime;
+            speedPos = targetPos / animDownTime;
+
+            speedUpPitch = targetPitch / animUpTime;
+            speedUpPos = targetPos / animUpTime;
+
         }
         public void Update(float deltaTime, bool fireKeyDown)
         {
@@ -116,16 +132,67 @@ namespace nixfps.Components.Gun
 
                 }
             }
-            if(reload)
+            if (reload)
             {
                 reloadTimer += deltaTime;
-                if(reloadTimer >= reloadTime)
+                if (reloadTimer >= reloadTime)
                 {
                     reload = false;
                     reloadTimer = 0;
                     shotsFired = 0;
                 }
-            }    
+
+                //Debug.WriteLine($"RT {reloadTimer:F2} AT {reloadAnimTime:F2} PD {pitchDelta:F2}");
+                if (reloadTimer < reloadTime - animUpTime * 1.05f) //small time buffer for animation
+                {
+                    if (reloadAnimTime < animDownTime)
+                    {
+                        pitchDelta -= speedPitch * deltaTime;
+                        posDelta += speedPos * deltaTime;
+
+                        reloadAnimTime += deltaTime;
+                        //Debug.WriteLine($"down {reloadAnimTime:F2}");
+                    }
+                    else if (reloadAnimTime >= animDownTime)
+                    {
+                        pitchDelta = -targetPitch;
+                        posDelta = targetPos;
+
+                        reloadAnimTime = animDownTime;
+                        //Debug.WriteLine("down stop");
+                    }
+
+                }
+                else
+                {
+                    if (reloadAnimTime >= animDownTime && reloadAnimTime < animDownTime + animUpTime)
+                    {
+                        pitchDelta += speedUpPitch * deltaTime;
+                        posDelta -= speedUpPos * deltaTime;
+
+                        reloadAnimTime += deltaTime;
+                        //Debug.WriteLine($"up {reloadAnimTime:F2}");
+                    }
+                    else if (reloadAnimTime >= animDownTime + animUpTime)
+                    {
+
+                        pitchDelta = 0;
+                        posDelta = 0;
+
+                        reloadAnimTime = 0;
+                        //Debug.WriteLine("up stop");
+                    }
+                }
+            }
+            else
+            {
+                pitchDelta = 0;
+                posDelta = 0;
+
+                reloadAnimTime = 0;
+            }
+
+            
         }
         
 

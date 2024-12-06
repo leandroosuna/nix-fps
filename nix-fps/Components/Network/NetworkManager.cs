@@ -54,8 +54,16 @@ namespace nixfps.Components.Network
             localPlayer.position = GameStateManager.stateRun.GetSafeLocation();
             Client = new Client();
 
-            var server = game.CFG["ServerIP"].Value<string>();
-            serverIP = Dns.GetHostAddresses(server)[0].ToString();
+            if(game.CFG.ContainsKey("ServerIP"))
+                serverIP = game.CFG["ServerIP"].Value<string>();
+            else
+            {
+                var server = game.CFG["ServerURL"].Value<string>();
+                serverIP = Dns.GetHostAddresses(server)[0].ToString();
+
+            }
+           
+            
             serverIP +=":7777";
 
             Client.Connect(serverIP);

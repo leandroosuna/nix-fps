@@ -106,8 +106,6 @@ float4 PS(VSO input) : COLOR
     float4 sampledColor = tex2D(TextureSampler, rotatedTexCoord);
     float3 color = sampledColor.rgb;
 
-    if (color.r < 0.01 && color.g < 0.01 && color.b < 0.01)
-        discard;
     
     if (DrawPlayerTriangle(RotateTexCoord(input.TexCoord, center, PIOver2 + rotation), 
         localPlayerPos, localPlayerYaw, 0.025, 0.0175))
@@ -129,6 +127,8 @@ float4 PS(VSO input) : COLOR
             return lerp(float4(color, 1), float4(1, 0, 0, 1), clamp((sin(time) - .25) * 4, 0, 1));
         }
     }
-
+    if (color.r < 0.01 && color.g < 0.01 && color.b < 0.01)
+        discard;
+    
     return float4(color, 1);
 }

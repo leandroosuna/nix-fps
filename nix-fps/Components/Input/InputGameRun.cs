@@ -82,20 +82,20 @@ namespace nixfps.Components.Input
                 }
             }
 
-            if (keyMappings.CAPS.IsDown())
-            {
-                if (!keysDown.Contains(keyMappings.CAPS))
-                {
-                    keysDown.Add(keyMappings.CAPS);
-                    camera.SetFreeToggle();
-                }
-            }
+            //if (keyMappings.CAPS.IsDown())
+            //{
+            //    if (!keysDown.Contains(keyMappings.CAPS))
+            //    {
+            //        keysDown.Add(keyMappings.CAPS);
+            //        camera.SetFreeToggle();
+            //    }
+            //}
             if (keyMappings.Debug0.IsDown())
             {
                 if (!keysDown.Contains(keyMappings.Debug0))
                 {
                     keysDown.Add(keyMappings.Debug0);
-                    
+                    camera.SetFreeToggle();
                 }
             }
             if (keyMappings.Debug9.IsDown())

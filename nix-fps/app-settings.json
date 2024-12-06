@@ -16,12 +16,14 @@
     "Fullscreen": false,
     "GraphicsPreset": "ultra",
     "VSync": false,
-    "FPSLimit": 269,
+    "FPSLimit": 400,
 
     "FOV": 95,
     "MouseSensitivity": 0.15,
 
-    "ServerIP": "nix.dynamic-dns.net",
+    //"ServerIP": "192.168.1.45",
+    //"ServerURL": "nix.dynamic-dns.net",
+    "ServerURL": "nixfps.duckdns.org",
     "ClientID": 111111,
     "PlayerName": "nix",
     "TPS": 200,

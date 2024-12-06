@@ -121,7 +121,7 @@ namespace nixfps.Components.Gun
             var pos = camera.position
                         - camera.upDirection * .5f
                         + camera.rightDirection * .6f
-                        + camera.frontDirection * 1.6f;
+                        + camera.frontDirection * 15f;
 
             var dir = camera.frontDirection;
             tracers.Add(new Tracer(Color.Green.ToVector3(), pos, dir));
@@ -155,13 +155,16 @@ namespace nixfps.Components.Gun
         }
         public void ChangeGun(int id)
         {
+            if (currentGun.id == id)
+                return;
+
             if(currentGun.reload)
             {
                 
                 currentGun.reloadTimer = 0;
-                reloadAnimTime = 0f;
-                pitchDelta = 0f;
-                posDelta = 0f;
+                currentGun.reloadAnimTime = 0f;
+                currentGun.pitchDelta = 0f;
+                currentGun.posDelta = 0f;
 
                 if(currentGun.shotsFired < currentGun.magSize)
                 {
@@ -199,10 +202,11 @@ namespace nixfps.Components.Gun
 
         }
 
-        float reloadAnimTime = 0f;
-        float pitchDelta = 0f;
-        float posDelta = 0f;
-        
+        float yawDelta = 0f;
+        private Queue<(float yaw, float timestamp)> yawHistory = new Queue<(float, float)>();
+        public float yawOffset;
+
+        float time = 0f;
         public void DrawGun(float deltaTime)
         {
             if (camera.isFree)
@@ -213,74 +217,72 @@ namespace nixfps.Components.Gun
                         - camera.upDirection * .5f
                         + camera.rightDirection * .6f
                         + camera.frontDirection * 1f;
-
             var yaw = camera.yaw;
             var pitch = camera.pitch;
 
-            Random r = new Random();
-            if (firingAnim)
+            time += deltaTime;
+
+            yawHistory.Enqueue((camera.yaw, time));
+
+            // Remove outdated entries from the history (older than the sliding window)
+            float timeWindow = .05f; // Adjust the time window size (e.g., 0.2 seconds)
+            while (yawHistory.Count > 0 && time - yawHistory.Peek().timestamp > timeWindow)
             {
-                yaw += (float)(r.NextDouble() * 2 - 1) * 1.15f;
-                pitch += (float)(r.NextDouble() * 2 - 1) * 1.15f;
-                pos += camera.frontDirection * (float)(r.NextDouble() * 2 - 1) * .05f;
+                yawHistory.Dequeue();
             }
 
-            var targetPitch = 50;
-            var targetPos = 1.2f;
-            
-            var animDownTime = .25f;
-            var speedPitch = targetPitch / animDownTime;
-            var speedPos = targetPos / animDownTime;
-
-            var animUpTime = .5f;
-            var speedUpPitch = targetPitch / animUpTime;
-            var speedUpPos = targetPos / animUpTime;
-
-            if(currentGun.reload)
+            // Calculate the average yaw delta over the time window
+            if (yawHistory.Count > 1)
             {
-                if (currentGun.reloadTimer < currentGun.reloadTime - animUpTime * 1.1f) //small time buffer for animation
+                var avg = 0f;
+                var count = yawHistory.Count;
+                foreach(var yh in yawHistory)
                 {
-                    if (reloadAnimTime < animDownTime)
-                    {
-                        pitchDelta -= speedPitch * deltaTime;
-                        posDelta += speedPos * deltaTime;
+                    var hYaw = (yh.yaw + 360) % 360;
+                    var camYaw = (camera.yaw + 360) % 360;
 
-                        reloadAnimTime += deltaTime;
-                    }
-                    else if (reloadAnimTime >= animDownTime)
-                    {
-                        pitchDelta = -targetPitch;
-                        posDelta = targetPos;
+                    // Calculate the difference and normalize it to [-180, 180)
+                    float difference = hYaw - camYaw;
+                    if (difference > 180)
+                        difference -= 360;
+                    else if (difference < -180)
+                        difference += 360;
 
-                        reloadAnimTime = animDownTime;
-                    }
-
+                    avg += difference;
                 }
-                else
-                {
-                    if (reloadAnimTime >= animDownTime && reloadAnimTime < animDownTime + animUpTime)
-                    {
-                        pitchDelta += speedUpPitch * deltaTime;
-                        posDelta -= speedUpPos * deltaTime;
+                avg /= count;
 
-                        reloadAnimTime += deltaTime;
-                    }
-                    else if (reloadAnimTime >= animDownTime + animUpTime)
-                    {
+                yawOffset = avg * 0.5f;
 
-                        pitchDelta = 0;
-                        posDelta = 0;
+            }
 
-                        reloadAnimTime = 0;
 
-                    }
-                }
+
+            //Random r = new Random();
+            //if (firingAnim)
+            //{
+            //    yaw += (float)(r.NextDouble() * 2 - 1) * 1.15f;
+            //    pitch += (float)(r.NextDouble() * 2 - 1) * 1.15f;
+            //    pos += camera.frontDirection * (float)(r.NextDouble() * 2 - 1) * .05f;
+            //}
+
+           
+            
+            if (currentGun.reload)
+            {
+                
             }
             
 
-            pitch += pitchDelta;
-            pos += -camera.upDirection * 0.5f * posDelta;
+            pitch += currentGun.pitchDelta;
+            pos += -camera.upDirection * 0.5f * currentGun.posDelta;
 
+            yaw += yawOffset;
+
+            if (yaw > 360)
+                yaw -= 360;
+            if (yaw < 0)
+                yaw += 360;
 
             var rot = Matrix.CreateFromYawPitchRoll(-MathHelper.ToRadians(yaw) + MathHelper.PiOver2, -MathHelper.ToRadians(pitch), 0);
             gunWorld = Matrix.CreateScale(.8f) * rot * Matrix.CreateTranslation(pos);

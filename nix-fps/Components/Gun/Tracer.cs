@@ -6,6 +6,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System;
 using nixfps.Components.Lights;
+using Microsoft.VisualBasic.Devices;
 
 namespace nixfps.Components.Gun
 {
@@ -44,14 +45,18 @@ namespace nixfps.Components.Gun
             float pitch = MathF.Atan2(MathF.Sqrt(dir.X * dir.X + dir.Z * dir.Z), dir.Y);
             float yaw = -MathF.Atan2(dir.Z, dir.X) + MathHelper.PiOver2;
 
-            var scale = Matrix.CreateScale(new Vector3(0.0002f, 0.07f, 0.0002f));
+            var scale = Matrix.CreateScale(new Vector3(0.000075f, 0.2f, 0.000075f));
 
             var rot = Matrix.CreateFromYawPitchRoll(yaw, pitch, 0);
             var trans = Matrix.CreateTranslation(position);
 
             game.basicModelEffect.SetTech("color_lightDis");
-            game.basicModelEffect.SetColor(color);
+            var tc = game.localPlayer.teamColor;
+            color = tc == Vector3.Zero ? Vector3.One : tc;
 
+            game.basicModelEffect.SetColor(color);
+            lightEmitter.color = color;
+            lightEmitter.specularColor = color;
             foreach (var mesh in model.Meshes)
             {
                 var w = mesh.ParentBone.Transform * scale * rot * trans;

@@ -565,7 +565,7 @@ namespace nixfps.Components.States
             game.animationManager.DrawPlayers();
             game.lightsManager.DrawLightGeo();
 
-            game.gunManager.DrawGun(dDeltaTimeFloat);
+            game.gunManager.DrawGun(uDeltaTimeFloat);
             
             
             game.gizmos.Draw();
@@ -614,7 +614,7 @@ namespace nixfps.Components.States
 
             game.fullScreenQuad.Draw(game.deferredEffect.effect);
             
-            if (dTime >= 0.1f)
+            if (dTime >= 0.05f)
             {
                 dTime = 0;
                 var cam = game.camera.position;
@@ -632,7 +632,7 @@ namespace nixfps.Components.States
                     str2 = " Reconectando...";
                 }
                 str3 = $" KD {lp.kills}/{lp.deaths}";
-
+                str4 = $"{game.gunManager.currentGun.pitchDelta:F2} ";
                 //if (NetworkManager.players.Count > 0)
                 //    str4 = $"{NetworkManager.players[0].footsteps}";
 
