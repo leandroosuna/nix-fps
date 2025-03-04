@@ -632,7 +632,7 @@ namespace nixfps.Components.States
                     str2 = " Reconectando...";
                 }
                 str3 = $" KD {lp.kills}/{lp.deaths}";
-                str4 = $"{game.gunManager.currentGun.pitchDelta:F2} ";
+                //str4 = $"{game.gunManager.currentGun.pitchDelta:F2} ";
                 //if (NetworkManager.players.Count > 0)
                 //    str4 = $"{NetworkManager.players[0].footsteps}";
 

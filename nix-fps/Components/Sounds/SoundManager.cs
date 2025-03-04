@@ -156,8 +156,13 @@ namespace nixfps.Components.Audio
         public static void FireGun(string name, Player p)
         {
             var emitter = new AudioEmitter();
-            emitter.Position = p.position;
+            var lp = NetworkManager.localPlayer;
 
+
+            var dir = p.position - lp.position;
+
+            emitter.Position = dir * .4f;
+            
             var instance = soundRifle.CreateInstance();
 
             switch(name)
@@ -168,7 +173,7 @@ namespace nixfps.Components.Audio
             effectsBeingPlayed.Add((instance, emitter, p.id));
             instance.IsLooped = false;
             instance.Apply3D(listener, emitter);
-            if (p.id == NetworkManager.localPlayer.id)
+            if (p.id == lp.id)
                 instance.Volume = .5f;
             else
             {

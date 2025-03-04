@@ -297,7 +297,10 @@ namespace nixfps.Components.Network
                         
                         localPlayer.health = hp;
                         if(prevHp > localPlayer.health)
+                        {
+                            game.hud.SetDamagedBy(damagerId);
                             SoundManager.PlayDamaged(hp);
+                        }
 
                         if(hp == 0)
                         {

@@ -22,8 +22,8 @@
     "MouseSensitivity": 0.15,
 
     //"ServerIP": "192.168.1.45",
-    //"ServerURL": "nix.dynamic-dns.net",
-    "ServerURL": "nixfps.duckdns.org",
+    "ServerURL": "nix.dynamic-dns.net",
+    //"ServerURL": "nixfps.duckdns.org",
     "ClientID": 111111,
     "PlayerName": "nix",
     "TPS": 200,

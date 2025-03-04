@@ -3,6 +3,7 @@ using Microsoft.Xna.Framework.Input;
 using Microsoft.Xna.Framework.Graphics;
 using nixfps.Components.Network;
 using System;
+using System.Reflection.Metadata;
 
 
 namespace nixfps.Components.HUD
@@ -26,6 +27,8 @@ namespace nixfps.Components.HUD
         Texture2D pistol, rifle;
         Vector2 sizePistol, sizeRifle;
         Texture2D semiTransparentPixel;
+        Texture2D transparentPixel;
+
         public Hud()
         {
             game = NixFPS.GameInstance();
@@ -35,6 +38,7 @@ namespace nixfps.Components.HUD
             pistol = game.Content.Load<Texture2D>(NixFPS.ContentFolder3D + "gun/beretta/icon");
             rifle = game.Content.Load<Texture2D>(NixFPS.ContentFolder3D + "gun/m16/icon");
             semiTransparentPixel = game.Content.Load<Texture2D>(NixFPS.ContentFolder3D + "basic/Tex/pixelSemiTransparent");
+            transparentPixel = game.Content.Load<Texture2D>(NixFPS.ContentFolder3D + "basic/Tex/transparent-pixel");
 
             sizeRifle = new Vector2((int)((1000) * .1f), (int)((363) * .1f));
             sizePistol = new Vector2((int)((650) * .06f), (int)((400) * .06f));
@@ -84,7 +88,7 @@ namespace nixfps.Components.HUD
             mmEffect.Parameters["playerPositions"].SetValue(playerPositions);
             mmEffect.Parameters["numPlayers"].SetValue(i);
         }
-
+        
         public void DrawRun(float deltaTime)
         {
             var lp = game.localPlayer;
@@ -95,6 +99,8 @@ namespace nixfps.Components.HUD
             var gun = game.gunManager.currentGun;
             var magStr = $"{gun.magSize - gun.shotsFired}/{gun.magSize}";
 
+            
+            DrawDamageArc(deltaTime);
             
             if(miniMapEnabled)
                 spriteBatch.Draw(mapTarget, mapTexBounds, Color.White);
@@ -114,6 +120,65 @@ namespace nixfps.Components.HUD
             spriteBatch.End();
 
         }
+        float showDamageTime;
+        bool showDamageArc;
+        Player damagedBy;
+        public void SetDamagedBy(uint playerId)
+        {
+            damagedBy = NetworkManager.GetPlayerFromId(playerId);
+            showDamageArc = true;
+            showDamageTime = 0;
+        }
+        public void DrawDamageArc(float deltaTime)
+        {
+            if(showDamageArc)
+            {
+                Vector2 direction = new Vector2(damagedBy.position.X - game.localPlayer.position.X, damagedBy.position.Z - game.localPlayer.position.Z);
+
+                // Get the angle to player2 in radians
+                float angleToPlayer2 = MathF.Atan2(direction.Y, direction.X);
+
+                // Convert camera yaw from degrees to radians
+                float cameraYawRadians = MathHelper.ToRadians(game.camera.yaw);
+
+                // Calculate the relative angle
+                float relativeAngle = -(angleToPlayer2 - cameraYawRadians) + MathF.PI;
+
+                // Normalize the angle to the range [-π, π]
+                if (relativeAngle > MathF.PI)
+                    relativeAngle -= 2 * MathF.PI;
+                else if (relativeAngle < -MathF.PI)
+                    relativeAngle += 2 * MathF.PI;
+
+                Color color = Color.Red;
+                for (int i = -5; i <= 5; i++)
+                {
+                    DrawSegment(color, relativeAngle + i * MathHelper.Pi / 40);
+
+                }
+
+                if (showDamageTime <= 4)
+                {
+                    showDamageTime += deltaTime;
+                }
+                else
+                {
+                    showDamageArc = false;
+                    showDamageTime = 0;
+                }
+            }
+            
+        }
+
+        void DrawSegment(Color c, float angle)
+        {
+            var x = game.screenWidth / 2 + MathF.Sin(angle) * 70;
+            var y = game.screenHeight / 2 + MathF.Cos(angle) * 70;
+            var rec = new Rectangle((int)x - 1, (int)y - 1, 30, 2);
+            spriteBatch.Draw(semiTransparentPixel, rec, null, new Color(c, 1), -angle + MathHelper.PiOver2,
+                new Vector2(0.5f, 0), SpriteEffects.None, 0f);
+        }
+
         void DrawTAB()
         {
             var xPos = game.screenWidth / 4;
